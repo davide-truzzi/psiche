@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Psiche Writer
+GenericName=Book editor
+Comment=Write books in Markdown, with their history in Git
+Exec=psiche %f
+Icon=psiche
+Terminal=false
+Categories=Office;WordProcessor;
+StartupWMClass=it.infog.psiche.ui.WriterApp

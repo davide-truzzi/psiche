@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+     stroke="#2a2219" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A paperclip, on a note's toolbar, for its file.
+       The app reads only the paths; .note-paperclip in writer.css gives the ink and size. -->
+  <path d="M16 7l-7.5 7.5a2.5 2.5 0 0 0 3.5 3.5l8-8a4 4 0 0 0-5.7-5.7l-8 8a5.5 5.5 0 0 0 7.8 7.8L21 13"/>
+</svg>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The file's properties, as a word processor shows them: the chapter's title, the authors and the language. -->
+<office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+                      xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0"
+                      xmlns:dc="http://purl.org/dc/elements/1.1/"
+                      office:version="1.3">
+    <office:meta>
+        <meta:generator>Psiche Writer</meta:generator>
+        <dc:title>{{title}}</dc:title>
+        <meta:initial-creator>{{authors}}</meta:initial-creator>
+        <dc:creator>{{authors}}</dc:creator>
+        <dc:language>{{language}}</dc:language>
+    </office:meta>
+</office:document-meta>

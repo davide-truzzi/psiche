@@ -1,0 +1,190 @@
+package it.infog.psiche.ui.preferences;
+
+import it.infog.psiche.ui.common.Controls;
+import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.common.Logo;
+
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Hyperlink;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
+import javafx.stage.Window;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.lang.module.ModuleDescriptor;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+
+/**
+ * Psiche Writer's name, version and author, the licence it is distributed under, a way to support it, and the
+ * licences of the fonts and libraries that ship with it. The licences in the app open in a window of their own; the
+ * others, on their publishers' sites, in the browser.
+ */
+final class AboutDialog {
+
+    private static final String COFFEE = "https://buymeacoffee.com/davide.truzzi";
+    private static final String GPL = "/it/infog/psiche/ui/preferences/LICENSE";
+    private static final double LOGO_HEIGHT = 120;
+    // Buy Me a Coffee's own logo, dark on their yellow as their buttons show it, from their brand bundle.
+    private static final String COFFEE_LOGO = "buy-me-a-coffee.png";
+    private static final double COFFEE_LOGO_HEIGHT = 28;
+    private static final double NAME_WIDTH = 230;
+
+    /**
+     * What ships with the app, and the licence it comes under.
+     *
+     * @param source where the licence's text is: a web address, or the path of a text inside the app
+     */
+    private record Credit(String name,
+                          String licence,
+                          String source) {
+    }
+
+    private static final List<Credit> CREDITS = List.of(
+            new Credit("Libertinus Serif (font)", "SIL Open Font License 1.1",
+                    "/it/infog/psiche/ui/fonts/OFL-LibertinusSerif.txt"),
+            new Credit("Courier Prime (font)", "SIL Open Font License 1.1",
+                    "/it/infog/psiche/ui/fonts/OFL-CourierPrime.txt"),
+            new Credit("OpenHTMLtoPDF", "LGPL 2.1 or later",
+                    "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html"),
+            new Credit("Apache PDFBox, FontBox, XmpBox", "Apache License 2.0",
+                    "https://www.apache.org/licenses/LICENSE-2.0"),
+            new Credit("pdfbox-graphics2d", "Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0"),
+            new Credit("Apache Commons Codec, Logging", "Apache License 2.0",
+                    "https://www.apache.org/licenses/LICENSE-2.0"),
+            new Credit("JGit", "Eclipse Distribution License 1.0", "https://www.eclipse.org/org/documents/edl-v10.php"),
+            new Credit("JavaEWAH", "Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0"),
+            new Credit("commonmark-java", "BSD 2-Clause",
+                    "https://github.com/commonmark/commonmark-java/blob/main/LICENSE.txt"),
+            new Credit("SLF4J", "MIT License", "https://www.slf4j.org/license.html"),
+            new Credit("TwelveMonkeys ImageIO", "BSD 3-Clause", "https://github.com/haraldk/TwelveMonkeys#license"),
+            new Credit("OpenJFX, Java runtime", "GPL 2 with the Classpath Exception",
+                    "https://openjdk.org/legal/gplv2+ce.html"));
+
+    private AboutDialog() {
+    }
+
+    /** @param browser opens a web address in the system's default browser */
+    static void show(Window owner, Consumer<String> browser) {
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        Dialogs.ownAndStyle(dialog, owner);
+        dialog.setHeaderText("About Psiche Writer");
+        dialog.getDialogPane().getStyleClass().add("about");
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CLOSE);
+
+        //the app
+        Node logo = Logo.lockup(LOGO_HEIGHT);
+        logo.getStyleClass().add("about-logo");
+        Label version = new Label("Version " + version());
+        Label copyright = new Label("© 2026 Davide Truzzi");
+        Label licence = new Label("Free software under the GNU General Public License, version 3 or later");
+        Hyperlink gpl = link("Read the licence", () -> showText(dialog, "GNU General Public License, version 3", GPL));
+        Button coffee = coffeeButton(() -> browser.accept(COFFEE));
+        Label support = new Label("Help Davide support this project");
+
+        VBox app = new VBox(logo, version, copyright, licence, gpl, coffee, support);
+        app.getStyleClass().add("about-app");
+
+        //what ships with it
+        GridPane credits = new GridPane();
+        for (int row = 0; row < CREDITS.size(); row++) {
+            Credit credit = CREDITS.get(row);
+            Runnable open = credit.source().startsWith("https://")
+                    ? () -> browser.accept(credit.source())
+                    : () -> showText(dialog, credit.name() + " · " + credit.licence(), credit.source());
+            credits.addRow(row, new Label(credit.name()), link(credit.licence(), open));
+        }
+
+        VBox content = new VBox(app, Controls.fieldset("Licences", credits, NAME_WIDTH));
+        content.getStyleClass().add("about-content");
+        dialog.getDialogPane().setContent(content);
+        dialog.showAndWait();
+    }
+
+    /**
+     * The app's version, as the build wrote it into the module, its stage named as people read it: "0.1.0-alpha"
+     * shows as "0.1.0 Alpha". None in a run straight from the sources.
+     */
+    private static String version() {
+
+        String version = Optional.ofNullable(AboutDialog.class.getModule().getDescriptor())
+                .flatMap(ModuleDescriptor::rawVersion)
+                .orElse("unknown");
+        int dash = version.indexOf('-');
+        if (dash < 0 || dash == version.length() - 1)
+            return version;
+
+        return version.substring(0, dash) + " " + Character.toUpperCase(version.charAt(dash + 1))
+                + version.substring(dash + 2);
+    }
+
+    /** Buy Me a Coffee's logo on their yellow, as a button. */
+    private static Button coffeeButton(Runnable action) {
+
+        // Read at twice the height shown, so it stays sharp on screens that scale the window up.
+        Image image = new Image(AboutDialog.class.getResource(COFFEE_LOGO).toExternalForm(), 0,
+                COFFEE_LOGO_HEIGHT * 2, true, true);
+        ImageView logo = new ImageView(image);
+        logo.setFitHeight(COFFEE_LOGO_HEIGHT);
+        logo.setPreserveRatio(true);
+        logo.setSmooth(true);
+
+        Button button = new Button(null, logo);
+        button.getStyleClass().add("coffee-button");
+        button.setAccessibleText("Buy me a coffee");
+        button.setTooltip(new Tooltip(COFFEE));
+        button.setOnAction(event -> action.run());
+        return button;
+    }
+
+    private static Hyperlink link(String text, Runnable action) {
+
+        Hyperlink link = new Hyperlink(text);
+        link.setOnAction(event -> {
+            action.run();
+            // Visited links would change color, but these lead to the same place each time.
+            link.setVisited(false);
+        });
+        return link;
+    }
+
+    /** Shows the text at {@code resource}, a licence inside the app, under {@code title}, above the About dialog. */
+    private static void showText(Dialog<?> about, String title, String resource) {
+
+        Dialog<ButtonType> dialog = new Dialog<>();
+        Dialogs.ownAndStyle(dialog, about.getDialogPane().getScene().getWindow());
+        dialog.setHeaderText(title);
+        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CLOSE);
+
+        TextArea text = new TextArea(read(resource));
+        text.setEditable(false);
+        text.getStyleClass().add("licence-text");
+        dialog.getDialogPane().setContent(text);
+        dialog.setResizable(true);
+        dialog.showAndWait();
+    }
+
+    private static String read(String resource) {
+
+        try (InputStream in = AboutDialog.class.getResourceAsStream(resource)) {
+            if (in == null)
+                throw new IllegalStateException("Missing " + resource);
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}

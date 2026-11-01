@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="7" height="4" viewBox="0 0 7 4" fill="#2a2219">
+  <!-- A combo box's arrow, on the language field.
+       The app reads only the paths; .language-choice > .arrow in writer.css gives the colour and size. -->
+  <path d="M 0 0 h 7 l -3.5 4 z"/>
+</svg>

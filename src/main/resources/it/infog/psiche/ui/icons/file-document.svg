@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" fill="none"
+     stroke="#2a2219" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A document: a page with a short paragraph.
+       The app reads only the paths; .file-icon in writer.css gives the ink. -->
+  <path d="M8 3h10l6 6v18H8z"/>
+  <path d="M18 3v6h6"/>
+  <path d="M12 15h8"/>
+  <path d="M12 19h8"/>
+  <path d="M12 23h5"/>
+</svg>

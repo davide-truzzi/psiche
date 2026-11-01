@@ -1,0 +1,98 @@
+/*
+ * The whole book, added after manuscript.css: a title page, then every chapter starting on a new page, with the pages
+ * numbered from the first chapter.
+ */
+
+/* The title page is the first page: no header on it. */
+@page :first {
+    @top-left {
+        content: none;
+    }
+
+    @top-right {
+        content: none;
+    }
+}
+
+.title-page {
+    padding-top: 2cm;
+}
+
+/* The cover, centred and scaled to leave room for the title below it. */
+.title-page .cover {
+    text-align: center;
+    margin-bottom: 1.5cm;
+}
+
+.title-page .cover img {
+    max-width: 12cm;
+    max-height: 13cm;
+}
+
+.title-page p {
+    text-align: center;
+    text-indent: 0;
+    line-height: 1.4;
+}
+
+.book-title {
+    font-size: 24pt;
+    margin-bottom: 0.4cm;
+}
+
+.book-subtitle {
+    font-size: 15pt;
+    font-style: italic;
+    margin-bottom: 0.4cm;
+}
+
+.book-authors {
+    font-size: 14pt;
+    margin-top: 1cm;
+}
+
+/* Every chapter starts on a new page, however short. */
+.chapter {
+    page-break-before: always;
+}
+
+/* The contents: a page of its own after the title page, without the header, a line per chapter linking to it, with
+   dot leaders to the page it starts on. */
+@page contents {
+    @top-left {
+        content: none;
+    }
+
+    @top-right {
+        content: none;
+    }
+}
+
+.toc {
+    page: contents;
+    page-break-before: always;
+}
+
+.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.toc li {
+    text-indent: 0;
+}
+
+.toc a {
+    color: #000000;
+    text-decoration: none;
+}
+
+.toc a::after {
+    content: leader('.') target-counter(attr(href), page);
+}
+
+/* The first chapter's first page is page 1. */
+.toc + .chapter {
+    -fs-page-sequence: start;
+}

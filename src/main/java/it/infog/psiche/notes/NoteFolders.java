@@ -1,0 +1,285 @@
+package it.infog.psiche.notes;
+
+import it.infog.psiche.notes.model.Note;
+import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.enums.NoteColor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * How a note is kept on disk, for {@link NoteStore} and {@link NotesArchive}: a folder named by the note's id, with
+ * {@value #TEXT_FILE} for its text, {@value #PROPERTIES_FILE} for its place, size, colour, tag and the name of its
+ * file, and the file beside them. Every file is written whole to a temporary file that then takes its place, so a crash
+ * cannot leave half a note behind; temporary files, and folders whose name starts with a dot, are never read as notes.
+ */
+final class NoteFolders {
+
+    static final String TEXT_FILE = "note.md";
+    static final String PROPERTIES_FILE = "note.properties";
+    static final String BOARD_FILE = "board.properties";
+    static final String DELETED_FILE = "deleted.properties";
+    static final Set<String> OWN_FILES = Set.of(TEXT_FILE, PROPERTIES_FILE);
+    static final String FILE_KEY = "file";
+    static final String DUPLICATE_KEY = "duplicateOnImport";
+
+    private static final Logger log = LoggerFactory.getLogger(NoteFolders.class);
+    private static final int COPY_BUFFER = 1 << 20;
+    // Written beside the file they replace, and left out when a note's folder is read.
+    private static final String TEMPORARY_PREFIX = ".";
+    private static final String TEMPORARY_SUFFIX = ".tmp";
+    private static final NoteLayout DEFAULT_LAYOUT = new NoteLayout(0, 0, 220, 160, 0, NoteColor.PAPER);
+
+    private NoteFolders() {
+    }
+
+    // Notes
+
+    /** The note in {@code folder}; empty, and logged, if it cannot be read: one damaged note never hides the rest. */
+    static Optional<Note> readNote(Path folder) {
+
+        try {
+            Path textFile = folder.resolve(TEXT_FILE);
+            String text = Files.exists(textFile) ? Files.readString(textFile) : "";
+            Properties properties = readProperties(folder.resolve(PROPERTIES_FILE));
+
+            boolean duplicate = Boolean.parseBoolean(properties.getProperty(DUPLICATE_KEY));
+            return Optional.of(new Note(folder.getFileName().toString(), text, layout(properties), duplicate,
+                    attachment(folder, properties)));
+        } catch (IOException | UncheckedIOException e) {
+            log.warn("Skipping the note in {}: it cannot be read", folder, e);
+            return Optional.empty();
+        }
+    }
+
+    /** The notes in {@code folder}, lowest in the stack first; one that cannot be read is left out. */
+    static List<Note> readNotes(Path folder) {
+
+        return subfolders(folder).stream()
+                .map(NoteFolders::readNote)
+                .flatMap(Optional::stream)
+                .sorted(Comparator.comparingInt((Note note) -> note.layout().order()).thenComparing(Note::id))
+                .toList();
+    }
+
+    /** A note's place, size, stacking order and colour, as its properties hold them; defaults where they don't. */
+    static NoteLayout layout(Properties properties) {
+
+        return new NoteLayout(
+                number(properties, "x", DEFAULT_LAYOUT.x()),
+                number(properties, "y", DEFAULT_LAYOUT.y()),
+                number(properties, "width", DEFAULT_LAYOUT.width()),
+                number(properties, "height", DEFAULT_LAYOUT.height()),
+                (int) number(properties, "order", DEFAULT_LAYOUT.order()),
+                NoteColor.fromKey(properties.getProperty("color", "")).orElse(DEFAULT_LAYOUT.color()));
+    }
+
+    /** Puts {@code layout} in a note's {@code properties}, with whatever else they hold. */
+    static void putLayout(Properties properties, NoteLayout layout) {
+
+        properties.setProperty("x", String.valueOf(layout.x()));
+        properties.setProperty("y", String.valueOf(layout.y()));
+        properties.setProperty("width", String.valueOf(layout.width()));
+        properties.setProperty("height", String.valueOf(layout.height()));
+        properties.setProperty("order", String.valueOf(layout.order()));
+        properties.setProperty("color", layout.color().key());
+    }
+
+    /**
+     * The name of the file a note carries, given its properties and the names of the files in its folder: the one its
+     * properties name, even if it is gone; or, for a note given a file by hand, any but its own and temporary ones.
+     */
+    static Optional<String> attachmentName(Properties properties, Stream<String> names) {
+
+        String recorded = properties.getProperty(FILE_KEY, "");
+        if (!recorded.isEmpty() && !recorded.contains("/") && !recorded.contains("\\"))
+            return Optional.of(recorded);
+
+        return names.filter(name -> !OWN_FILES.contains(name))
+                .filter(name -> !isTemporary(name))
+                .sorted()
+                .findFirst();
+    }
+
+    private static Optional<Path> attachment(Path folder, Properties properties) throws IOException {
+
+        try (Stream<Path> entries = Files.list(folder)) {
+            return attachmentName(properties,
+                    entries.filter(Files::isRegularFile).map(file -> file.getFileName().toString()))
+                    .map(folder::resolve);
+        }
+    }
+
+    // Folders
+
+    /** The folders directly in {@code folder}, by name, but those whose name starts with a dot; none if it is gone. */
+    static List<Path> subfolders(Path folder) {
+
+        if (!Files.isDirectory(folder))
+            return List.of();
+
+        try (Stream<Path> entries = Files.list(folder)) {
+            return entries.filter(Files::isDirectory)
+                    .filter(entry -> !entry.getFileName().toString().startsWith(TEMPORARY_PREFIX))
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot list the notes in " + folder, e);
+        }
+    }
+
+    static boolean isTemporary(String name) {
+
+        return name.startsWith(TEMPORARY_PREFIX) && name.endsWith(TEMPORARY_SUFFIX);
+    }
+
+    /**
+     * Moves {@code source} to {@code target} in one step where the file system allows it, so a move that fails leaves
+     * the file or folder whole where it was; elsewhere, as the file system can.
+     */
+    static void move(Path source, Path target, CopyOption... options) throws IOException {
+
+        CopyOption[] atomic = Arrays.copyOf(options, options.length + 1);
+        atomic[options.length] = StandardCopyOption.ATOMIC_MOVE;
+        try {
+            Files.move(source, target, atomic);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source, target, options);
+        }
+    }
+
+    static void deleteTree(Path folder) {
+
+        if (!Files.exists(folder))
+            return;
+
+        try (Stream<Path> paths = Files.walk(folder)) {
+            for (Path path : paths.sorted(Comparator.reverseOrder()).toList())
+                Files.delete(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot delete " + folder, e);
+        }
+    }
+
+    // Files
+
+    /**
+     * Copies {@code in}, of {@code total} bytes, to a temporary file beside {@code target}, which then takes its place;
+     * {@code progress} hears how far the copy has come.
+     */
+    static void copy(InputStream in, long total, Path target, NoteStore.CopyProgress progress) throws IOException {
+
+        Path temporary = temporaryBeside(target);
+        try {
+            try (OutputStream out = Files.newOutputStream(temporary)) {
+                byte[] buffer = new byte[COPY_BUFFER];
+                long copied = 0;
+                for (int read = in.read(buffer); read >= 0; read = in.read(buffer)) {
+                    out.write(buffer, 0, read);
+                    copied += read;
+                    progress.copied(copied, total);
+                }
+            }
+            move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(temporary);
+        }
+    }
+
+    /** A new temporary file beside {@code file}, which a listing of the notes never reads. */
+    static Path temporaryBeside(Path file) throws IOException {
+
+        return Files.createTempFile(file.getParent(), TEMPORARY_PREFIX + file.getFileName(), TEMPORARY_SUFFIX);
+    }
+
+    static double number(Properties properties, String key, double fallback) {
+
+        try {
+            return Double.parseDouble(properties.getProperty(key, ""));
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /** The properties in {@code file}; none if it does not exist. */
+    static Properties readProperties(Path file) {
+
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            return loadProperties(reader, file.toString());
+        } catch (NoSuchFileException e) {
+            // Nothing saved yet; every value has its default.
+            return new Properties();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read " + file, e);
+        }
+    }
+
+    /** The properties {@code reader} gives; none, and logged, if they are damaged. */
+    static Properties loadProperties(Reader reader, String source) throws IOException {
+
+        Properties properties = new Properties();
+        try {
+            properties.load(reader);
+        } catch (IllegalArgumentException e) {
+            log.warn("Reading {} as empty: it is damaged", source, e);
+            return new Properties();
+        }
+        return properties;
+    }
+
+    /** Writes {@code properties} whole, with the keys in order and no timestamp, so a file changes only with them. */
+    static void writeProperties(Path file, Properties properties) {
+
+        StringWriter text = new StringWriter();
+        try {
+            properties.store(text, null);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        String entries = text.toString().lines()
+                .filter(line -> !line.startsWith("#"))
+                .sorted()
+                .collect(Collectors.joining("\n", "", "\n"));
+
+        writeAtomically(file, entries);
+    }
+
+    /** Writes {@code text} to a temporary file beside {@code file}, which then takes its place. */
+    static void writeAtomically(Path file, String text) {
+
+        try {
+            Path temporary = temporaryBeside(file);
+            try {
+                Files.writeString(temporary, text, StandardCharsets.UTF_8);
+                move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+            } finally {
+                // Gone once moved; left only by a write that failed.
+                Files.deleteIfExists(temporary);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot save " + file, e);
+        }
+    }
+}

@@ -1,0 +1,32 @@
+# Build
+.gradle/
+build/
+bin/
+
+# IDEs and editors
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+*.swp
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Packages and their portable settings, should one be built or run outside build/
+*.AppImage
+*.AppImage.config/
+
+# Claude Code's local settings
+.claude/
+
+# The author's own notes, kept out of the repository
+NOTES.md
+CHAPTER_NOTES_PLAN.md

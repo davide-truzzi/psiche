@@ -1,0 +1,92 @@
+# Builds Psiche Writer's two packages, each on its own system, since jpackage only packages for the system it runs on:
+# psiche.AppImage on Linux and psiche-windows.zip on Windows. Run it by hand from the Actions tab, or push a tag
+# such as v0.1.0 to also attach both packages to that tag's GitHub release.
+name: Package
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  appimage:
+    name: Linux AppImage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The tests run here only: they need no display, and one system is enough to stop a broken build.
+      - name: Test
+        run: ./gradlew build
+
+      - name: Get appimagetool
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x "$RUNNER_TEMP/appimagetool"
+
+      - name: Build psiche.AppImage
+        run: ./build_appimage.sh "$RUNNER_TEMP/appimagetool"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psiche-linux
+          path: build/distributions/psiche.AppImage
+          if-no-files-found: error
+
+  windows:
+    name: Windows zip
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build psiche-windows.zip
+        shell: cmd
+        run: build_exe.bat
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psiche-windows
+          path: build/distributions/psiche-windows.zip
+          if-no-files-found: error
+
+  release:
+    name: Attach to the release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [appimage, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      # Makes the tag's release if there is none yet, as a draft to review before publishing.
+      - name: Upload the packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --draft --title "Psiche Writer $GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" packages/psiche.AppImage packages/psiche-windows.zip --clobber

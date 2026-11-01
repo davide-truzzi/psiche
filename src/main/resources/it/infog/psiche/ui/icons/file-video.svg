@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" fill="none"
+     stroke="#2a2219" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A video: a screen with a play button.
+       The app reads only the paths; .file-icon in writer.css gives the ink. -->
+  <path d="M3 7h24v16H3z"/>
+  <path d="M13 11v8l6-4z"/>
+</svg>

@@ -1,0 +1,271 @@
+package it.infog.psiche.settings;
+
+import it.infog.psiche.settings.model.Preferences;
+import it.infog.psiche.settings.model.RecentBooks;
+import it.infog.psiche.settings.model.SettingsFolder;
+import it.infog.psiche.settings.model.WindowBounds;
+import it.infog.psiche.settings.model.enums.PreviewTheme;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+/**
+ * The app's settings, kept in {@value #FILE} in the {@link SettingsFolder}, as a properties file anyone can read: the
+ * books opened lately, which the Book menu offers again, what the author chose in Preferences, and where the window
+ * was.
+ * <p>
+ * Settings never stand in the author's way: a missing or damaged file reads as no settings, and a file that cannot
+ * be written is logged and left as it was. Each change reads the file again first, so two windows of the app do not
+ * undo each other's changes, and is written whole to a temporary file that then takes the file's place, so a crash
+ * cannot leave half a file behind.
+ */
+public final class Settings {
+
+    static final String FILE = "settings.properties";
+
+    private static final Logger log = LoggerFactory.getLogger(Settings.class);
+    private static final String COMMENT = "# Psiche Writer's settings, written by the app";
+    private static final String RECENT = "recent.";
+    private static final String REOPEN_LAST_BOOK = "startup.reopen-last-book";
+    private static final String NEW_BOOK_LANGUAGE = "book.language";
+    private static final String NEW_BOOK_AUTHOR = "book.author";
+    private static final String PREVIEW_THEME = "preview.theme";
+    private static final String WINDOW = "window.";
+
+    private final SettingsFolder folder;
+
+    public Settings(SettingsFolder folder) {
+
+        this.folder = folder;
+    }
+
+    /** The books opened lately, the latest first. */
+    public RecentBooks recentBooks() {
+
+        return recentBooks(read());
+    }
+
+    /** Remembers that {@code book} was opened, first in the list. */
+    public void bookOpened(Path book) {
+
+        updateRecentBooks(recent -> recent.opened(book));
+    }
+
+    /** Forgets every book opened lately. */
+    public void clearRecentBooks() {
+
+        updateRecentBooks(recent -> RecentBooks.none());
+    }
+
+    private void updateRecentBooks(UnaryOperator<RecentBooks> change) {
+
+        update(settings -> {
+            RecentBooks changed = change.apply(recentBooks(settings));
+
+            settings.stringPropertyNames().stream().filter(key -> key.startsWith(RECENT)).forEach(settings::remove);
+            for (int i = 0; i < changed.books().size(); i++)
+                settings.setProperty(RECENT + (i + 1), stored(changed.books().get(i)));
+        });
+    }
+
+    /** What the author chose in Preferences; a value that is missing or cannot be read is the default. */
+    public Preferences preferences() {
+
+        Properties settings = read();
+        Preferences defaults = Preferences.defaults();
+
+        String reopen = settings.getProperty(REOPEN_LAST_BOOK, "");
+        boolean reopenLastBook = reopen.equals("true") || reopen.equals("false")
+                ? Boolean.parseBoolean(reopen)
+                : defaults.reopenLastBook();
+
+        return new Preferences(reopenLastBook,
+                language(settings.getProperty(NEW_BOOK_LANGUAGE)).orElse(defaults.newBookLanguage()),
+                settings.getProperty(NEW_BOOK_AUTHOR, defaults.newBookAuthor()).strip(),
+                theme(settings.getProperty(PREVIEW_THEME)).orElse(defaults.previewTheme()));
+    }
+
+    /** Remembers what the author chose in Preferences. */
+    public void savePreferences(Preferences preferences) {
+
+        update(settings -> {
+            settings.setProperty(REOPEN_LAST_BOOK, String.valueOf(preferences.reopenLastBook()));
+            settings.setProperty(NEW_BOOK_LANGUAGE, preferences.newBookLanguage());
+            settings.setProperty(NEW_BOOK_AUTHOR, preferences.newBookAuthor().strip());
+            settings.setProperty(PREVIEW_THEME, preferences.previewTheme().name().toLowerCase(Locale.ROOT));
+        });
+    }
+
+    /** Where the window was when the app last closed; empty the first time, or if a value cannot be read. */
+    public Optional<WindowBounds> windowBounds() {
+
+        Properties settings = read();
+        try {
+            WindowBounds bounds = new WindowBounds(number(settings, "x"), number(settings, "y"),
+                    number(settings, "width"), number(settings, "height"),
+                    Boolean.parseBoolean(settings.getProperty(WINDOW + "maximized")));
+            return bounds.width() > 0 && bounds.height() > 0 ? Optional.of(bounds) : Optional.empty();
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    /** Remembers where the window is, for the next start. */
+    public void saveWindowBounds(WindowBounds bounds) {
+
+        update(settings -> {
+            settings.setProperty(WINDOW + "x", String.valueOf(bounds.x()));
+            settings.setProperty(WINDOW + "y", String.valueOf(bounds.y()));
+            settings.setProperty(WINDOW + "width", String.valueOf(bounds.width()));
+            settings.setProperty(WINDOW + "height", String.valueOf(bounds.height()));
+            settings.setProperty(WINDOW + "maximized", String.valueOf(bounds.maximized()));
+        });
+    }
+
+    /** {@code tag} as a language tag, if it names a language. */
+    private static Optional<String> language(String tag) {
+
+        if (tag == null)
+            return Optional.empty();
+
+        Locale locale = Locale.forLanguageTag(tag.strip());
+        return locale.getLanguage().isEmpty() ? Optional.empty() : Optional.of(locale.toLanguageTag());
+    }
+
+    private static Optional<PreviewTheme> theme(String name) {
+
+        return Arrays.stream(PreviewTheme.values()).filter(theme -> theme.name().equalsIgnoreCase(name)).findFirst();
+    }
+
+    /** The window's value {@code name}, a finite number. @throws NumberFormatException if it is missing or not one */
+    private static double number(Properties settings, String name) {
+
+        String value = settings.getProperty(WINDOW + name);
+        if (value == null)
+            throw new NumberFormatException("No " + WINDOW + name);
+
+        double number = Double.parseDouble(value.strip());
+        if (!Double.isFinite(number))
+            throw new NumberFormatException(WINDOW + name + " is " + value);
+
+        return number;
+    }
+
+    /** The books listed in {@code settings}, in order; a path that cannot be read is skipped. */
+    private RecentBooks recentBooks(Properties settings) {
+
+        List<Path> books = new ArrayList<>();
+        for (int i = 1; i <= RecentBooks.MAX; i++) {
+            String book = settings.getProperty(RECENT + i);
+            if (book == null || book.isBlank())
+                continue;
+
+            try {
+                books.add(folder.path().resolve(book).normalize());
+            } catch (InvalidPathException e) {
+                log.warn("Skipping the recent book {}: not a path", book);
+            }
+        }
+
+        return new RecentBooks(books);
+    }
+
+    /**
+     * How {@code book} is written down: its absolute path, but relative to the settings folder when both are on the
+     * same drive of a portable app, which keeps working when the drive's letter or mount point changes.
+     */
+    private String stored(Path book) {
+
+        if (folder.portable() && sameDrive(book, folder.path()))
+            return folder.path().toAbsolutePath().relativize(book.toAbsolutePath()).toString();
+
+        return book.toAbsolutePath().toString();
+    }
+
+    private static boolean sameDrive(Path book, Path settings) {
+
+        try {
+            return Objects.equals(Files.getFileStore(book), Files.getFileStore(settings));
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /** Applies {@code change} to the settings read afresh, so changes another window made meanwhile are kept. */
+    private void update(Consumer<Properties> change) {
+
+        Properties settings = read();
+        change.accept(settings);
+        write(settings);
+    }
+
+    /** The settings as saved; none if there is no file yet or it cannot be read. */
+    private Properties read() {
+
+        Properties settings = new Properties();
+        try (Reader reader = Files.newBufferedReader(folder.path().resolve(FILE), StandardCharsets.UTF_8)) {
+            settings.load(reader);
+        } catch (NoSuchFileException e) {
+            return settings;
+        } catch (IOException | IllegalArgumentException e) {
+            log.warn("Cannot read the settings in {}; using none", folder.path(), e);
+            return new Properties();
+        }
+
+        return settings;
+    }
+
+    /** Writes {@code settings} whole, in place of the file, with the keys in order and no timestamp. */
+    private void write(Properties settings) {
+
+        StringWriter text = new StringWriter();
+        try {
+            settings.store(text, null);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+        String entries = text.toString().lines()
+                .filter(line -> !line.startsWith("#"))
+                .sorted()
+                .collect(Collectors.joining("\n", COMMENT + "\n", "\n"));
+
+        Path file = folder.path().resolve(FILE);
+        try {
+            Files.createDirectories(folder.path());
+            Path temporary = Files.createTempFile(folder.path(), FILE, ".tmp");
+            try {
+                Files.writeString(temporary, entries, StandardCharsets.UTF_8);
+                try {
+                    Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } finally {
+                // Gone once moved; left only by a write that failed.
+                Files.deleteIfExists(temporary);
+            }
+        } catch (IOException e) {
+            log.warn("Cannot save the settings in {}", folder.path(), e);
+        }
+    }
+}

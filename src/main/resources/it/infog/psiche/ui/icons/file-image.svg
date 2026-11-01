@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30" fill="none"
+     stroke="#2a2219" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- An image: a framed landscape, hills and a sun.
+       The app reads only the paths; .file-icon in writer.css gives the ink. -->
+  <path d="M4 6h22v18H4z"/>
+  <path d="M4 20l6-6 5 5 4-3 7 6"/>
+  <path d="M19 11h2v-2h-2z"/>
+</svg>

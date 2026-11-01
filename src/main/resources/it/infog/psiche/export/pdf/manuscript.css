@@ -1,0 +1,107 @@
+/*
+ * A chapter as a manuscript to send to an editor: A4, 12pt, double-spaced, indented paragraphs, wide margins, and
+ * the author, the book's title and the page number on every page. {{header}} is replaced by the authors and the
+ * book's title when the PDF is made.
+ */
+
+@page {
+    size: A4;
+    margin: 2.5cm;
+
+    @top-left {
+        content: "{{header}}";
+        font-family: "Libertinus Serif", serif;
+        font-size: 10pt;
+        color: #555555;
+        vertical-align: bottom;
+        padding-bottom: 0.6cm;
+    }
+
+    @top-right {
+        content: counter(page);
+        font-family: "Libertinus Serif", serif;
+        font-size: 10pt;
+        color: #555555;
+        vertical-align: bottom;
+        padding-bottom: 0.6cm;
+    }
+}
+
+/* Set on the root too, so not even empty space falls back to the renderer's built-in Times. */
+html, body {
+    font-family: "Libertinus Serif", serif;
+    font-size: 12pt;
+    line-height: 2;
+    color: #000000;
+}
+
+/* The chapter's title, a third of the way down its first page. */
+h1 {
+    font-size: 16pt;
+    font-weight: normal;
+    text-align: center;
+    margin: 4cm 0 1.5cm;
+    line-height: 1.4;
+}
+
+/* The Psiche mark under the title. */
+.title-mark {
+    display: block;
+    margin-top: 0.3em;
+    font-size: 0.9em;
+    line-height: 1;
+}
+
+h2, h3, h4 {
+    font-size: 12pt;
+    margin: 1em 0 0;
+    page-break-after: avoid;
+}
+
+h2 {
+    font-weight: bold;
+}
+
+h3, h4 {
+    font-weight: normal;
+    font-style: italic;
+}
+
+p {
+    margin: 0;
+    text-indent: 1.25cm;
+    text-align: left;
+    orphans: 2;
+    widows: 2;
+}
+
+h1 + p, h2 + p, h3 + p, h4 + p, .scene-break + p, blockquote + p, ul + p, ol + p {
+    text-indent: 0;
+}
+
+.scene-break {
+    text-align: center;
+    text-indent: 0;
+}
+
+blockquote {
+    margin: 0 1.25cm;
+}
+
+blockquote p {
+    text-indent: 0;
+}
+
+ul, ol {
+    margin: 0 0 0 1.25cm;
+    padding: 0;
+}
+
+img {
+    max-width: 100%;
+}
+
+code {
+    font-family: monospace;
+    font-size: 10.5pt;
+}

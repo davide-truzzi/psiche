@@ -1,0 +1,1122 @@
+/*
+ * Night desk: a dark walnut surface for the chrome and the typewriter page, the preview as a sheet of paper
+ * under a lamp, and a red-pencil accent for anything that needs the author's attention.
+ */
+.root {
+    -desk: #15120e;
+    -desk-raised: #1e1a15;
+    -desk-edge: #2e2820;
+    -lamp: #3a2f22;
+    -paper: #efe6d3;
+    -paper-dim: #b9ad96;
+    -graphite: #7d7366;
+    -red-pencil: #e04a2f;
+    -brass: #c8a35a;
+    -sage: #8fae6b;
+
+    -fx-font-family: "Courier Prime";
+    -fx-font-size: 13px;
+    -fx-text-fill: -paper;
+    -fx-base: -desk-raised;
+    -fx-background: -desk;
+    -fx-focus-color: -brass;
+    -fx-faint-focus-color: transparent;
+    -fx-accent: -red-pencil;
+}
+
+.workspace {
+    /*-fx-background-color:
+        radial-gradient(focus-angle 0deg, focus-distance 0%, center 62% -10%, radius 85%, -lamp 0%, transparent 100%),
+        linear-gradient(to bottom, #1a1611, -desk);*/
+}
+
+/* Toolbar */
+
+.toolbar {
+    -fx-alignment: center-left;
+    -fx-spacing: 10;
+    -fx-padding: 14 20 12 24;
+    -fx-border-color: transparent transparent -desk-edge transparent;
+}
+
+.toolbar-mark .logo-stroke {
+    -fx-stroke: -red-pencil;
+}
+
+.book-title {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-style: italic;
+    -fx-font-size: 22px;
+    -fx-text-fill: -paper;
+    -fx-padding: 0 18 2 0;
+}
+
+.git-controls {
+    -fx-alignment: center-right;
+    -fx-spacing: 8;
+}
+
+.button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 2;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 2;
+    -fx-text-fill: -paper-dim;
+    -fx-padding: 6 14;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-border-color: -brass;
+    -fx-text-fill: -paper;
+}
+
+.button:pressed {
+    -fx-background-color: -desk-edge;
+}
+
+.button:disabled {
+    -fx-opacity: 0.35;
+}
+
+.button.primary {
+    -fx-background-color: -red-pencil;
+    -fx-border-color: -red-pencil;
+    -fx-text-fill: -desk;
+    -fx-font-weight: bold;
+}
+
+.button.primary:hover {
+    -fx-background-color: derive(-red-pencil, 12%);
+}
+
+.text-field {
+    -fx-background-color: -desk;
+    -fx-background-radius: 2;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 2;
+    -fx-text-fill: -paper;
+    -fx-prompt-text-fill: -graphite;
+    -fx-highlight-fill: derive(-red-pencil, -30%);
+    -fx-padding: 6 10;
+}
+
+.text-field:focused {
+    -fx-border-color: -brass;
+}
+
+.commit-message {
+    -fx-pref-width: 300;
+}
+
+/* Chapter list */
+
+.sidebar {
+    -fx-pref-width: 230;
+    -fx-padding: 22 0 0 0;
+    -fx-spacing: 10;
+    -fx-border-color: transparent -desk-edge transparent transparent;
+}
+
+.section-heading {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 11px;
+    -fx-padding: 0 0 0 24;
+}
+
+.sidebar-header {
+    -fx-alignment: center-left;
+    -fx-padding: 0 12 0 0;
+}
+
+.sidebar-footer {
+    -fx-alignment: center-left;
+    -fx-spacing: 6;
+    -fx-padding: 6 12 14 12;
+    -fx-border-color: -desk-edge transparent transparent transparent;
+}
+
+.sidebar-header .button,
+.sidebar-footer .button {
+    -fx-font-size: 11px;
+    -fx-padding: 3 10;
+}
+
+.list-view {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.list-view .placeholder .label {
+    -fx-text-fill: -graphite;
+    -fx-text-alignment: center;
+}
+
+.list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -paper-dim;
+    -fx-padding: 8 16 8 21;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3;
+}
+
+.list-cell:hover {
+    -fx-text-fill: -paper;
+    -fx-background-color: rgba(239, 230, 211, 0.04);
+}
+
+.list-cell:selected {
+    -fx-text-fill: -paper;
+    -fx-background-color: linear-gradient(to right, rgba(224, 74, 47, 0.16), transparent);
+    -fx-border-color: -red-pencil;
+}
+
+.unsaved-mark {
+    -fx-text-fill: -brass;
+    -fx-font-size: 11px;
+}
+
+/* Editor and preview */
+
+.pages {
+    -fx-background-color: transparent;
+    -fx-padding: 18 18 0 18;
+}
+
+.pages > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 7;
+}
+
+.manuscript {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e7dcc6;
+    -fx-prompt-text-fill: -graphite;
+    -fx-highlight-fill: rgba(224, 74, 47, 0.45);
+    -fx-highlight-text-fill: -paper;
+    -fx-font-family: "Courier Prime";
+    -fx-font-size: 16px;
+}
+
+.manuscript .content {
+    -fx-background-color: rgba(10, 8, 6, 0.35);
+    -fx-padding: 36 44;
+    -fx-cursor: text;
+}
+
+.manuscript .text {
+    -fx-line-spacing: 7px;
+}
+
+.manuscript:focused .content {
+    -fx-background-color: rgba(10, 8, 6, 0.5);
+}
+
+/* The logo behind the welcome, a shade off the desk, seen through the manuscript's page. The viewport would cover
+   it with the desk's own color, which is behind the manuscript anyway. */
+.manuscript .viewport {
+    -fx-background-color: transparent;
+}
+
+.welcome-logo .logo-stroke {
+    -fx-stroke: -desk-edge;
+}
+
+.welcome-logo .logo-fill {
+    -fx-fill: -desk-edge;
+}
+
+.preview-frame {
+    -fx-background-color: -paper;
+    /* -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 28, 0.1, 0, 8); */
+}
+
+/* The dark preview's paper, as preview-dark.css colors the page. */
+.preview-frame:dark {
+    -fx-background-color: #221d17;
+}
+
+/* Preview and history tabs */
+
+.chapter-tabs {
+    -fx-background-color: transparent;
+}
+
+.chapter-tabs > .tab-header-area {
+    -fx-padding: 0 0 8 0;
+}
+
+.chapter-tabs > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.chapter-tabs > .tab-content-area {
+    -fx-background-color: transparent;
+}
+
+.chapter-tabs .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 4 14;
+    -fx-border-color: transparent transparent -desk-edge transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-cursor: hand;
+}
+
+.chapter-tabs .tab:selected {
+    -fx-border-color: transparent transparent -red-pencil transparent;
+}
+
+.chapter-tabs .tab .tab-label {
+    -fx-text-fill: -graphite;
+}
+
+.chapter-tabs .tab:hover .tab-label,
+.chapter-tabs .tab:selected .tab-label {
+    -fx-text-fill: -paper;
+}
+
+.chapter-tabs .tab:selected .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+/* Chapter history */
+
+.history {
+    -fx-background-color: rgba(10, 8, 6, 0.35);
+}
+
+.history .list-cell {
+    -fx-padding: 12 18;
+}
+
+.revision-message {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 14px;
+    -fx-text-fill: -paper;
+}
+
+.revision-stats {
+    -fx-spacing: 10;
+    -fx-padding: 4 0 0 0;
+}
+
+.lines-added {
+    -fx-text-fill: -sage;
+}
+
+.lines-removed {
+    -fx-text-fill: -red-pencil;
+}
+
+.revision-details {
+    -fx-text-fill: -graphite;
+}
+
+.history-hint {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 11px;
+    -fx-padding: 10 18 6 18;
+}
+
+/* Deleted chapters */
+
+.deleted-chapters .list-view {
+    -fx-pref-width: 420;
+    -fx-pref-height: 280;
+}
+
+/* Deleted notes: a group of notes under each line, the notes as small cards in their colours, with the darker layer
+   a note on the board has. */
+.deleted-notes .scroll-pane,
+.deleted-notes .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.deleted-notes .scroll-pane {
+    -fx-pref-width: 700;
+    -fx-pref-height: 420;
+}
+
+.deleted-notes-groups {
+    -fx-spacing: 18;
+    -fx-padding: 16 20;
+}
+
+.deleted-notes-group {
+    -fx-spacing: 8;
+}
+
+.deleted-notes-heading {
+    -fx-spacing: 10;
+}
+
+.deleted-notes-source {
+    -fx-spacing: 2;
+}
+
+.deleted-notes-heading .button {
+    -fx-font-size: 12px;
+    -fx-padding: 4 10;
+}
+
+.deleted-notes-chapter {
+    -fx-text-fill: -paper;
+}
+
+.deleted-notes-details {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 12px;
+}
+
+.deleted-notes-rule {
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+    -fx-background-color: -desk-edge;
+}
+
+.deleted-notes-cards {
+    -fx-hgap: 10;
+    -fx-vgap: 10;
+}
+
+.deleted-note {
+    -fx-min-width: 130;
+    -fx-pref-width: 130;
+    -fx-max-width: 130;
+    -fx-min-height: 80;
+    -fx-pref-height: 80;
+    -fx-max-height: 80;
+    -fx-padding: 8;
+    -fx-spacing: 6;
+    -fx-background-radius: 5;
+    -fx-background-insets: 2 0 -2 0, 0;
+}
+
+.deleted-note-text {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 12px;
+    -fx-text-fill: #2a2219;
+}
+
+.deleted-note-file {
+    -fx-font-size: 10px;
+    -fx-text-fill: rgba(42, 34, 25, 0.7);
+}
+
+/* Importing notes: what the import is doing, above a thin bar in red pencil */
+
+.import-progress {
+    -fx-spacing: 10;
+    -fx-padding: 16 20;
+    -fx-pref-width: 420;
+}
+
+.import-progress > .label {
+    -fx-text-fill: -paper-dim;
+}
+
+.import-progress > .progress-bar {
+    -fx-pref-height: 6;
+}
+
+.import-progress > .progress-bar > .track {
+    -fx-background-color: -desk-edge;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+}
+
+.import-progress > .progress-bar > .bar {
+    -fx-background-color: -red-pencil;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 2;
+}
+
+/* Past version of a chapter */
+
+.revision-content {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+}
+
+.revision-summary {
+    -fx-text-fill: -paper-dim;
+}
+
+.revision-scroll,
+.revision-scroll > .viewport {
+    -fx-background-color: rgba(10, 8, 6, 0.5);
+}
+
+.revision-text {
+    -fx-padding: 20 28;
+}
+
+/*
+ * Tracked changes: the chapter reads as it is now. Underline and strikethrough carry the meaning, so it does not
+ * depend on telling the colours apart.
+ */
+.revision-paragraph {
+    -fx-padding: 2 8;
+    -fx-line-spacing: 4px;
+}
+
+.revision-words {
+    -fx-font-family: "Courier Prime";
+    -fx-font-size: 14px;
+    -fx-fill: -paper-dim;
+}
+
+.revision-words.added {
+    -fx-fill: -sage;
+    -fx-underline: true;
+}
+
+.revision-words.removed {
+    -fx-fill: -red-pencil;
+    -fx-strikethrough: true;
+    -fx-opacity: 0.8;
+}
+
+.revision-legend {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 11px;
+}
+
+/* Book properties */
+
+.book-properties-content {
+    -fx-spacing: 28;
+    -fx-padding: 16 20 4 20;
+}
+
+.book-form {
+    -fx-hgap: 14;
+    -fx-vgap: 10;
+}
+
+.book-form > .label,
+.cover-picker > .label {
+    -fx-text-fill: -paper-dim;
+}
+
+.book-form .text-field,
+.book-form .combo-box {
+    -fx-pref-width: 360;
+}
+
+.book-form .text-area {
+    -fx-pref-width: 360;
+    -fx-background-color: -desk;
+    -fx-background-radius: 2;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 2;
+    -fx-text-fill: -paper;
+    -fx-prompt-text-fill: -graphite;
+    -fx-highlight-fill: derive(-red-pencil, -30%);
+}
+
+.book-form .combo-box {
+    -fx-background-color: -desk;
+    -fx-background-radius: 2;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 2;
+}
+
+.book-form .combo-box:focused,
+.book-form .combo-box:showing {
+    -fx-border-color: -brass;
+}
+
+/* The box shows its value in a list cell, which must not look like a selected chapter. */
+.book-form .combo-box > .list-cell {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-text-fill: -paper;
+    -fx-padding: 6 10;
+}
+
+.book-form .combo-box > .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.book-form .combo-box > .arrow-button > .arrow {
+    -fx-background-color: -paper-dim;
+}
+
+/* A language field: searchable, with a combo box's arrow over its right end. */
+.book-form .language-choice {
+    -fx-pref-width: 360;
+}
+
+.book-form .language-choice > .text-field {
+    -fx-padding: 6 30 6 10;
+}
+
+.language-choice > .arrow {
+    -fx-background-color: -paper-dim;
+    -fx-max-width: 8;
+    -fx-max-height: 5;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: -desk-raised;
+    -fx-border-color: -desk-edge;
+}
+
+.combo-box-popup .list-cell {
+    -fx-padding: 5 12;
+    -fx-border-width: 0;
+}
+
+.combo-box-popup .list-cell:selected {
+    -fx-background-color: rgba(224, 74, 47, 0.16);
+}
+
+.book-form .text-area:focused {
+    -fx-border-color: -brass;
+}
+
+.book-form .text-area .content {
+    -fx-background-color: -desk;
+    -fx-padding: 4 6;
+}
+
+.cover-picker {
+    -fx-spacing: 8;
+    -fx-alignment: top-center;
+}
+
+.cover-picker .button {
+    -fx-pref-width: 140;
+}
+
+.cover-frame {
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+}
+
+.cover-placeholder,
+.cover-hint {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 11px;
+    -fx-text-alignment: center;
+}
+
+/* Preferences */
+
+.preferences-form {
+    -fx-padding: 16 20 4 20;
+    -fx-spacing: 18;
+}
+
+/* A group of fields, framed like an HTML fieldset: its legend sits in the top edge of the border, on the dialog's
+   own background, so the line stops either side of it. */
+.fieldset {
+    -fx-padding: 8 0 0 0;
+}
+
+.fieldset > .fieldset-rows {
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 3;
+    -fx-padding: 20 16 14 16;
+}
+
+.fieldset > .fieldset-legend {
+    -fx-background-color: -desk-raised;
+    -fx-text-fill: -paper-dim;
+    -fx-padding: 0 6;
+    -fx-translate-x: 10;
+    -fx-translate-y: -8;
+}
+
+.preferences-form .check-box {
+    -fx-text-fill: -paper;
+}
+
+/* About */
+
+.about-content {
+    -fx-padding: 16 20 4 20;
+    -fx-spacing: 22;
+    -fx-pref-width: 620;
+}
+
+.about-app {
+    -fx-alignment: center;
+    -fx-spacing: 6;
+}
+
+.about-app > .label {
+    -fx-text-fill: -paper-dim;
+}
+
+.about-logo .logo-stroke {
+    -fx-stroke: -red-pencil;
+}
+
+.about-logo .logo-fill {
+    -fx-fill: -paper;
+}
+
+/* Buy Me a Coffee's button, in their yellow, so their logo shows as they draw it. */
+.about .coffee-button {
+    -fx-background-color: #ffdd00;
+    -fx-background-radius: 8;
+    -fx-border-width: 0;
+    -fx-padding: 9 18;
+}
+
+.about .coffee-button:hover {
+    -fx-background-color: derive(#ffdd00, 25%);
+}
+
+.about .hyperlink,
+.about .hyperlink:visited {
+    -fx-text-fill: -red-pencil;
+    -fx-border-width: 0;
+}
+
+.about .hyperlink:hover {
+    -fx-underline: true;
+}
+
+.licence-text {
+    -fx-pref-width: 680;
+    -fx-pref-height: 520;
+    -fx-font-size: 12px;
+    -fx-text-fill: -paper-dim;
+    -fx-background-insets: 0;
+}
+
+.licence-text,
+.licence-text .content {
+    -fx-background-color: -desk;
+}
+
+.form-hint {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 11px;
+}
+
+/* Status bar */
+
+.status-bar {
+    -fx-alignment: center-left;
+    -fx-padding: 8 24;
+    -fx-spacing: 18;
+}
+
+.status {
+    -fx-text-fill: -graphite;
+}
+
+.status:error {
+    -fx-text-fill: -red-pencil;
+}
+
+.chapter-state,
+.chapter-counts {
+    -fx-text-fill: -graphite;
+}
+
+.page-count:hover {
+    -fx-text-fill: -paper-dim;
+}
+
+.chapter-state:dirty {
+    -fx-text-fill: -brass;
+}
+
+/* Context menus: a raised slip of the desk, the hovered item lit like a hovered button, with a brass mark */
+
+.context-menu {
+    -fx-background-color: -desk-raised;
+    -fx-background-insets: 0;
+    -fx-background-radius: 2;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 2;
+    -fx-padding: 5 0;
+    -fx-effect: null;
+    -fx-font-family: "Courier Prime";
+    -fx-font-size: 13px;
+}
+
+.context-menu .menu-item {
+    -fx-background-color: transparent;
+    -fx-padding: 6 18 6 14;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 2;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: -paper-dim;
+}
+
+.context-menu .menu-item .accelerator-text {
+    -fx-text-fill: -graphite;
+}
+
+.context-menu .menu-item:focused {
+    -fx-background-color: rgba(239, 230, 211, 0.06);
+    -fx-border-color: -brass;
+}
+
+.context-menu .menu-item:focused .label {
+    -fx-text-fill: -paper;
+}
+
+.context-menu .menu-item:focused .accelerator-text {
+    -fx-text-fill: -paper-dim;
+}
+
+.context-menu .menu-item:disabled {
+    -fx-opacity: 0.35;
+}
+
+.context-menu .menu > .right-container > .arrow {
+    -fx-background-color: -paper-dim;
+}
+
+.context-menu .menu:focused > .right-container > .arrow {
+    -fx-background-color: -paper;
+}
+
+.context-menu .radio-menu-item:checked > .left-container > .radio {
+    -fx-background-color: -brass;
+}
+
+.context-menu .separator {
+    -fx-padding: 4 0;
+}
+
+.context-menu .separator:horizontal .line {
+    -fx-border-color: -desk-edge transparent transparent transparent;
+    -fx-border-insets: 0;
+}
+
+/* Notes: post-its on a chapter's board. A darker layer 2 px lower stands in for a shadow, which a paint effect
+   would draw at a cost on a board of many notes. */
+
+/* The board: a desk surface, a shade apart from the panel around it, so its edges show when zoomed out. */
+.notes-viewport {
+    -fx-background-color: #0f0d0a;
+    -fx-border-color: -desk-edge;
+}
+
+.notes-board {
+    -fx-background-color: -desk-raised;
+}
+
+.notes-message {
+    -fx-text-fill: -graphite;
+    -fx-text-alignment: center;
+    -fx-line-spacing: 4;
+}
+
+.notes-zoom-bar {
+    -fx-spacing: 4;
+    -fx-padding: 0 12 12 0;
+}
+
+.notes-zoom-bar .button {
+    -fx-background-color: -desk-raised;
+    -fx-padding: 4 10;
+}
+
+.notes-zoom-gap {
+    -fx-min-width: 8;
+}
+
+.notes-zoom-level {
+    -fx-min-width: 48;
+    -fx-alignment: center;
+    -fx-text-fill: -paper-dim;
+}
+
+/* The tab's title turns red-pencil while a note carries the Duplicate on Import tag. */
+.chapter-tabs .tab.notes-duplicates .tab-label {
+    -fx-text-fill: -red-pencil;
+}
+
+.note-card {
+    -fx-background-radius: 6;
+    -fx-background-insets: 2 0 -2 0, 0;
+    -fx-cursor: default;
+}
+
+.note-card:selected {
+    -fx-border-color: -brass;
+    -fx-border-width: 2;
+    -fx-border-radius: 6;
+    -fx-border-insets: -2;
+}
+
+.note-paper { -fx-background-color: rgba(0, 0, 0, 0.45), -paper; }
+.note-yellow { -fx-background-color: rgba(0, 0, 0, 0.45), #ecd98a; }
+.note-sage { -fx-background-color: rgba(0, 0, 0, 0.45), #c5d4a8; }
+.note-sky { -fx-background-color: rgba(0, 0, 0, 0.45), #b9cfdc; }
+.note-rose { -fx-background-color: rgba(0, 0, 0, 0.45), #e4bfb5; }
+
+/* The note's toolbar: a darker tone of the note's own colour, so it reads apart from the text below. */
+.note-strip {
+    -fx-min-height: 26;
+    -fx-pref-height: 26;
+    -fx-padding: 0 4 0 6;
+    -fx-spacing: 2;
+    -fx-background-color: rgba(42, 34, 25, 0.09);
+    -fx-background-radius: 6 6 0 0;
+    -fx-cursor: move;
+}
+
+.note-duplicate .note-strip {
+    -fx-background-radius: 0;
+}
+
+.note-file-button {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 2 4;
+    -fx-cursor: hand;
+}
+
+.note-file-button:hover {
+    -fx-background-color: rgba(42, 34, 25, 0.12);
+    -fx-background-radius: 3;
+}
+
+/* A paperclip, the sign of a file kept with something. */
+.note-paperclip {
+    -fx-fill: transparent;
+    -fx-stroke: rgba(42, 34, 25, 0.75);
+    -fx-stroke-width: 1.8;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.62;
+    -fx-scale-y: 0.62;
+}
+
+/* Six dots, the usual mark of something to drag, drawn in icons/grip.svg. */
+.note-grip {
+    -fx-background-color: rgba(42, 34, 25, 0.45);
+    -fx-min-width: 10;
+    -fx-max-width: 10;
+    -fx-min-height: 12;
+    -fx-max-height: 12;
+}
+
+.note-tools {
+    -fx-opacity: 0;
+    -fx-spacing: 2;
+}
+
+.note-card:hover .note-tools,
+.note-card:selected .note-tools {
+    -fx-opacity: 1;
+}
+
+.note-color-dot {
+    -fx-min-width: 16;
+    -fx-min-height: 16;
+    -fx-max-width: 16;
+    -fx-max-height: 16;
+    -fx-padding: 0;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: rgba(42, 34, 25, 0.4);
+    -fx-background-color: transparent;
+}
+
+.note-swatches {
+    -fx-spacing: 6;
+    -fx-padding: 2 8 6 8;
+    -fx-background-color: rgba(42, 34, 25, 0.09);
+}
+
+/* A swatch draws its colour inside a dark ring, thicker on the note's own colour. */
+.note-swatch {
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-max-width: 20;
+    -fx-max-height: 20;
+    -fx-padding: 0;
+    -fx-background-radius: 10;
+    -fx-background-insets: 0, 1;
+    -fx-border-width: 0;
+}
+
+.note-swatch:current {
+    -fx-background-insets: 0, 2.5;
+}
+
+.note-delete,
+.note-band-clear {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 0 4;
+    -fx-font-size: 15px;
+    -fx-text-fill: rgba(42, 34, 25, 0.7);
+}
+
+.note-delete:hover {
+    -fx-text-fill: #2a2219;
+}
+
+.note-text {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-text-fill: #2a2219;
+    -fx-prompt-text-fill: rgba(42, 34, 25, 0.45);
+    -fx-highlight-fill: rgba(42, 34, 25, 0.22);
+    -fx-highlight-text-fill: #2a2219;
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 15px;
+}
+
+.note-text .content,
+.note-text .viewport,
+.note-text .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.note-text .content {
+    -fx-padding: 0 10 6 10;
+    -fx-cursor: text;
+}
+
+.note-text .scroll-bar .thumb {
+    -fx-background-color: rgba(42, 34, 25, 0.25);
+}
+
+/* The file a note carries, under its text: a picture as wide as the card, or an icon beside its name and size. */
+.note-file-slot {
+    -fx-padding: 0 8 10 8;
+}
+
+.note-attachment {
+    -fx-spacing: 4;
+    -fx-cursor: hand;
+}
+
+.note-file-row {
+    -fx-spacing: 8;
+}
+
+.note-file-name {
+    -fx-font-family: "Courier Prime";
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(42, 34, 25, 0.75);
+}
+
+.note-file-missing {
+    -fx-text-fill: #b5301c;
+}
+
+.file-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #2a2219;
+    -fx-stroke-width: 2.2;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.file-icon-missing {
+    -fx-stroke: #b5301c;
+}
+
+.note-copy-progress {
+    -fx-pref-height: 6;
+}
+
+.note-copy-progress > .track {
+    -fx-background-color: rgba(42, 34, 25, 0.15);
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+}
+
+.note-copy-progress > .bar {
+    -fx-background-color: #2a2219;
+    -fx-background-radius: 0;
+    -fx-background-insets: 0;
+    -fx-padding: 2;
+}
+
+.note-band {
+    -fx-background-color: -red-pencil;
+    -fx-background-radius: 6 6 0 0;
+    -fx-padding: 2 2 2 8;
+    -fx-cursor: move;
+}
+
+.note-band .label {
+    -fx-text-fill: -desk;
+    -fx-font-weight: bold;
+    -fx-font-size: 10px;
+}
+
+.note-band .note-band-clear {
+    -fx-text-fill: -desk;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+
+/* Dots on the diagonal of the corner, where the note is resized from, drawn in icons/resize-corner.svg. */
+.note-resize {
+    -fx-background-color: rgba(42, 34, 25, 0.4);
+    -fx-scale-shape: false;
+    -fx-min-width: 14;
+    -fx-min-height: 14;
+    -fx-pref-width: 14;
+    -fx-pref-height: 14;
+    -fx-cursor: nw-resize;
+}
+
+/* Scroll bars */
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -desk-edge;
+    -fx-background-radius: 4;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: -graphite;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+/* Alerts */
+
+.dialog-pane {
+    -fx-background-color: -desk-raised;
+    -fx-border-color: -red-pencil;
+    -fx-border-width: 0 0 0 3;
+}
+
+.dialog-pane > .header-panel {
+    -fx-background-color: -desk;
+}
+
+.dialog-pane > .header-panel .label {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 16px;
+    -fx-text-fill: -paper;
+}
+
+.dialog-pane > .content.label {
+    -fx-text-fill: -paper-dim;
+    -fx-padding: 16 20;
+}

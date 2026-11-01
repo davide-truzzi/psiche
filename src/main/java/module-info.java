@@ -1,0 +1,17 @@
+module it.infog.psiche {
+    requires javafx.controls;
+    requires javafx.web;
+    requires java.desktop;
+    requires java.logging;
+    requires jdk.xml.dom;
+    requires org.commonmark;
+    requires openhtmltopdf.core;
+    requires openhtmltopdf.pdfbox;
+    requires org.apache.fontbox;
+    requires org.apache.pdfbox;
+    requires org.apache.pdfbox.io;
+    requires org.eclipse.jgit;
+    requires org.slf4j;
+
+    exports it.infog.psiche.ui to javafx.graphics;
+}

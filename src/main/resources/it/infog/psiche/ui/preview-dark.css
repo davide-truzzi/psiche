@@ -1,0 +1,25 @@
+/* The dark preview: added after preview.css, it keeps the same page and only changes its colors, to light ink on
+   dark paper, with the red pencil a little brighter so the initials and the mark stand out. */
+:root {
+    --paper: #221d17;
+    --ink: #e2d8c4;
+    --faded-ink: #a39580;
+    --rule: #4d4236;
+    --red-pencil: #e0583c;
+}
+
+html {
+    background: var(--paper);
+}
+
+pre {
+    background: rgba(239, 230, 211, 0.06);
+}
+
+img {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+::selection {
+    background: rgba(224, 88, 60, 0.35);
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="10" height="12" viewBox="0 0 10 12" fill="#2a2219">
+  <!-- Six dots, the usual mark of something to drag, on a note's toolbar.
+       The app reads only the paths; .note-grip in writer.css gives the colour and size. -->
+  <path d="M1 1h2v2h-2z"/>
+  <path d="M7 1h2v2h-2z"/>
+  <path d="M1 5h2v2h-2z"/>
+  <path d="M7 5h2v2h-2z"/>
+  <path d="M1 9h2v2h-2z"/>
+  <path d="M7 9h2v2h-2z"/>
+</svg>

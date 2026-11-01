@@ -1,0 +1,4 @@
+#!/bin/sh
+# The AppImage's entry point: starts the app image jpackage made, which brings its own Java runtime.
+here="$(dirname "$(readlink -f "$0")")"
+exec "$here/usr/lib/psiche/bin/psiche" "$@"
