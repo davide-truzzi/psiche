@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 Alpha (2026-11-02)
+
+The second release for testing. The manuscript editor is new underneath: it looks and works as before, and now it can
+colour what the text holds, starting with its comments.
+
+### What is new
 
 - A dot before each chapter's name in the list shows whether it changed since the last revision: green if not, red
   once it has changes for the next one. Pointing at it says so in words.
@@ -12,6 +17,15 @@
   without closing it, and **Revert** goes back to the values Preferences opened with, as **Cancel** does before closing.
 - Deleted notes is now **Detached notes**, as it also holds notes that are not deleted, such as those imported for a
   chapter the book doesn't have. Their cause reads "no such chapter in this book".
+- Inside, the largest classes are split along what they do, and the Gradle project is named `psiche-writer`, as the
+  app's own jar now is.
+
+### For testers
+
+- The editor is a RichTextFX text area instead of JavaFX's own. Typing, selecting, Undo, the menus and the shortcuts
+  should feel the same; tell us if they don't. Worth a try in particular: accents and dead keys on your keyboard,
+  pasting from a word processor or a browser (plain text should arrive), and scrolling a long chapter by dragging the
+  scroll bar.
 
 ## 0.1.0 Alpha (2026-11-01)
 
