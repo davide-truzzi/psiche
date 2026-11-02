@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- A dot before each chapter's name in the list shows whether it changed since the last revision: green if not, red
+  once it has changes for the next one. Pointing at it says so in words.
 - The editor shows HTML comments (`<!-- a note -->`) in grey: those the preview and the exports leave out. A brass dot
   in the margin marks each line with one, and dots at the top and bottom of the page tell of comments beyond the view;
   a click on one goes to the next.

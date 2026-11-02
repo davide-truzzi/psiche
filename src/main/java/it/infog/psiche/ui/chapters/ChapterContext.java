@@ -73,6 +73,7 @@ public final class ChapterContext {
     private final ChapterChanges changes;
     private final DeletedChapters deletedChapters;
     private final DetachedNotes detachedNotes;
+    private final ChapterRevisions revisions;
 
     // Counting parses the whole chapter, so wait for a pause in typing as the preview does, but less long.
     private final PauseTransition countDelay = new PauseTransition(Duration.millis(300));
@@ -101,6 +102,7 @@ public final class ChapterContext {
         this.errors = errors;
         this.window = window;
 
+        revisions = new ChapterRevisions(gitControls, chapterList::refresh);
         changes = new ChapterChanges(chapterEditor, notesPane, gitControls, statusBar, errors, window);
         detachedNotes = new DetachedNotes(notesPane, statusBar, errors, window, this::checkOrphans);
         deletedChapters = new DeletedChapters(gitControls, errors, window,
@@ -117,8 +119,12 @@ public final class ChapterContext {
         chapterEditor.currentPositionProperty().addListener(
                 (obs, old, position) -> preview.followPosition(position.intValue(), chapterEditor.isReading()));
         chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> updateChapterState());
-        // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft.
-        chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> chapterList.refresh());
+        // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft; a
+        // chapter loses it when saved, which can bring it back to its last revision.
+        chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> {
+            chapterList.refresh();
+            revisions.check();
+        });
         notesPane.setOnBinned(this::checkOrphans);
     }
 
@@ -139,6 +145,7 @@ public final class ChapterContext {
 
         bookOpen.set(true);
         hasRepository.set(repository != null);
+        revisions.show(repository);
 
         refresh();
         chapterList.getSelectionModel().selectFirst();
@@ -161,6 +168,7 @@ public final class ChapterContext {
         bookOpen.set(false);
         hasRepository.set(false);
         hasOrphans.set(false);
+        revisions.show(null);
     }
 
     /** Lists the book's chapters again, keeping the open one selected. */
@@ -180,6 +188,13 @@ public final class ChapterContext {
         chapterList.getItems().setAll(chapters);
         chapterEditor.chapter().filter(chapters::contains).ifPresent(chapterList.getSelectionModel()::select);
         checkOrphans();
+        revisions.check();
+    }
+
+    /** Reads again which chapters changed since the last revision, after a commit, in the app or outside it. */
+    public void checkRevisions() {
+
+        revisions.check();
     }
 
     /**
@@ -207,7 +222,8 @@ public final class ChapterContext {
     private VBox buildSidebar() {
 
         //chapter list
-        chapterList.setCellFactory(list -> new ChapterCell(chapterEditor.unsavedChapters(), this::chapterMenu));
+        chapterList.setCellFactory(list -> new ChapterCell(chapterEditor.unsavedChapters(), revisions,
+                this::chapterMenu));
 
         //placeholder for empty list
         chapterList.setPlaceholder(new Label("No chapters yet."));

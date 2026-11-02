@@ -2,6 +2,7 @@ package it.infog.psiche.git;
 
 import org.eclipse.jgit.api.CommitCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.EmptyCommitException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
@@ -49,6 +50,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The Git repository at the root of a book folder, limited to what an author needs: commit, push, the history
@@ -199,6 +202,27 @@ public final class BookRepository implements AutoCloseable {
 
         try {
             return git.status().call().hasUncommittedChanges();
+        } catch (GitAPIException e) {
+            throw new GitCommandException("git status failed: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * The files that are not on disk as the last commit recorded them: changed, new, or never committed, as absolute
+     * paths. Deleted and ignored files are left out.
+     *
+     * @throws GitCommandException if the status cannot be read
+     */
+    public Set<Path> uncommittedFiles() {
+
+        Path workTree = git.getRepository().getWorkTree().toPath().toAbsolutePath().normalize();
+        try {
+            Status status = git.status().call();
+            return Stream.of(status.getModified(), status.getChanged(), status.getAdded(), status.getUntracked(),
+                            status.getConflicting())
+                    .flatMap(Set::stream)
+                    .map(workTree::resolve)
+                    .collect(Collectors.toUnmodifiableSet());
         } catch (GitAPIException e) {
             throw new GitCommandException("git status failed: " + e.getMessage(), e);
         }

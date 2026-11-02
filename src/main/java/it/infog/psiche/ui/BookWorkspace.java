@@ -95,7 +95,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapterEditor.setFontSize(preferences.editorFontSize());
         unsavedChanges = new UnsavedChanges(chapterEditor, this::window);
         gitControls = new GitControls(() -> unsavedChanges.settle("Save them before committing?"),
-                history::refresh, statusBar, this::reportError);
+                this::committed, statusBar, this::reportError);
         Runnable keepNotesOutOfGit = () -> gitControls.ignore("notes/", "Keep chapter notes out of Git");
         notes = new NotesPane(statusBar, this::reportError, keepNotesOutOfGit::run, browser);
         notesTransfer = new NotesTransfer(notes, statusBar, this::reportError, this::window, keepNotesOutOfGit);
@@ -111,8 +111,11 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         // Back in the window, the author may have added chapters elsewhere; only matters while they are not watched.
         sceneProperty().flatMap(Scene::windowProperty).flatMap(Window::focusedProperty)
                 .addListener((obs, was, focused) -> {
-                    if (Boolean.TRUE.equals(focused))
+                    if (Boolean.TRUE.equals(focused)) {
                         books.refreshUnwatched();
+                        // The watcher does not see commits, so one made outside the app shows only now.
+                        chapters.checkRevisions();
+                    }
                 });
 
         // The welcome links to nothing on disk, so any directory serves as its base.
@@ -264,6 +267,13 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     // Shared by the parts
+
+    /** After a commit: the history has a revision more, and the chapters it recorded are as it left them. */
+    private void committed() {
+
+        history.refresh();
+        chapters.checkRevisions();
+    }
 
     /** Hands a past version the History tab has read to the chapters, which compare it with the saved chapter. */
     private void showRevision(Chapter chapter, FileRevision revision, Optional<String> text) {

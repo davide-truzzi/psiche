@@ -174,6 +174,41 @@
 .unsaved-mark {
     -fx-text-fill: -brass;
     -fx-font-size: 11px;
+    -fx-padding: 0 0 0 10;
+}
+
+/* A chapter's row: the title in the cell's colours, where a plain list cell has its text, then "unsaved"; and its
+   revision dot in the cell's padding before them. */
+.chapter-row {
+    -fx-alignment: center-left;
+}
+
+.chapter-cell .chapter-title {
+    -fx-text-fill: -paper-dim;
+}
+
+.chapter-cell:hover .chapter-title,
+.chapter-cell:selected .chapter-title {
+    -fx-text-fill: -paper;
+}
+
+/* Room around the dot for the pointer, from the cell's left border to the title: 5 + 6 + 10 is the cell's padding. */
+.revision-mark {
+    -fx-padding: 0 10 0 5;
+}
+
+/* Green while the chapter is as the last revision left it, red once it has changes for the next one; the size of a
+   comment's dot. */
+.revision-dot {
+    -fx-background-color: -sage;
+}
+
+.revision-dot:changed {
+    -fx-background-color: -red-pencil;
+}
+
+.revision-mark:hover > .revision-dot {
+    -fx-opacity: 1;
 }
 
 /* Editor and preview */
@@ -228,6 +263,11 @@
    at. */
 .comment-mark {
     -fx-background-color: -brass;
+}
+
+/* The comments' dots, and the revision dots in the chapter list. */
+.comment-mark,
+.revision-dot {
     -fx-background-radius: 3;
     -fx-min-width: 6;
     -fx-min-height: 6;

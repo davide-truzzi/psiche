@@ -336,6 +336,31 @@ class BookRepositoryTest {
     }
 
     @Test
+    void uncommittedFilesAreTheChangedAndTheNewOnes() throws Exception {
+        write("chapters/01-departure.md", DEPARTURE);
+        write("chapters/02-crossing.md", "The sea was calm.\n");
+        write("chapters/03-arrival.md", "Land.\n");
+        commitAll("First draft");
+        assertThat(repository.uncommittedFiles()).isEmpty();
+
+        write("chapters/01-departure.md", DEPARTURE + "The end.\n");
+        write("chapters/04-home.md", "Home at last.\n");
+        Files.delete(bookRoot.resolve("chapters/03-arrival.md"));
+
+        assertThat(repository.uncommittedFiles()).containsExactlyInAnyOrder(
+                bookRoot.resolve("chapters/01-departure.md").toAbsolutePath().normalize(),
+                bookRoot.resolve("chapters/04-home.md").toAbsolutePath().normalize());
+    }
+
+    @Test
+    void everyFileIsUncommittedBeforeTheFirstCommit() throws Exception {
+        write("chapters/01-departure.md", DEPARTURE);
+
+        assertThat(repository.uncommittedFiles())
+                .containsExactly(bookRoot.resolve("chapters/01-departure.md").toAbsolutePath().normalize());
+    }
+
+    @Test
     void uncommittedChangesAreChangesToTrackedFilesOnly() throws Exception {
         write("chapters/01-departure.md", DEPARTURE);
         commitAll("First draft");

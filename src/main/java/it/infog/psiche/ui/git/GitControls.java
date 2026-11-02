@@ -14,6 +14,8 @@ import javafx.concurrent.Task;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -27,6 +29,8 @@ import static it.infog.psiche.ui.common.Controls.button;
 
 /** Commit message, Commit and Push for the open book's repository. Disabled while there is none. */
 public final class GitControls extends HBox {
+
+    private static final Logger log = LoggerFactory.getLogger(GitControls.class);
 
     // One thread so Git commands run in the order the author clicked them, off the FX thread.
     private final ExecutorService executor =
@@ -103,6 +107,24 @@ public final class GitControls extends HBox {
             if (changed)
                 afterCommit.run();
         });
+    }
+
+    /**
+     * Asks {@code repository} {@code question} on the Git thread, after the commands clicked before it, and hands the
+     * answer to {@code answer} on the FX thread. Quietly: the controls stay as they are, and a question that cannot
+     * be answered is only logged, as nothing was asked by the author.
+     */
+    public <T> void read(BookRepository repository, Function<BookRepository, T> question, Consumer<T> answer) {
+
+        Task<T> task = new Task<>() {
+            @Override
+            protected T call() {
+                return question.apply(repository);
+            }
+        };
+        task.setOnSucceeded(event -> answer.accept(task.getValue()));
+        task.setOnFailed(event -> log.warn("Cannot read the state of the book", task.getException()));
+        executor.execute(task);
     }
 
     private void commit() {
