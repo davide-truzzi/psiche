@@ -6,20 +6,10 @@ import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.EmptyCommitException;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
-import org.eclipse.jgit.diff.DiffConfig;
-import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.diff.DiffEntry.ChangeType;
-import org.eclipse.jgit.diff.DiffFormatter;
-import org.eclipse.jgit.diff.Edit;
-import org.eclipse.jgit.diff.RawTextComparator;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.errors.InvalidObjectIdException;
-import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.FollowFilter;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -28,14 +18,8 @@ import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.treewalk.TreeWalk;
-import org.eclipse.jgit.treewalk.filter.AndTreeFilter;
-import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.eclipse.jgit.treewalk.filter.TreeFilter;
-import org.eclipse.jgit.util.io.DisabledOutputStream;
 
 import it.infog.psiche.git.model.Commit;
-import it.infog.psiche.git.model.DeletedChapter;
-import it.infog.psiche.git.model.FileRevision;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,35 +27,36 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * The Git repository at the root of a book folder, limited to what an author needs: commit, push, the history
- * of a chapter, and the chapters that were deleted.
+ * The Git repository at the root of a book folder, limited to what an author needs: commit, push, and what has
+ * changed since the last commit. What the commits recorded, such as the history of a chapter, is read through
+ * {@link #history()}.
  */
 public final class BookRepository implements AutoCloseable {
 
     static final String REMOTE = "origin";
     static final String DEFAULT_BRANCH = "main";
     static final String GITIGNORE = ".gitignore";
+    // As many characters of a commit's id as Git shows in a log.
+    private static final int SHORT_ID_LENGTH = 7;
 
     private static final Set<RemoteRefUpdate.Status> PUSHED =
             EnumSet.of(RemoteRefUpdate.Status.OK, RemoteRefUpdate.Status.UP_TO_DATE);
 
     private final Git git;
     private final CredentialsProvider credentials;
+    private final BookHistory history;
 
     public BookRepository(Git git, CredentialsProvider credentials) {
         this.git = git;
         this.credentials = credentials;
+        history = new BookHistory(git.getRepository());
     }
 
     /**
@@ -128,8 +113,7 @@ public final class BookRepository implements AutoCloseable {
         }
         stageAll();
         try {
-            RevCommit commit = git.commit().setMessage(message.strip()).setAllowEmpty(false).call();
-            return new Commit(commit.abbreviate(7).name(), commit.getShortMessage());
+            return commitOf(git.commit().setMessage(message.strip()).setAllowEmpty(false).call());
         } catch (EmptyCommitException e) {
             throw new GitCommandException("Nothing to commit: no changes since the last commit", e);
         } catch (GitAPIException e) {
@@ -156,8 +140,7 @@ public final class BookRepository implements AutoCloseable {
             //commit them alone
             CommitCommand commit = git.commit().setMessage(message.strip()).setAllowEmpty(false);
             paths.forEach(commit::setOnly);
-            RevCommit committed = commit.call();
-            return new Commit(committed.abbreviate(7).name(), committed.getShortMessage());
+            return commitOf(commit.call());
         } catch (EmptyCommitException e) {
             throw new GitCommandException("Nothing to commit: no changes since the last commit", e);
         } catch (GitAPIException | JGitInternalException e) {
@@ -200,11 +183,7 @@ public final class BookRepository implements AutoCloseable {
      */
     public boolean hasUncommittedChanges() {
 
-        try {
-            return git.status().call().hasUncommittedChanges();
-        } catch (GitAPIException e) {
-            throw new GitCommandException("git status failed: " + e.getMessage(), e);
-        }
+        return status().hasUncommittedChanges();
     }
 
     /**
@@ -216,13 +195,19 @@ public final class BookRepository implements AutoCloseable {
     public Set<Path> uncommittedFiles() {
 
         Path workTree = git.getRepository().getWorkTree().toPath().toAbsolutePath().normalize();
+        Status status = status();
+        return Stream.of(status.getModified(), status.getChanged(), status.getAdded(), status.getUntracked(),
+                        status.getConflicting())
+                .flatMap(Set::stream)
+                .map(workTree::resolve)
+                .collect(Collectors.toUnmodifiableSet());
+    }
+
+    /** @throws GitCommandException if the status cannot be read */
+    private Status status() {
+
         try {
-            Status status = git.status().call();
-            return Stream.of(status.getModified(), status.getChanged(), status.getAdded(), status.getUntracked(),
-                            status.getConflicting())
-                    .flatMap(Set::stream)
-                    .map(workTree::resolve)
-                    .collect(Collectors.toUnmodifiableSet());
+            return git.status().call();
         } catch (GitAPIException e) {
             throw new GitCommandException("git status failed: " + e.getMessage(), e);
         }
@@ -249,6 +234,12 @@ public final class BookRepository implements AutoCloseable {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read the last commit of " + file, e);
         }
+    }
+
+    /** What the book's commits recorded: a chapter's history, the deleted chapters, a file as a commit left it. */
+    public BookHistory history() {
+
+        return history;
     }
 
     /**
@@ -285,224 +276,33 @@ public final class BookRepository implements AutoCloseable {
         return Repository.shortenRefName(fullBranch);
     }
 
-    /**
-     * The commits that changed {@code file}, newest first, each with the lines of the file it added and removed (the
-     * counts {@code git log --numstat} reports). Like {@code git log --follow}, the history goes on through renames:
-     * the commit that renamed the file counts only the lines changed on the way, and the commits before it are those
-     * of the file under its previous name. A merge is compared with its first parent.
-     *
-     * @param file a file inside the book folder
-     * @return empty if the repository has no commits yet or none touched {@code file}
-     * @throws IllegalArgumentException if {@code file} is outside the book folder
-     */
-    public List<FileRevision> history(Path file) {
-        String path = repositoryPath(file);
-        Repository repo = git.getRepository();
-        try (RevWalk walk = new RevWalk(repo);
-             DiffFormatter pathDiff = diffFormatter(repo);
-             DiffFormatter renameDiff = diffFormatter(repo)) {
-            ObjectId head = repo.resolve(Constants.HEAD);
-            if (head == null) {
-                return List.of();
-            }
-            renameDiff.setDetectRenames(true);
-            // Selects the commits that changed the file, switching to its older name past the commit that renamed it.
-            walk.setTreeFilter(FollowFilter.create(path, repo.getConfig().get(DiffConfig.KEY)));
-            // Keep each commit's real parents, so it is compared with the commit it was made on.
-            walk.setRewriteParents(false);
-            walk.markStart(walk.parseCommit(head));
-
-            List<FileRevision> revisions = new ArrayList<>();
-            String pathInCommit = path;
-            for (RevCommit commit : walk) {
-                // The first commit has no parent; scan() compares it with an empty tree.
-                RevCommit parent = commit.getParentCount() == 0 ? null : commit.getParent(0);
-                Optional<DiffEntry> change = change(pathDiff, renameDiff, parent, commit, pathInCommit);
-                int added = 0;
-                int removed = 0;
-                if (change.isPresent()) {
-                    for (Edit edit : pathDiff.toFileHeader(change.get()).toEditList()) {
-                        added += edit.getLengthB();
-                        removed += edit.getLengthA();
-                    }
-                }
-                String renamedFrom = change.filter(BookRepository::isRename).map(DiffEntry::getOldPath).orElse(null);
-                revisions.add(new FileRevision(commit.getName(), commit.abbreviate(7).name(), pathInCommit,
-                        renamedFrom, commit.getShortMessage(), Instant.ofEpochSecond(commit.getCommitTime()),
-                        added, removed));
-                if (renamedFrom != null) {
-                    pathInCommit = renamedFrom;
-                }
-            }
-            return revisions;
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read the history of " + file, e);
-        }
-    }
-
-    private static DiffFormatter diffFormatter(Repository repo) {
-        DiffFormatter diff = new DiffFormatter(DisabledOutputStream.INSTANCE);
-        diff.setRepository(repo);
-        diff.setDiffComparator(RawTextComparator.DEFAULT);
-        return diff;
-    }
-
-    /**
-     * How {@code commit} changed the file at {@code path}. If the commit added it, looks for the file it was renamed
-     * or copied from, so the change counts only the lines edited on the way.
-     *
-     * @param renameDiff a formatter that detects renames across the whole tree
-     */
-    private static Optional<DiffEntry> change(DiffFormatter pathDiff, DiffFormatter renameDiff, RevCommit parent,
-                                              RevCommit commit, String path) throws IOException {
-        pathDiff.setPathFilter(PathFilter.create(path));
-        List<DiffEntry> entries = pathDiff.scan(parent, commit);
-        boolean added = entries.size() == 1 && entries.getFirst().getChangeType() == ChangeType.ADD;
-        if (parent != null && added) {
-            // Renames show only when deleted and added files are compared together, so scan the whole tree.
-            for (DiffEntry entry : renameDiff.scan(parent, commit)) {
-                if (isRename(entry) && entry.getNewPath().equals(path)) {
-                    return Optional.of(entry);
-                }
-            }
-        }
-        return entries.stream().findFirst();
-    }
-
-    private static boolean isRename(DiffEntry entry) {
-        return entry.getChangeType() == ChangeType.RENAME || entry.getChangeType() == ChangeType.COPY;
-    }
-
-    /**
-     * True if any commit had a file at {@code file}'s path, even one deleted or renamed away since. Git keeps history
-     * by path, so a new file created there would show that earlier file's commits in its {@link #history}.
-     *
-     * @throws IllegalArgumentException if {@code file} is outside the book folder
-     */
-    public boolean hasHistory(Path file) {
-
-        String path = repositoryPath(file);
-        Repository repo = git.getRepository();
-
-        try (RevWalk walk = new RevWalk(repo)) {
-            ObjectId head = repo.resolve(Constants.HEAD);
-            if (head == null)
-                return false;
-
-            walk.setTreeFilter(AndTreeFilter.create(PathFilter.create(path), TreeFilter.ANY_DIFF));
-            walk.markStart(walk.parseCommit(head));
-            return walk.next() != null;
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read the history of " + file, e);
-        }
-    }
-
-    /**
-     * The chapter files in {@code chaptersDir} that a commit deleted and that are not on disk now, most recently
-     * deleted first. A chapter deleted more than once appears once, with its latest deletion. Renamed chapters are
-     * not deleted ones, and a chapter whose name is in use again, as after it was restored, is not listed.
-     *
-     * @param chaptersDir the book's chapter folder
-     * @return empty if the repository has no commits yet
-     * @throws IllegalArgumentException if {@code chaptersDir} is outside the book folder
-     */
-    public List<DeletedChapter> deletedChapters(Path chaptersDir) {
-
-        String directory = repositoryPath(chaptersDir);
-        Path workTree = git.getRepository().getWorkTree().toPath();
-        Repository repo = git.getRepository();
-
-        try (RevWalk walk = new RevWalk(repo); DiffFormatter diff = diffFormatter(repo)) {
-            ObjectId head = repo.resolve(Constants.HEAD);
-            if (head == null)
-                return List.of();
-
-            // Only commits that changed the chapters, each compared with its real first parent.
-            diff.setPathFilter(PathFilter.create(directory));
-            diff.setDetectRenames(true);
-            walk.setTreeFilter(AndTreeFilter.create(PathFilter.create(directory), TreeFilter.ANY_DIFF));
-            walk.setRewriteParents(false);
-            walk.markStart(walk.parseCommit(head));
-
-            List<DeletedChapter> deleted = new ArrayList<>();
-            Set<String> seen = new HashSet<>();
-            for (RevCommit commit : walk) {
-                if (commit.getParentCount() == 0)
-                    continue;
-
-                RevCommit parent = commit.getParent(0);
-                for (DiffEntry entry : diff.scan(parent, commit)) {
-                    String path = entry.getOldPath();
-                    if (entry.getChangeType() == ChangeType.DELETE && isChapter(path, directory) && seen.add(path)
-                            && !Files.exists(workTree.resolve(path)))
-                        deleted.add(new DeletedChapter(path, parent.getName(), commit.abbreviate(7).name(),
-                                                       Instant.ofEpochSecond(commit.getCommitTime())));
-                }
-            }
-
-            return deleted;
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read the deleted chapters of " + chaptersDir, e);
-        }
-    }
-
-    /** A Markdown file directly in {@code directory}, as chapters are. */
-    private static boolean isChapter(String path, String directory) {
-
-        if (!path.startsWith(directory + "/"))
-            return false;
-
-        String name = path.substring(directory.length() + 1);
-        return !name.contains("/") && name.endsWith(".md");
-    }
-
-    /**
-     * The file of {@code revision} as its commit recorded it, under the name it had then, read as UTF-8 like the
-     * chapters on disk.
-     *
-     * @return empty if the file did not exist in that commit, as in a commit that deleted it
-     * @throws GitCommandException if the revision's commit is not a commit of this repository
-     */
-    public Optional<String> contentOf(FileRevision revision) {
-        return contentAt(revision.commitId(), revision.path());
-    }
-
-    /**
-     * The last version of a deleted chapter, from the commit before the one that deleted it.
-     *
-     * @throws GitCommandException if that commit is not a commit of this repository or does not have the chapter
-     */
-    public String contentOf(DeletedChapter chapter) {
-        return contentAt(chapter.lastCommitId(), chapter.path()).orElseThrow(() -> new GitCommandException(
-                "%s is not in commit %s".formatted(chapter.path(), chapter.lastCommitId())));
-    }
-
-    private Optional<String> contentAt(String commitId, String path) {
-        Repository repo = git.getRepository();
-        try (RevWalk walk = new RevWalk(repo)) {
-            RevCommit commit = walk.parseCommit(ObjectId.fromString(commitId));
-            try (TreeWalk entry = TreeWalk.forPath(repo, path, commit.getTree())) {
-                if (entry == null) {
-                    return Optional.empty();
-                }
-                byte[] content = repo.open(entry.getObjectId(0)).getBytes();
-                return Optional.of(new String(content, StandardCharsets.UTF_8));
-            }
-        } catch (InvalidObjectIdException | MissingObjectException | IncorrectObjectTypeException e) {
-            throw new GitCommandException("%s is not a commit of this book".formatted(commitId), e);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read %s at %s".formatted(path, commitId), e);
-        }
-    }
-
     /** {@code file} relative to the working tree, with '/' separators as Git paths use. */
     private String repositoryPath(Path file) {
-        Path workTree = git.getRepository().getWorkTree().toPath().toAbsolutePath().normalize();
+        return repositoryPath(git.getRepository(), file);
+    }
+
+    /**
+     * {@code file} relative to the working tree of {@code repo}, with '/' separators as Git paths use.
+     *
+     * @throws IllegalArgumentException if {@code file} is outside the book folder
+     */
+    static String repositoryPath(Repository repo, Path file) {
+        Path workTree = repo.getWorkTree().toPath().toAbsolutePath().normalize();
         Path absolute = file.toAbsolutePath().normalize();
         if (!absolute.startsWith(workTree) || absolute.equals(workTree)) {
             throw new IllegalArgumentException(file + " is not a file in " + workTree);
         }
         return workTree.relativize(absolute).toString().replace(File.separatorChar, '/');
+    }
+
+    /** The commit as the author sees it: its short id and the first line of its message. */
+    private static Commit commitOf(RevCommit commit) {
+        return new Commit(shortId(commit), commit.getShortMessage());
+    }
+
+    /** The short id of {@code commit}, as Git shows it in a log. */
+    static String shortId(RevCommit commit) {
+        return commit.abbreviate(SHORT_ID_LENGTH).name();
     }
 
     private String currentBranch() {

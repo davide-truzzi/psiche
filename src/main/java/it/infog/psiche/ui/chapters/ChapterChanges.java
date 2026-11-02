@@ -181,7 +181,7 @@ final class ChapterChanges {
 
         //reused test
         try {
-            if (!(repository != null && repository.hasHistory(book.chapterFile(title))))
+            if (!(repository != null && repository.history().hasHistory(book.chapterFile(title))))
                 return true;
         } catch (IllegalArgumentException | UncheckedIOException e) {
             // create reports a title it cannot use; a history that cannot be read is no reason to stop.

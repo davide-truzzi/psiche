@@ -52,7 +52,7 @@ public final class DeletedChapters {
 
         List<DeletedChapter> deleted;
         try {
-            deleted = repository.deletedChapters(book.chaptersDir());
+            deleted = repository.history().deletedChapters(book.chaptersDir());
         } catch (UncheckedIOException e) {
             errors.report("Cannot read the deleted chapters", e);
             return;
@@ -69,7 +69,8 @@ public final class DeletedChapters {
 
         Chapter restored;
         try {
-            restored = book.restoreChapter(HistoryPane.chapterTitle(deleted.path()), repository.contentOf(deleted));
+            restored = book.restoreChapter(HistoryPane.chapterTitle(deleted.path()),
+                    repository.history().contentOf(deleted));
         } catch (IllegalArgumentException | UncheckedIOException | GitCommandException e) {
             errors.report("Cannot restore chapter", e);
             return;

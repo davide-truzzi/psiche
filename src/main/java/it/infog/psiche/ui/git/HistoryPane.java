@@ -129,7 +129,7 @@ public final class HistoryPane extends VBox {
         Task<List<FileRevision>> task = new Task<>() {
             @Override
             protected List<FileRevision> call() {
-                return repo.history(file);
+                return repo.history().revisions(file);
             }
         };
         task.setOnSucceeded(event -> {
@@ -154,7 +154,7 @@ public final class HistoryPane extends VBox {
         Task<Optional<String>> task = new Task<>() {
             @Override
             protected Optional<String> call() {
-                return repo.contentOf(revision);
+                return repo.history().contentOf(revision);
             }
         };
         task.setOnSucceeded(event -> opener.open(target, revision, task.getValue()));
