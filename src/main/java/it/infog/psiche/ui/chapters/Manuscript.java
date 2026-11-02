@@ -49,9 +49,10 @@ final class Manuscript {
     private final StyleClassedTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
-    // The logo behind the welcome, and the page that stacks the text over it.
+    private final CommentMarks commentMarks = new CommentMarks(area);
+    // The logo behind the welcome, and the page that stacks the text over it, and the comments' dots over the text.
     private final StackPane welcomeLogo = new StackPane();
-    private final StackPane page = new StackPane(welcomeLogo, scrolled);
+    private final StackPane page = new StackPane(welcomeLogo, scrolled, commentMarks.node());
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     // True once the author scrolls the manuscript, until the caret next moves.
@@ -308,15 +309,17 @@ final class Manuscript {
         return welcome;
     }
 
-    /** Gives the comments in {@code text} the comment style, and the rest none. */
+    /** Gives the comments in {@code text} the comment style, and the rest none, and a dot in the margin. */
     private void markComments(String text) {
 
+        List<TextRange> comments = text.isEmpty() ? List.of() : HtmlComments.ranges(text);
+        commentMarks.setComments(comments);
         if (text.isEmpty())
             return;
 
         StyleSpansBuilder<Collection<String>> spans = new StyleSpansBuilder<>();
         int end = 0;
-        for (TextRange comment : HtmlComments.ranges(text)) {
+        for (TextRange comment : comments) {
             spans.add(TEXT, comment.start() - end);
             spans.add(COMMENT, comment.end() - comment.start());
             end = comment.end();

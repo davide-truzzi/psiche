@@ -223,6 +223,31 @@
     -fx-fill: -graphite;
 }
 
+/* The comments' dots in the left margin: one on each line in view where a comment is, and one in the top or the
+   bottom margin while comments lie beyond the view that way, which a click scrolls to. Brass, faint until pointed
+   at. */
+.comment-mark {
+    -fx-background-color: -brass;
+    -fx-background-radius: 3;
+    -fx-min-width: 6;
+    -fx-min-height: 6;
+    -fx-pref-width: 6;
+    -fx-pref-height: 6;
+    -fx-max-width: 6;
+    -fx-max-height: 6;
+    -fx-opacity: 0.7;
+}
+
+/* Room around an edge dot for the pointer. */
+.comment-edge {
+    -fx-padding: 5;
+    -fx-cursor: hand;
+}
+
+.comment-edge:hover > .comment-mark {
+    -fx-opacity: 1;
+}
+
 /* 7px at the default 16px, growing and shrinking with the editor's font size from Preferences. */
 .manuscript.styled-text-area .paragraph-text {
     -fx-line-spacing: 0.4375em;

@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- The editor shows HTML comments (`<!-- a note -->`) in grey: those the preview and the exports leave out.
+- The editor shows HTML comments (`<!-- a note -->`) in grey: those the preview and the exports leave out. A brass dot
+  in the margin marks each line with one, and dots at the top and bottom of the page tell of comments beyond the view;
+  a click on one goes to the next.
 - The preview follows the editor through long paragraphs and to the end of the chapter.
 - **Preferences** sets the editor's and the preview's font size, each on its own. **Apply** puts a change into effect
   without closing it, and **Revert** goes back to the values Preferences opened with, as **Cancel** does before closing.

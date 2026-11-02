@@ -198,6 +198,10 @@ my-book/              ← the folder; the book's title is set in its properties
     again.
 - The editor shows comments in grey, exactly those the preview leaves out: one inside a code span or a code block is
   text, and stays as the rest.
+- A small brass dot in the left margin marks each line in view with a comment, following it as the text scrolls; a
+  comment that starts above the view gets its dot on its first line in view. While comments lie above or below the
+  view, a dot shows in the page's top or bottom margin, with how many in its tooltip: clicking it brings the next one
+  that way a third of the way down the editor, with the caret on it.
   - **Clear formatting** `Ctrl+\` removes heading, list and quote markers and the bold or italic the selection
     touches.
   - Each format is a single step for Undo.
@@ -386,7 +390,7 @@ and they have unit tests; `export` reads the book's properties from `book.model`
 ```
 WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
                             ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Detached notes)
-                            ├─ pages:     ChapterEditor (Manuscript · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
+                            ├─ pages:     ChapterEditor (Manuscript · CommentMarks · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
                             └─ StatusBar
 ```
 
@@ -403,6 +407,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.DeletedChapters` | *Deleted chapters*: lists the chapters deleted from the book in `DeletedChaptersDialog`, writes the one picked back with its last text, offers back the notes it had then, and commits it on its own, once everything else is saved and committed |
 | `chapters.ChapterEditor` | The manuscript editor for one chapter at a time: which chapter is open, the text last saved, which chapters have unsaved changes, and `open` / `close` / `save` / `saveAll` / `discardAll`, plus `replaceAll`, which swaps in a restored version as one undoable edit. The page it writes on is `Manuscript`, with `FormattingMenu` |
 | `chapters.Manuscript` | The page the author writes on, a RichTextFX `StyleClassedTextArea` in a scroll pane: the welcome and its logo until a book opens, the font size from Preferences, where the text starts for the status bar, and the current position for the preview to follow (the caret's while writing, the one a third of the way down the view while scrolling to read). Cut, copy and paste are plain text. The only class that knows which text control the editor uses |
+| `chapters.CommentMarks` | The comments' brass dots: a layer over the manuscript, placed after each layout pass so the dots sit on the lines as they show, with a dot per line in view that has a comment, and the edge dots that count the comments above and below the view and scroll to the next one |
 | `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, above the editing commands |
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |
 | `chapters.UnsavedChanges` | Asks whether to save or discard unsaved chapters before a book is replaced, a commit, an export or closing the window |
