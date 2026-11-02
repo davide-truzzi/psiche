@@ -218,6 +218,11 @@
     -fx-padding: 0;
 }
 
+/* The comments, which the preview and the exports leave out, in the welcome's grey. */
+.manuscript .paragraph-text .text.comment {
+    -fx-fill: -graphite;
+}
+
 /* 7px at the default 16px, growing and shrinking with the editor's font size from Preferences. */
 .manuscript.styled-text-area .paragraph-text {
     -fx-line-spacing: 0.4375em;

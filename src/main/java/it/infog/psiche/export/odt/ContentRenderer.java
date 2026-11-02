@@ -1,8 +1,8 @@
 package it.infog.psiche.export.odt;
 
-import it.infog.psiche.export.HtmlComments;
 import it.infog.psiche.export.odt.model.Picture;
 import it.infog.psiche.export.odt.model.enums.Style;
+import it.infog.psiche.markdown.HtmlComments;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.BlockQuote;

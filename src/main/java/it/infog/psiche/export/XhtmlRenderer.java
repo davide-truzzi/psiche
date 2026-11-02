@@ -2,6 +2,7 @@ package it.infog.psiche.export;
 
 import it.infog.psiche.export.model.Contents;
 import it.infog.psiche.export.model.TitlePage;
+import it.infog.psiche.markdown.HtmlComments;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Code;
 import org.commonmark.node.Heading;

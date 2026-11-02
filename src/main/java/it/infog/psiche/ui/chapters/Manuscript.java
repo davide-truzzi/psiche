@@ -1,5 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.markdown.HtmlComments;
+import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.ui.common.Logo;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -23,7 +25,11 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.StyleClassedTextArea;
+import org.fxmisc.richtext.model.StyleSpansBuilder;
+import org.fxmisc.richtext.util.UndoUtils;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,6 +42,9 @@ final class Manuscript {
 
     // Over writer.css's size for the manuscript, which is the default one.
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
+    // The style class of the comments the preview leaves out, which writer.css shows in grey.
+    private static final Collection<String> COMMENT = List.of("comment");
+    private static final Collection<String> TEXT = List.of();
 
     private final StyleClassedTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
@@ -56,6 +65,9 @@ final class Manuscript {
         page.getStyleClass().add("manuscript-page");
         area.setWrapText(true);
         area.setEditable(false);
+        // Undo takes back what the author typed, not the comments' colour that follows it.
+        area.setUndoManager(UndoUtils.plainTextUndoManager(area));
+        area.textProperty().addListener((obs, old, text) -> markComments(text));
         area.setPlaceholder(welcome(welcome), Pos.TOP_LEFT);
         // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
         area.setMouseTransparent(true);
@@ -294,6 +306,23 @@ final class Manuscript {
                 () -> area.getWidth() - area.getPadding().getLeft() - area.getPadding().getRight(),
                 area.widthProperty(), area.paddingProperty()));
         return welcome;
+    }
+
+    /** Gives the comments in {@code text} the comment style, and the rest none. */
+    private void markComments(String text) {
+
+        if (text.isEmpty())
+            return;
+
+        StyleSpansBuilder<Collection<String>> spans = new StyleSpansBuilder<>();
+        int end = 0;
+        for (TextRange comment : HtmlComments.ranges(text)) {
+            spans.add(TEXT, comment.start() - end);
+            spans.add(COMMENT, comment.end() - comment.start());
+            end = comment.end();
+        }
+        spans.add(TEXT, text.length() - end);
+        area.setStyleSpans(0, spans.create());
     }
 
     /** Puts the caret at the start, with the first line at the top of the view, and the focus. */
