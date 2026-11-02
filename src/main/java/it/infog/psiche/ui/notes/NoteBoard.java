@@ -5,6 +5,7 @@ import it.infog.psiche.notes.model.NoteLayout;
 import it.infog.psiche.notes.model.enums.NoteColor;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.notes.card.NoteCard;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;

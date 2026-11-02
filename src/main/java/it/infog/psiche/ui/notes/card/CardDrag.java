@@ -1,4 +1,4 @@
-package it.infog.psiche.ui.notes;
+package it.infog.psiche.ui.notes.card;
 
 import javafx.geometry.Point2D;
 import javafx.scene.input.MouseButton;

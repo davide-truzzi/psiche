@@ -1,4 +1,4 @@
-package it.infog.psiche.ui.notes;
+package it.infog.psiche.ui.notes.card;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,4 +1,4 @@
-package it.infog.psiche.ui.notes;
+package it.infog.psiche.ui.notes.card;
 
 import javafx.scene.image.Image;
 import javafx.scene.layout.VBox;

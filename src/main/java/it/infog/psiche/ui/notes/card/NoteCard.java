@@ -1,4 +1,4 @@
-package it.infog.psiche.ui.notes;
+package it.infog.psiche.ui.notes.card;
 
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;

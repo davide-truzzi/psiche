@@ -5,6 +5,7 @@ import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.notes.card.NoteCard;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;

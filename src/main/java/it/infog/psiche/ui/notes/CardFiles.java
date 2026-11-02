@@ -2,6 +2,7 @@ package it.infog.psiche.ui.notes;
 
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.notes.card.NoteCard;
 
 import javafx.beans.value.ObservableBooleanValue;
 import javafx.scene.input.Clipboard;

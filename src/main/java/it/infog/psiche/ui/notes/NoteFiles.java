@@ -2,6 +2,7 @@ package it.infog.psiche.ui.notes;
 
 import it.infog.psiche.notes.NoteStore;
 import it.infog.psiche.notes.model.enums.FileKind;
+import it.infog.psiche.ui.notes.card.NoteCard;
 
 import javafx.application.Platform;
 import javafx.scene.image.Image;

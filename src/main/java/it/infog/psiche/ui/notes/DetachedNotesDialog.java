@@ -3,6 +3,7 @@ package it.infog.psiche.ui.notes;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.notes.card.FileLabels;
 
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
