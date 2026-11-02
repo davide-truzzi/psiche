@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 /**
  * The open chapter typeset as a page of the book, following the editor as the author types. While it is hidden, it
- * neither renders nor scrolls; it catches up with the latest text and line once it shows again. Web and mail links
+ * neither renders nor scrolls; it catches up with the latest text and position once it shows again. Web and mail links
  * open in the system browser; the preview itself never leaves the page. Its theme can change while it shows a page,
  * which then renders again in the new one.
  */
@@ -39,29 +39,26 @@ public final class PreviewPane extends StackPane {
     private static final Duration FOLLOW_DELAY = Duration.millis(120);
 
     /*
-     * Scrolls to Markdown line %d, using the data-line marks the renderer puts on each block. A line inside a block,
-     * or between two, lands proportionally between the block it is in and the next one, which goes a third of the way
-     * down the view. Unless the second argument asks for it exactly, the page only moves once that point leaves the
-     * middle of the view, so it stays put while typing.
+     * Scrolls to character %d of the Markdown, using the data-start and data-end marks the renderer puts on each
+     * block. The character lands as far down the last block starting at or before it as it is through that block's
+     * text, so a long paragraph is followed line by line; one between blocks lands at the bottom of the block above.
+     * That point goes a third of the way down the view. Unless the second argument asks for it exactly, the page only
+     * moves once that point leaves the middle of the view, so it stays put while typing.
      */
-    private static final String FOLLOW_LINE = """
-            (function (line, exactly) {
-                let before = null, after = null;
-                for (const block of document.querySelectorAll('[data-line]')) {
-                    if (Number(block.dataset.line) > line) {
-                        after = block;
+    private static final String FOLLOW_POSITION = """
+            (function (position, exactly) {
+                let block = null;
+                for (const candidate of document.querySelectorAll('[data-start]')) {
+                    if (Number(candidate.dataset.start) > position)
                         break;
-                    }
-                    before = block;
+                    block = candidate;
                 }
-                const top = block => block.getBoundingClientRect().top + window.scrollY;
                 let y = 0;
-                if (before !== null) {
-                    y = top(before);
-                    if (after !== null) {
-                        const from = Number(before.dataset.line), to = Number(after.dataset.line);
-                        y += (top(after) - y) * (line - from) / (to - from);
-                    }
+                if (block !== null) {
+                    const box = block.getBoundingClientRect();
+                    const start = Number(block.dataset.start), end = Number(block.dataset.end);
+                    const through = Math.min(1, (position - start) / Math.max(1, end - start));
+                    y = box.top + window.scrollY + box.height * through;
                 }
                 const height = window.innerHeight;
                 if (exactly || y < window.scrollY + height * 0.2 || y > window.scrollY + height * 0.8)
@@ -86,7 +83,7 @@ public final class PreviewPane extends StackPane {
     private double scrollAfterLoad;
     // True while a render is held back because the preview is hidden.
     private boolean renderWaiting;
-    private int followedLine;
+    private int followedPosition;
     private boolean followExactly;
     private MarkdownRenderer renderer;
     // What the page shows, to render it again in another theme; null while it is blank.
@@ -110,13 +107,13 @@ public final class PreviewPane extends StackPane {
         view.getEngine().getLoadWorker().stateProperty().addListener((obs, old, state) -> {
             if (state == Worker.State.SUCCEEDED) {
                 view.getEngine().executeScript("window.scrollTo(0, %s)".formatted(scrollAfterLoad));
-                showFollowedLine();
+                showFollowedPosition();
                 catchLinkClicks();
             }
         });
 
         renderDelay.setOnFinished(event -> pendingRender.run());
-        followDelay.setOnFinished(event -> showFollowedLine());
+        followDelay.setOnFinished(event -> showFollowedPosition());
         showing.addListener((obs, wasShowing, isShowing) -> {
             if (isShowing)
                 catchUp();
@@ -185,25 +182,25 @@ public final class PreviewPane extends StackPane {
     }
 
     /**
-     * Keeps the part of the page rendered from Markdown {@code line} (zero-based) in view, once the author pauses. A
-     * page still loading shows it as soon as it is ready.
+     * Keeps the part of the page rendered from the Markdown's character {@code position} (zero-based) in view, once
+     * the author pauses. A page still loading shows it as soon as it is ready.
      *
-     * @param exactly true to put the line a third of the way down even if it is already in view, so the page lines up
-     *                with an editor the author is scrolling; false to move the page only when the line leaves the
-     *                middle of the view, so it stays put while the author types
+     * @param exactly true to put the position a third of the way down even if it is already in view, so the page lines
+     *                up with an editor the author is scrolling; false to move the page only when the position leaves
+     *                the middle of the view, so it stays put while the author types
      */
-    public void followLine(int line, boolean exactly) {
+    public void followPosition(int position, boolean exactly) {
 
-        followedLine = line;
+        followedPosition = position;
         followExactly = exactly;
         if (showing.get())
             followDelay.playFromStart();
     }
 
-    private void showFollowedLine() {
+    private void showFollowedPosition() {
 
         if (view.getEngine().getLoadWorker().getState() == Worker.State.SUCCEEDED)
-            view.getEngine().executeScript(FOLLOW_LINE.formatted(followedLine, followExactly));
+            view.getEngine().executeScript(FOLLOW_POSITION.formatted(followedPosition, followExactly));
     }
 
     private void schedule(Runnable render) {
@@ -230,14 +227,14 @@ public final class PreviewPane extends StackPane {
         followDelay.stop();
     }
 
-    /** Runs the render held back while hidden, which scrolls to the followed line once loaded, or just scrolls. */
+    /** Runs the render held back while hidden, which scrolls to the followed position once loaded, or just scrolls. */
     private void catchUp() {
 
         if (renderWaiting) {
             renderWaiting = false;
             pendingRender.run();
         } else
-            showFollowedLine();
+            showFollowedPosition();
     }
 
     private void load(String markdown, Path baseDirectory, double scroll) {

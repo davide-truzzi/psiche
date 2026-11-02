@@ -3,6 +3,7 @@ package it.infog.psiche.markdown;
 import org.commonmark.node.Block;
 import org.commonmark.node.Document;
 import org.commonmark.node.Node;
+import org.commonmark.node.SourceSpan;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -11,8 +12,9 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /**
- * Renders chapter Markdown to a standalone HTML page for the preview pane. Each block element carries a
- * {@code data-line} attribute with the zero-based Markdown line it starts on, so the preview can follow the editor.
+ * Renders chapter Markdown to a standalone HTML page for the preview pane. Each block element carries
+ * {@code data-start} and {@code data-end} attributes with where it starts and ends in the Markdown, counted in
+ * characters from the start of the text, so the preview can follow the editor's caret.
  */
 public final class MarkdownRenderer {
 
@@ -32,7 +34,7 @@ public final class MarkdownRenderer {
     private final Parser parser = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
     private final HtmlRenderer renderer = HtmlRenderer.builder()
             .softbreak("<br>") // Forces <br> for all soft breaks
-            .attributeProviderFactory(context -> MarkdownRenderer::markSourceLine)
+            .attributeProviderFactory(context -> MarkdownRenderer::markSourceRange)
             .build();
     private final String stylesheet;
 
@@ -52,9 +54,13 @@ public final class MarkdownRenderer {
         return PAGE.formatted(baseDirectory.toUri(), stylesheet, body);
     }
 
-    private static void markSourceLine(Node node, String tagName, Map<String, String> attributes) {
+    private static void markSourceRange(Node node, String tagName, Map<String, String> attributes) {
 
-        if (node instanceof Block && !(node instanceof Document) && !node.getSourceSpans().isEmpty())
-            attributes.put("data-line", String.valueOf(node.getSourceSpans().getFirst().getLineIndex()));
+        if (!(node instanceof Block) || node instanceof Document || node.getSourceSpans().isEmpty())
+            return;
+
+        SourceSpan last = node.getSourceSpans().getLast();
+        attributes.put("data-start", String.valueOf(node.getSourceSpans().getFirst().getInputIndex()));
+        attributes.put("data-end", String.valueOf(last.getInputIndex() + last.getLength()));
     }
 }

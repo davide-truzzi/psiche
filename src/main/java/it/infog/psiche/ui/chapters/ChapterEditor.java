@@ -72,7 +72,7 @@ public final class ChapterEditor {
     private final Map<KeyCombination, Runnable> shortcuts = new LinkedHashMap<>();
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyBooleanWrapper dirty = new ReadOnlyBooleanWrapper();
-    private final ReadOnlyIntegerWrapper currentLine = new ReadOnlyIntegerWrapper();
+    private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     private final Drafts drafts = new Drafts();
     private final StatusBar statusBar;
     private final ErrorReporter errors;
@@ -118,14 +118,14 @@ public final class ChapterEditor {
                     event.consume();
                 }));
 
-        //the current line: the caret's while writing, the one in view while scrolling to read
+        //the current position: the caret's while writing, the one in view while scrolling to read
         manuscript.caretPositionProperty().addListener((obs, old, caret) -> {
             reading = false;
-            currentLine.set(lineAtCaret());
+            currentPosition.set(positionAtCaret());
         });
         manuscript.textProperty().addListener((obs, old, text) -> {
             if (!reading)
-                currentLine.set(lineAtCaret());
+                currentPosition.set(positionAtCaret());
         });
         manuscript.addEventFilter(ScrollEvent.SCROLL, event -> reading = true);
         manuscript.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
@@ -134,7 +134,7 @@ public final class ChapterEditor {
         });
         manuscript.scrollTopProperty().addListener((obs, old, top) -> {
             if (reading)
-                currentLine.set(lineInView());
+                currentPosition.set(positionInView());
         });
     }
 
@@ -177,12 +177,12 @@ public final class ChapterEditor {
     }
 
     /**
-     * The zero-based line of the open chapter's text the author is at: the caret's line while writing, and once they
-     * scroll to read, the line a third of the way down the view, until the caret moves again.
+     * The zero-based character of the open chapter's text the author is at: the caret's while writing, and once they
+     * scroll to read, the one a third of the way down the view, until the caret moves again.
      */
-    ReadOnlyIntegerProperty currentLineProperty() {
+    ReadOnlyIntegerProperty currentPositionProperty() {
 
-        return currentLine.getReadOnlyProperty();
+        return currentPosition.getReadOnlyProperty();
     }
 
     /** Where the manuscript's text starts, in scene coordinates, so other parts of the window can line up with it. */
@@ -521,29 +521,21 @@ public final class ChapterEditor {
         measure.run();
     }
 
-    private int lineAtCaret() {
-
-        return lineAt(manuscript.getCaretPosition());
-    }
-
-    private int lineAt(int index) {
+    private int positionAtCaret() {
 
         // The caret can briefly lie past the end while the text is being replaced.
-        String text = manuscript.getText();
-        int end = Math.min(index, text.length());
-
-        return (int) text.chars().limit(end).filter(c -> c == '\n').count();
+        return Math.min(manuscript.getCaretPosition(), manuscript.getLength());
     }
 
-    /** The line a third of the way down the view, where the preview puts the line it follows. */
-    private int lineInView() {
+    /** The character a third of the way down the view, where the preview puts the position it follows. */
+    private int positionInView() {
 
         if (!(manuscript.getSkin() instanceof TextAreaSkin skin))
-            return currentLine.get();
+            return currentPosition.get();
 
         // The skin hit-tests in the coordinates of the scrolled content, so the view starts at the scroll offset.
         int index = skin.getIndex(0, manuscript.getScrollTop() + manuscript.getHeight() / 3).getInsertionIndex();
-        return lineAt(index);
+        return Math.min(index, manuscript.getLength());
     }
 
     private static boolean onScrollBar(MouseEvent event) {

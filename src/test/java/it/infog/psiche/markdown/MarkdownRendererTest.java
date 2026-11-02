@@ -19,19 +19,30 @@ class MarkdownRendererTest {
         String page = renderer.render("# The storm\n\nIt was *very* dark.", chaptersDir);
 
         assertThat(page).contains(
-                "<article>\n<h1 data-line=\"0\">The storm</h1>\n<p data-line=\"2\">It was <em>very</em> dark.</p>\n</article>");
+                "<article>\n<h1 data-start=\"0\" data-end=\"11\">The storm</h1>\n"
+                        + "<p data-start=\"13\" data-end=\"32\">It was <em>very</em> dark.</p>\n</article>");
     }
 
     @Test
-    void marksEachBlockWithTheLineItStartsOn() {
-        String page = renderer.render("# The storm\n\nIt was dark.\nAnd cold.\n\n> Run!\n\n- north\n- south", chaptersDir);
+    void marksEachBlockWithWhereItStartsAndEndsInTheText() {
+        String page = renderer.render("# The storm\n\nIt was dark.\nAnd cold.\n\n> Run!\n\n- north\n- south",
+                chaptersDir);
 
         assertThat(page)
-                .contains("<h1 data-line=\"0\">")
-                .contains("<p data-line=\"2\">It was dark.<br>")
-                .contains("<blockquote data-line=\"5\">\n<p data-line=\"5\">Run!</p>")
-                .contains("<li data-line=\"7\">north</li>")
-                .contains("<li data-line=\"8\">south</li>");
+                .contains("<h1 data-start=\"0\" data-end=\"11\">")
+                .contains("<p data-start=\"13\" data-end=\"35\">It was dark.<br>")
+                .contains("<blockquote data-start=\"37\" data-end=\"43\">\n"
+                        + "<p data-start=\"39\" data-end=\"43\">Run!</p>")
+                .contains("<ul data-start=\"45\" data-end=\"60\">")
+                .contains("<li data-start=\"45\" data-end=\"52\">north</li>")
+                .contains("<li data-start=\"53\" data-end=\"60\">south</li>");
+    }
+
+    @Test
+    void endsAParagraphOfSeveralLinesAtTheEndOfItsLastLine() {
+        String page = renderer.render("One.\nTwo.\nThree.\n", chaptersDir);
+
+        assertThat(page).contains("<p data-start=\"0\" data-end=\"16\">One.<br>");
     }
 
     @Test

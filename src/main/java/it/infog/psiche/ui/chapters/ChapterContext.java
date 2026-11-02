@@ -114,8 +114,8 @@ public final class ChapterContext {
 
         // listeners
         chapterEditor.textProperty().addListener((obs, old, text) -> followEditor(text));
-        chapterEditor.currentLineProperty().addListener(
-                (obs, old, line) -> preview.followLine(line.intValue(), chapterEditor.isReading()));
+        chapterEditor.currentPositionProperty().addListener(
+                (obs, old, position) -> preview.followPosition(position.intValue(), chapterEditor.isReading()));
         chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> updateChapterState());
         // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft.
         chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> chapterList.refresh());
