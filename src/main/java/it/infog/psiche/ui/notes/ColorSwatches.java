@@ -23,7 +23,7 @@ final class ColorSwatches extends HBox {
 
         for (NoteColor color : NoteColor.values()) {
             Button swatch = new Button();
-            swatch.getStyleClass().addAll("note-swatch", "note-" + color.key());
+            swatch.getStyleClass().addAll("note-swatch", NoteCard.colorStyle(color));
             swatch.setTooltip(new Tooltip(color.label()));
             swatch.setOnAction(event -> {
                 picked.accept(color);

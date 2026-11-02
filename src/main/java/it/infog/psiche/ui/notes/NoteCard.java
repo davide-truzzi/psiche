@@ -24,7 +24,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.SVGPath;
 import javafx.util.Duration;
 
@@ -95,6 +94,8 @@ public final class NoteCard extends VBox {
     private static final Duration SAVE_DELAY = Duration.seconds(1);
     private static final double TEXT_MIN_HEIGHT = 32;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
+    private static final String COLOR_STYLE = "note-%s";
+    private static final String DUPLICATE_STYLE = "note-duplicate";
 
     private final String id;
     private final Board board;
@@ -103,10 +104,7 @@ public final class NoteCard extends VBox {
     private final StackPane band = new StackPane();
     private final ColorSwatches swatches = new ColorSwatches(this::recolor);
     private final CardDrag drag;
-    private final VBox fileSlot = new VBox();
-    private AttachmentView attachment;
-    // Shown in the file's place while a file is copied into the note.
-    private AttachmentView copying;
+    private final CardFileSlot fileSlot;
     private int order;
     private NoteColor color;
     private boolean duplicateOnImport;
@@ -117,6 +115,7 @@ public final class NoteCard extends VBox {
         this.board = board;
         this.order = note.layout().order();
         this.drag = new CardDrag(this, () -> board.layoutChanged(this));
+        this.fileSlot = new CardFileSlot(() -> board.openFile(this));
 
         text.setText(note.text());
         text.setWrapText(true);
@@ -128,10 +127,8 @@ public final class NoteCard extends VBox {
         saveDelay.setOnFinished(event -> board.textChanged(this, text.getText()));
         text.textProperty().addListener((obs, old, value) -> saveDelay.playFromStart());
         text.focusedProperty().addListener((obs, was, focused) -> {
-            if (!focused && saveDelay.getStatus() == PauseTransition.Status.RUNNING) {
-                saveDelay.stop();
-                board.textChanged(this, text.getText());
-            }
+            if (!focused)
+                flushText();
         });
 
         band.getChildren().add(duplicateBand());
@@ -139,18 +136,11 @@ public final class NoteCard extends VBox {
         drag.moveBy(band);
         setDuplicateOnImport(note.duplicateOnImport());
 
-        fileSlot.getStyleClass().add("note-file-slot");
         setAttachment(note.attachment());
 
-        // The text takes the room the file leaves; in a note made small, the text gives way first, then the file is
-        // cut at the card's edge, never past it.
+        // The text takes the room the file leaves; in a note made small, the text gives way first, then the file.
         text.setMinHeight(TEXT_MIN_HEIGHT);
         text.setPrefHeight(TEXT_MIN_HEIGHT);
-        fileSlot.setMinHeight(0);
-        Rectangle fileClip = new Rectangle();
-        fileClip.widthProperty().bind(fileSlot.widthProperty());
-        fileClip.heightProperty().bind(fileSlot.heightProperty());
-        fileSlot.setClip(fileClip);
 
         getChildren().addAll(band, topStrip(), swatches, text, fileSlot, resizeCorner());
         getStyleClass().add("note-card");
@@ -211,8 +201,8 @@ public final class NoteCard extends VBox {
     public void setColor(NoteColor color) {
 
         for (NoteColor each : NoteColor.values())
-            getStyleClass().remove("note-" + each.key());
-        getStyleClass().add("note-" + color.key());
+            getStyleClass().remove(colorStyle(each));
+        getStyleClass().add(colorStyle(color));
         this.color = color;
         swatches.setCurrent(color);
     }
@@ -226,10 +216,9 @@ public final class NoteCard extends VBox {
 
         duplicateOnImport = duplicate;
         // The band rounds the card's top corners, which the toolbar under it then leaves square.
-        if (duplicate && !getStyleClass().contains("note-duplicate"))
-            getStyleClass().add("note-duplicate");
-        else if (!duplicate)
-            getStyleClass().remove("note-duplicate");
+        getStyleClass().remove(DUPLICATE_STYLE);
+        if (duplicate)
+            getStyleClass().add(DUPLICATE_STYLE);
         band.setVisible(duplicate);
         band.setManaged(duplicate);
     }
@@ -252,37 +241,36 @@ public final class NoteCard extends VBox {
     /** The file the note carries, if any, on disk or missing. */
     public Optional<Path> attachment() {
 
-        return Optional.ofNullable(attachment).map(AttachmentView::file);
+        return fileSlot.file();
     }
 
     /** Shows {@code file} under the text, or nothing. */
     public void setAttachment(Optional<Path> file) {
 
-        attachment = file.map(path -> new AttachmentView(path, () -> board.openFile(this))).orElse(null);
-        copying = null;
-        fileSlot.getChildren().setAll(file.isPresent() ? List.of(attachment) : List.of());
+        fileSlot.setFile(file);
     }
 
     /** True if the note's file is shown as a picture, which the board draws for it. */
     public boolean wantsPicture() {
 
-        return attachment != null && attachment.hasPicture();
+        return fileSlot.wantsPicture();
     }
 
     public void showPicture(Image picture) {
 
-        if (attachment != null)
-            attachment.showPicture(picture);
+        fileSlot.showPicture(picture);
     }
 
     /** Shows how far the copy of {@code name} into the note has come, from 0 to 1. */
     public void showCopying(String name, double done) {
 
-        if (copying == null) {
-            copying = new AttachmentView(Path.of(name), () -> {});
-            fileSlot.getChildren().setAll(copying);
-        }
-        copying.showProgress(name, done);
+        fileSlot.showCopying(name, done);
+    }
+
+    /** The style class that gives a note, or a swatch, {@code color}. */
+    static String colorStyle(NoteColor color) {
+
+        return COLOR_STYLE.formatted(color.key());
     }
 
     /** Puts the caret in the note's text, ready for typing. */
