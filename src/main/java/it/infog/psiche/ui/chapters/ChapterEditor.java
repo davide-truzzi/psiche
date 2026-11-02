@@ -8,7 +8,7 @@ import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
-import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableSet;
 import javafx.scene.Node;
 
@@ -49,7 +49,7 @@ public final class ChapterEditor {
         return manuscript.node();
     }
 
-    ReadOnlyStringProperty textProperty() {
+    ObservableValue<String> textProperty() {
 
         return manuscript.textProperty();
     }

@@ -70,6 +70,9 @@ final class AboutDialog {
                     "https://github.com/commonmark/commonmark-java/blob/main/LICENSE.txt"),
             new Credit("SLF4J", "MIT License", "https://www.slf4j.org/license.html"),
             new Credit("TwelveMonkeys ImageIO", "BSD 3-Clause", "https://github.com/haraldk/TwelveMonkeys#license"),
+            new Credit("RichTextFX, Flowless", "BSD 2-Clause",
+                    "https://github.com/FXMisc/RichTextFX/blob/master/LICENSE"),
+            new Credit("ReactFX, UndoFX, WellBehavedFX", "BSD 2-Clause", "https://opensource.org/license/bsd-2-clause"),
             new Credit("OpenJFX, Java runtime", "GPL 2 with the Classpath Exception",
                     "https://openjdk.org/legal/gplv2+ce.html"));
 

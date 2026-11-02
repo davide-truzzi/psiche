@@ -35,6 +35,8 @@ dependencies {
     implementation(libs.commonmark)
     implementation(libs.openhtmltopdf.pdfbox)
     implementation(libs.slf4j.api)
+    // The editor's text, which, unlike JavaFX's TextArea, can show parts of it in another colour, such as comments.
+    implementation(libs.richtextfx)
     // Reads WebP images, which neither JavaFX nor the JDK can, so a note shows a picture of them; it adds itself to
     // ImageIO, so no code names it.
     runtimeOnly(libs.imageio.webp)
@@ -53,12 +55,15 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
-// OpenHTMLtoPDF's jars name no module, so Gradle would leave them on the classpath, out of reach of the app's module;
-// give them the names Java would derive from their file names. Every other jar is used as it is.
+// OpenHTMLtoPDF's jars, and ReactFX's and WellBehavedFX's, which RichTextFX needs, name no module, so Gradle would
+// leave them on the classpath, out of reach of the app's module; give them module names: Java's own derivation from
+// the file names for OpenHTMLtoPDF, and their packages' for the other two. Every other jar is used as it is.
 extraJavaModuleInfo {
     failOnMissingModuleInfo.set(false)
     automaticModule("io.github.openhtmltopdf:openhtmltopdf-core", "openhtmltopdf.core")
     automaticModule("io.github.openhtmltopdf:openhtmltopdf-pdfbox", "openhtmltopdf.pdfbox")
+    automaticModule("org.reactfx:reactfx", "org.reactfx")
+    automaticModule("org.fxmisc.wellbehaved:wellbehavedfx", "org.fxmisc.wellbehaved")
 }
 
 application {

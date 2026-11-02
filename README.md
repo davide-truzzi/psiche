@@ -384,7 +384,7 @@ and they have unit tests; `export` reads the book's properties from `book.model`
 ```
 WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
                             ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Detached notes)
-                            ├─ pages:     ChapterEditor │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
+                            ├─ pages:     ChapterEditor (Manuscript · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
                             └─ StatusBar
 ```
 
@@ -399,7 +399,9 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.ChapterChanges` | Creates, renames and deletes chapters after asking the author; a renamed or deleted chapter's notes move with it, through `NoteStore`, and the rename or deletion is committed alone, once everything else is saved and committed |
 | `chapters.ChapterCell` | A chapter in the list: its title, the *unsaved* mark while it has unsaved changes, and its menu |
 | `chapters.DeletedChapters` | *Deleted chapters*: lists the chapters deleted from the book in `DeletedChaptersDialog`, writes the one picked back with its last text, offers back the notes it had then, and commits it on its own, once everything else is saved and committed |
-| `chapters.ChapterEditor` | The manuscript editor for one chapter at a time: which chapter is open, the text last saved, which chapters have unsaved changes, and `open` / `close` / `save` / `saveAll` / `discardAll`, plus `replaceAll`, which swaps in a restored version as one undoable edit, and the current position for the preview to follow (the caret's while writing, the one in view while scrolling) |
+| `chapters.ChapterEditor` | The manuscript editor for one chapter at a time: which chapter is open, the text last saved, which chapters have unsaved changes, and `open` / `close` / `save` / `saveAll` / `discardAll`, plus `replaceAll`, which swaps in a restored version as one undoable edit. The page it writes on is `Manuscript`, with `FormattingMenu` |
+| `chapters.Manuscript` | The page the author writes on, a RichTextFX `StyleClassedTextArea` in a scroll pane: the welcome and its logo until a book opens, the font size from Preferences, where the text starts for the status bar, and the current position for the preview to follow (the caret's while writing, the one a third of the way down the view while scrolling to read). Cut, copy and paste are plain text. The only class that knows which text control the editor uses |
+| `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, above the editing commands |
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |
 | `chapters.UnsavedChanges` | Asks whether to save or discard unsaved chapters before a book is replaced, a commit, an export or closing the window |
 | `preview.PreviewPane` | The typeset preview in a `WebView`: `render` shows a chapter at once from the top, `renderLater` follows the author's typing after a 500 ms pause and keeps the scroll position, and `followPosition` scrolls to the part of the page rendered from a character of the Markdown, as far down its block as it is through the block's text; while hidden behind the History tab it holds back both and catches up when shown |
@@ -477,6 +479,7 @@ The fonts and libraries it ships with keep their own licences:
 | commonmark-java | BSD 2-Clause |
 | SLF4J | MIT License |
 | TwelveMonkeys ImageIO (WebP pictures) | BSD 3-Clause |
+| RichTextFX, and the Flowless, ReactFX, UndoFX and WellBehavedFX libraries it uses (the editor's text) | BSD 2-Clause |
 | OpenJFX, and the Java runtime in the packages | GNU General Public License 2 with the Classpath Exception |
 
 The Buy Me a Coffee logo on the About dialog's support button is Buy Me a Coffee's trademark, from their brand bundle,

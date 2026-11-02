@@ -11,6 +11,9 @@ module it.infog.psiche {
     requires org.apache.pdfbox;
     requires org.apache.pdfbox.io;
     requires org.eclipse.jgit;
+    requires org.fxmisc.flowless;
+    requires org.fxmisc.richtext;
+    requires org.reactfx;
     requires org.slf4j;
 
     exports it.infog.psiche.ui to javafx.graphics;

@@ -2,24 +2,27 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.ui.common.Logo;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
-import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.skin.TextAreaSkin;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.scene.text.Text;
+import org.fxmisc.flowless.VirtualizedScrollPane;
+import org.fxmisc.richtext.StyleClassedTextArea;
 
 import java.util.Map;
 
@@ -27,17 +30,19 @@ import java.util.Map;
  * The page the author writes on: the open chapter's text, wrapped, in the manuscript's font, over the welcome and its
  * logo until a book opens. It knows where the author is in the text, the caret while writing and the place in view
  * while scrolling to read, and where the text starts, so the status bar can line up with it. It is the only part of
- * the editor that knows the text is a {@link TextArea}.
+ * the editor that knows the text is a RichTextFX {@link StyleClassedTextArea}.
  */
 final class Manuscript {
 
     // Over writer.css's size for the manuscript, which is the default one.
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
 
-    private final TextArea area = new TextArea();
+    private final StyleClassedTextArea area = new PlainTextArea();
+    // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
+    private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
     // The logo behind the welcome, and the page that stacks the text over it.
     private final StackPane welcomeLogo = new StackPane();
-    private final StackPane page = new StackPane(welcomeLogo, area);
+    private final StackPane page = new StackPane(welcomeLogo, scrolled);
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     // True once the author scrolls the manuscript, until the caret next moves.
@@ -47,9 +52,14 @@ final class Manuscript {
     Manuscript(String welcome) {
 
         area.getStyleClass().add("manuscript");
+        scrolled.getStyleClass().add("manuscript-scroll");
+        page.getStyleClass().add("manuscript-page");
         area.setWrapText(true);
         area.setEditable(false);
-        area.setPromptText(welcome);
+        area.setPlaceholder(welcome(welcome), Pos.TOP_LEFT);
+        // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
+        area.setMouseTransparent(true);
+        area.setFocusTraversable(false);
 
         //the welcome's logo, sized to the page and never in the way of the page's own size or the mouse
         welcomeLogo.getChildren().add(Logo.lockup(welcomeLogo, 0.6));
@@ -58,11 +68,10 @@ final class Manuscript {
         welcomeLogo.setPrefSize(0, 0);
         welcomeLogo.setMouseTransparent(true);
 
-        // The skin adds its nodes after the skin property changes, so look for them once it has.
-        area.skinProperty().addListener((obs, old, skin) -> Platform.runLater(() -> {
-            fitContentToText();
-            trackTextMargin();
-        }));
+        //where the text starts: the text's left edge, inside its padding
+        Runnable measure = () -> textMargin.set(area.localToScene(0, 0).getX() + area.getPadding().getLeft());
+        area.localToSceneTransformProperty().addListener((obs, old, transform) -> measure.run());
+        area.paddingProperty().addListener((obs, old, padding) -> measure.run());
 
         //the current position: the caret's while writing, the one in view while scrolling to read
         area.caretPositionProperty().addListener((obs, old, caret) -> {
@@ -73,14 +82,19 @@ final class Manuscript {
             if (!reading)
                 currentPosition.set(positionAtCaret());
         });
-        area.addEventFilter(ScrollEvent.SCROLL, event -> reading = true);
-        area.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+        // On the page rather than the text, so the wheel over the scroll bar counts too.
+        scrolled.addEventFilter(ScrollEvent.SCROLL, event -> reading = true);
+        scrolled.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
             if (onScrollBar(event))
                 reading = true;
         });
-        area.scrollTopProperty().addListener((obs, old, top) -> {
+        // The scroll also moves while the text changes, before the view is laid out again, so look once it is.
+        area.estimatedScrollYProperty().addListener((obs, old, top) -> {
             if (reading)
-                currentPosition.set(positionInView());
+                Platform.runLater(() -> {
+                    if (reading)
+                        currentPosition.set(positionInView());
+                });
         });
     }
 
@@ -91,7 +105,7 @@ final class Manuscript {
 
     // The text
 
-    ReadOnlyStringProperty textProperty() {
+    ObservableValue<String> textProperty() {
 
         return area.textProperty();
     }
@@ -109,43 +123,47 @@ final class Manuscript {
     /** Shows {@code text} in place of the text shown, which Undo cannot bring back. */
     void setText(String text) {
 
-        area.setText(text);
+        // A new text is read from its start, not from where the old one was scrolled to.
+        reading = false;
+        area.replaceText(text);
+        area.getUndoManager().forgetHistory();
     }
 
     /** Replaces the whole text with {@code text}, as one change a single Undo reverts, and starts at the top. */
     void replaceAll(String text) {
 
-        // Unlike setText, which clears the undo history, replaceText records one change that a single Undo reverts.
+        reading = false;
         area.replaceText(0, area.getLength(), text);
 
-        // Typing at the end of the replaced text would merge into the same undo change; start at the top instead.
-        area.positionCaret(0);
-        area.requestFocus();
+        // Typing at the top would otherwise merge into the same undo change.
+        area.getUndoManager().preventMerge();
+        showStart();
     }
 
     /** Lets the author edit the text, from its start. */
     void startEditing() {
 
         area.setEditable(true);
-        area.positionCaret(0);
-        area.requestFocus();
+        showStart();
     }
 
     /** Empties the page and makes it read-only. */
     void clear() {
 
-        area.clear();
+        setText("");
         area.setEditable(false);
     }
 
     /**
-     * Removes the welcome and its logo for good, once a book is open. The welcome is the text area's prompt, which
+     * Removes the welcome and its logo for good, once a book is open. The welcome is the text's placeholder, which
      * shows whenever the text is empty, so it would otherwise fill every empty or new chapter as if it were the
      * chapter's text.
      */
     void hideWelcome() {
 
-        area.setPromptText(null);
+        area.setPlaceholder(null);
+        area.setMouseTransparent(false);
+        area.setFocusTraversable(true);
         page.getChildren().remove(welcomeLogo);
     }
 
@@ -181,8 +199,7 @@ final class Manuscript {
     // Editing, for the formatting menu
 
     /**
-     * Gives the text {@code menu} on a right-click, in place of the text area's own, and runs {@code shortcuts} ahead
-     * of the text area's own key handling.
+     * Gives the text {@code menu} on a right-click, and runs {@code shortcuts} ahead of the text's own key handling.
      */
     void setMenu(ContextMenu menu, Map<KeyCombination, Runnable> shortcuts) {
 
@@ -224,12 +241,12 @@ final class Manuscript {
 
     boolean canUndo() {
 
-        return area.isUndoable();
+        return area.isUndoAvailable();
     }
 
     boolean canRedo() {
 
-        return area.isRedoable();
+        return area.isRedoAvailable();
     }
 
     void undo() {
@@ -267,38 +284,25 @@ final class Manuscript {
         area.selectAll();
     }
 
-    /**
-     * Keeps the scrollable content at least as tall as the text it draws. The text area sizes its content without the
-     * line spacing writer.css gives the text, so the end of a long chapter could not be scrolled to.
-     */
-    private void fitContentToText() {
+    /** The welcome, wrapped to the page's width inside its padding, in the placeholder's colour. */
+    private Label welcome(String text) {
 
-        if (!(area.lookup(".content") instanceof Region content))
-            return;
-
-        // The prompt is a .text node of its own, directly in the content; the chapter's text sits in a group.
-        content.lookupAll(".text").stream()
-                .filter(node -> node instanceof Text && node.getParent() != content)
-                .findFirst()
-                .ifPresent(text -> {
-                    Runnable fit = () -> content.setMinHeight(text.getLayoutBounds().getHeight()
-                            + content.getPadding().getTop() + content.getPadding().getBottom());
-                    text.layoutBoundsProperty().addListener((obs, old, bounds) -> fit.run());
-                    content.paddingProperty().addListener((obs, old, padding) -> fit.run());
-                    fit.run();
-                });
+        Label welcome = new Label(text);
+        welcome.getStyleClass().add("manuscript-welcome");
+        welcome.setWrapText(true);
+        welcome.maxWidthProperty().bind(Bindings.createDoubleBinding(
+                () -> area.getWidth() - area.getPadding().getLeft() - area.getPadding().getRight(),
+                area.widthProperty(), area.paddingProperty()));
+        return welcome;
     }
 
-    /** Keeps {@link #textMarginProperty()} at the left edge of the text, inside the content's padding. */
-    private void trackTextMargin() {
+    /** Puts the caret at the start, with the first line at the top of the view, and the focus. */
+    private void showStart() {
 
-        if (!(area.lookup(".content") instanceof Region content))
-            return;
-
-        Runnable measure = () -> textMargin.set(content.localToScene(0, 0).getX() + content.getPadding().getLeft());
-        area.localToSceneTransformProperty().addListener((obs, old, transform) -> measure.run());
-        content.paddingProperty().addListener((obs, old, padding) -> measure.run());
-        measure.run();
+        area.moveTo(0);
+        // Following the caret would scroll by a fraction of a line, blurring the text and moving it each time.
+        area.showParagraphAtTop(0);
+        area.requestFocus();
     }
 
     private int positionAtCaret() {
@@ -310,11 +314,7 @@ final class Manuscript {
     /** The character a third of the way down the view, where the preview puts the position it follows. */
     private int positionInView() {
 
-        if (!(area.getSkin() instanceof TextAreaSkin skin))
-            return currentPosition.get();
-
-        // The skin hit-tests in the coordinates of the scrolled content, so the view starts at the scroll offset.
-        int index = skin.getIndex(0, area.getScrollTop() + area.getHeight() / 3).getInsertionIndex();
+        int index = area.hit(area.getPadding().getLeft(), area.getHeight() / 3).getInsertionIndex();
         return Math.min(index, area.getLength());
     }
 
@@ -324,5 +324,39 @@ final class Manuscript {
             if (node instanceof ScrollBar)
                 return true;
         return false;
+    }
+
+    /**
+     * The text, cut, copied and pasted as plain text, from the menu and the keys alike. RichTextFX's own copy also
+     * puts its styled text on the clipboard, which JavaFX hands back in a form its paste cannot read; and here the
+     * styles come from the text itself, so plain text is all a copy needs. Pasted line breaks become the editor's.
+     */
+    private static final class PlainTextArea extends StyleClassedTextArea {
+
+        @Override
+        public void cut() {
+
+            copy();
+            replaceSelection("");
+        }
+
+        @Override
+        public void copy() {
+
+            if (getSelection().getLength() == 0)
+                return;
+
+            ClipboardContent content = new ClipboardContent();
+            content.putString(getSelectedText());
+            Clipboard.getSystemClipboard().setContent(content);
+        }
+
+        @Override
+        public void paste() {
+
+            String text = Clipboard.getSystemClipboard().getString();
+            if (text != null)
+                replaceSelection(text.replace("\r\n", "\n").replace('\r', '\n'));
+        }
     }
 }

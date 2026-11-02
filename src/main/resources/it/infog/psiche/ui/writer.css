@@ -188,35 +188,65 @@
     -fx-padding: 0 7;
 }
 
+/* The manuscript: the chapter's text on a darker page, which the scroll bar sits beside. Unlike the rest of the
+   window, it is a RichTextFX area, whose text, caret and selection are shapes rather than a control's text. */
 .manuscript {
-    -fx-background-color: transparent;
-    -fx-text-fill: #e7dcc6;
-    -fx-prompt-text-fill: -graphite;
-    -fx-highlight-fill: rgba(224, 74, 47, 0.45);
-    -fx-highlight-text-fill: -paper;
+    -fx-background-color: rgba(10, 8, 6, 0.35);
+    /* 33 above where a text area had 36: a paragraph here puts half its line spacing above its first line, which
+       the text area put below its last, so the text starts where it did. */
+    -fx-padding: 33 44 36 44;
+    -fx-cursor: text;
     -fx-font-family: "Courier Prime";
     -fx-font-size: 16px;
 }
 
-.manuscript .content {
-    -fx-background-color: rgba(10, 8, 6, 0.35);
-    -fx-padding: 36 44;
-    -fx-cursor: text;
-}
-
-/* 7px at the default 16px, growing and shrinking with the editor's font size from Preferences. */
-.manuscript .text {
-    -fx-line-spacing: 0.4375em;
-}
-
-.manuscript:focused .content {
+.manuscript:focused {
     -fx-background-color: rgba(10, 8, 6, 0.5);
 }
 
-/* The logo behind the welcome, a shade off the desk, seen through the manuscript's page. The viewport would cover
-   it with the desk's own color, which is behind the manuscript anyway. */
-.manuscript .viewport {
-    -fx-background-color: transparent;
+/* The chapter's text only, not the welcome's, which is a label's text in the same area. RichTextFX draws its text
+   with LCD smoothing, which fringes the letters with colour; a text area's is grey. */
+.manuscript .paragraph-text .text {
+    -fx-fill: #e7dcc6;
+    -fx-font-smoothing-type: gray;
+}
+
+/* RichTextFX's own rules for its paragraphs come from the area's stylesheet, which applies over these unless they
+   name the area's class too. Its paragraphs overlap by a pixel, which would bring the lines of one paragraph closer
+   than the lines a paragraph wraps into. */
+.manuscript.styled-text-area .paragraph-box {
+    -fx-padding: 0;
+}
+
+/* 7px at the default 16px, growing and shrinking with the editor's font size from Preferences. */
+.manuscript.styled-text-area .paragraph-text {
+    -fx-line-spacing: 0.4375em;
+}
+
+.manuscript .caret {
+    -fx-stroke: #e7dcc6;
+}
+
+.manuscript .selection {
+    -fx-fill: rgba(224, 74, 47, 0.45);
+}
+
+/* The page sits a pixel in from the left, where the text area had its border; the scroll pane itself ignores its
+   padding, so the stack it is in has it. */
+.manuscript-page {
+    -fx-padding: 0 0 0 1;
+}
+
+/* The scroll bar takes its width from its own size, which the arrow buttons the app's scroll bars drop would
+   otherwise give it; with its thumb, as wide as the text area's. */
+.manuscript-scroll > .scroll-bar:vertical {
+    -fx-pref-width: 13;
+    -fx-padding: 0 1;
+}
+
+/* The welcome, shown on the empty page until a book opens. */
+.manuscript-welcome {
+    -fx-text-fill: -graphite;
 }
 
 .welcome-logo .logo-stroke {
