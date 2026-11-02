@@ -30,10 +30,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * How a note is kept on disk, for {@link NoteStore} and {@link NotesArchive}: a folder named by the note's id, with
- * {@value #TEXT_FILE} for its text, {@value #PROPERTIES_FILE} for its place, size, colour, tag and the name of its
- * file, and the file beside them. Every file is written whole to a temporary file that then takes its place, so a crash
- * cannot leave half a note behind; temporary files, and folders whose name starts with a dot, are never read as notes.
+ * How a note is kept on disk, for {@link NoteStore}, {@link DetachedNoteStore} and {@link NotesArchive}: a folder
+ * named by the note's id, with {@value #TEXT_FILE} for its text, {@value #PROPERTIES_FILE} for its place, size, colour,
+ * tag and the name of its file, and the file beside them. Every file is written whole to a temporary file that then
+ * takes its place, so a crash cannot leave half a note behind; temporary files, and folders whose name starts with a
+ * dot, are never read as notes.
  */
 final class NoteFolders {
 
@@ -180,6 +181,51 @@ final class NoteFolders {
                 Files.delete(path);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot delete " + folder, e);
+        }
+    }
+
+    /** The folder of {@code chapter}'s notes in {@code root}, the book's {@code notes/}. */
+    static Path chapterFolder(Path root, String chapter) {
+
+        if (chapter.isBlank() || chapter.contains("/") || chapter.contains("\\") || chapter.equals("..")
+                || chapter.equals("."))
+            throw new IllegalArgumentException("'%s' cannot name a chapter's notes".formatted(chapter));
+
+        return root.resolve(chapter);
+    }
+
+    /** Moves each note in {@code source} to {@code target}; one with an id {@code target} already has stays put. */
+    static void moveNotes(Path source, Path target) throws IOException {
+
+        Files.createDirectories(target);
+        try (Stream<Path> entries = Files.list(source)) {
+            for (Path note : entries.filter(Files::isDirectory).toList())
+                if (!Files.exists(target.resolve(note.getFileName())))
+                    move(note, target.resolve(note.getFileName()));
+        }
+
+        removeIfEmpty(source);
+    }
+
+    /**
+     * Removes {@code folder} once it holds no note, with the files Psiche keeps in it; a file the author put there
+     * keeps it, so nothing but Psiche's own files is ever lost.
+     */
+    static void removeIfEmpty(Path folder) throws IOException {
+
+        if (!Files.isDirectory(folder))
+            return;
+
+        try (Stream<Path> entries = Files.list(folder)) {
+            if (entries.anyMatch(Files::isDirectory))
+                return;
+        }
+        Files.deleteIfExists(folder.resolve(BOARD_FILE));
+        Files.deleteIfExists(folder.resolve(DELETED_FILE));
+
+        try (Stream<Path> entries = Files.list(folder)) {
+            if (entries.findAny().isEmpty())
+                Files.delete(folder);
         }
     }
 

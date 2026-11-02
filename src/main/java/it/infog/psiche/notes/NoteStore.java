@@ -3,8 +3,6 @@ package it.infog.psiche.notes;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
-import it.infog.psiche.notes.model.OrphanGroup;
-import it.infog.psiche.notes.model.enums.OrphanCause;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,37 +13,28 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.util.Collection;
-import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
-import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static it.infog.psiche.notes.NoteFolders.BOARD_FILE;
-import static it.infog.psiche.notes.NoteFolders.DELETED_FILE;
 import static it.infog.psiche.notes.NoteFolders.DUPLICATE_KEY;
 import static it.infog.psiche.notes.NoteFolders.FILE_KEY;
 import static it.infog.psiche.notes.NoteFolders.OWN_FILES;
 import static it.infog.psiche.notes.NoteFolders.PROPERTIES_FILE;
 import static it.infog.psiche.notes.NoteFolders.TEXT_FILE;
 import static it.infog.psiche.notes.NoteFolders.copy;
-import static it.infog.psiche.notes.NoteFolders.deleteTree;
 import static it.infog.psiche.notes.NoteFolders.move;
+import static it.infog.psiche.notes.NoteFolders.moveNotes;
 import static it.infog.psiche.notes.NoteFolders.number;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
 import static it.infog.psiche.notes.NoteFolders.readProperties;
-import static it.infog.psiche.notes.NoteFolders.subfolders;
+import static it.infog.psiche.notes.NoteFolders.removeIfEmpty;
 import static it.infog.psiche.notes.NoteFolders.writeAtomically;
 import static it.infog.psiche.notes.NoteFolders.writeProperties;
 
@@ -56,19 +45,17 @@ import static it.infog.psiche.notes.NoteFolders.writeProperties;
  * of the file it carries, and the file itself sits beside them. The chapter's folder also keeps
  * {@code board.properties}, where its board was last looked at.
  * <p>
- * Nothing here is destroyed but by {@link #deletePermanently}. A deleted note, or the notes of a deleted chapter, move
- * to a folder named like the chapter with {@value #DELETED_MARK} and the time added; it matches no chapter, so it is an
- * orphan, as is a folder whose chapter was renamed or deleted outside Psiche. A file a note no longer carries, replaced
- * or removed, goes there too, with a copy of the note. How each note is kept on disk is {@link NoteFolders}'.
+ * Nothing here is destroyed. A deleted note, or the notes of a deleted chapter, go to the {@link #detached()} notes,
+ * and so does a file a note no longer carries, replaced or removed, with a copy of the note; only there can they be
+ * deleted for good. How each note is kept on disk is {@link NoteFolders}'.
  */
 public final class NoteStore {
 
-    static final String DELETED_MARK = "-del-";
-
     private static final DateTimeFormatter ID_TIME = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
-    private static final DateTimeFormatter DELETED_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
-    private static final Pattern DELETED_FOLDER =
-            Pattern.compile("(.+)" + DELETED_MARK + "(\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})");
+    // Where a board was last looked at, in its properties.
+    private static final String ZOOM_KEY = "zoom";
+    private static final String X_KEY = "x";
+    private static final String Y_KEY = "y";
 
     /** Hears how far a copy has come, on the thread that copies. */
     @FunctionalInterface
@@ -79,6 +66,7 @@ public final class NoteStore {
 
     private final Path root;
     private final Clock clock;
+    private final DetachedNoteStore detached;
     private final Random random = new Random();
     // Held while a note's properties are read, changed and written back: files are copied in on a thread of their
     // own, which records them there while the notes thread saves the note's place.
@@ -95,12 +83,19 @@ public final class NoteStore {
 
         this.root = root;
         this.clock = clock;
+        detached = new DetachedNoteStore(root, clock);
     }
 
     /** The book's {@code notes/} folder, which may not exist yet. */
     Path root() {
 
         return root;
+    }
+
+    /** The notes off their boards, deleted or left without a chapter, which Detached notes shows. */
+    public DetachedNoteStore detached() {
+
+        return detached;
     }
 
     /** True while the book has no {@code notes/}, as before its first note. */
@@ -216,7 +211,7 @@ public final class NoteStore {
         if (file.isEmpty())
             return;
 
-        Path bin = binFolder(chapter);
+        Path bin = detached.deletedFolder(chapter);
         try {
             Files.createDirectories(bin);
             Path copy = newNoteFolder(bin);
@@ -227,8 +222,7 @@ public final class NoteStore {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot keep the file of the note " + folder + " in " + bin, e);
         }
-        if (!Files.exists(bin.resolve(DELETED_FILE)))
-            markDeleted(bin, OrphanCause.NOTE_DELETED);
+        detached.markNoteDeleted(bin);
     }
 
     /** {@code name}, or, if it is the name of a note's own file, the same with " (1)" before its extension. */
@@ -247,7 +241,8 @@ public final class NoteStore {
     public BoardView boardView(String chapter) {
 
         Properties properties = readProperties(chapterFolder(chapter).resolve(BOARD_FILE));
-        return new BoardView(number(properties, "zoom", 1), number(properties, "x", 0), number(properties, "y", 0));
+        return new BoardView(number(properties, ZOOM_KEY, 1), number(properties, X_KEY, 0),
+                number(properties, Y_KEY, 0));
     }
 
     /** Remembers where {@code chapter}'s board is looked at; only a chapter with notes keeps it. */
@@ -258,9 +253,9 @@ public final class NoteStore {
             return;
 
         Properties properties = new Properties();
-        properties.setProperty("zoom", String.valueOf(view.zoom()));
-        properties.setProperty("x", String.valueOf(view.x()));
-        properties.setProperty("y", String.valueOf(view.y()));
+        properties.setProperty(ZOOM_KEY, String.valueOf(view.zoom()));
+        properties.setProperty(X_KEY, String.valueOf(view.x()));
+        properties.setProperty(Y_KEY, String.valueOf(view.y()));
         writeProperties(folder.resolve(BOARD_FILE), properties);
     }
 
@@ -299,7 +294,7 @@ public final class NoteStore {
         if (!Files.isDirectory(source))
             return;
 
-        Path bin = binFolder(chapter);
+        Path bin = detached.deletedFolder(chapter);
         try {
             if (Files.exists(bin))
                 moveNotes(source, bin);
@@ -308,22 +303,21 @@ public final class NoteStore {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot keep the notes of " + chapter + " in " + bin, e);
         }
-        markDeleted(bin, OrphanCause.CHAPTER_DELETED);
+        detached.markChapterDeleted(bin);
     }
 
     /** Moves the note to a folder named after its chapter and the time, where Detached notes finds it. */
     public void binNote(String chapter, String id) {
 
         Path note = noteFolder(chapter, id);
-        Path bin = binFolder(chapter);
+        Path bin = detached.deletedFolder(chapter);
         try {
             Files.createDirectories(bin);
             move(note, bin.resolve(id));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot move the note " + note + " to " + bin, e);
         }
-        if (!Files.exists(bin.resolve(DELETED_FILE)))
-            markDeleted(bin, OrphanCause.NOTE_DELETED);
+        detached.markNoteDeleted(bin);
 
         // A chapter with no notes left keeps no folder.
         try {
@@ -333,108 +327,11 @@ public final class NoteStore {
         }
     }
 
-    // Orphans
-
-    /**
-     * The folders of notes that belong to none of {@code chapters}: deleted in Psiche, or left behind by a chapter
-     * renamed or deleted outside it. The most recently deleted come first, then the others by name.
-     */
-    public List<OrphanGroup> orphans(Collection<String> chapters) {
-
-        return orphanFolders(chapters).stream()
-                .map(this::orphan)
-                .filter(group -> !group.notes().isEmpty())
-                .sorted(Comparator.comparing((OrphanGroup group) -> group.deletedAt().orElse(LocalDateTime.MIN))
-                        .reversed()
-                        .thenComparing(OrphanGroup::chapter))
-                .toList();
-    }
-
-    /**
-     * True if notes are kept in a folder that belongs to none of {@code chapters}, as {@link #orphans} would list them.
-     * Only folders are looked at, not the notes in them, so it is quick enough to ask whenever the chapters change.
-     */
-    public boolean hasOrphans(Collection<String> chapters) {
-
-        return orphanFolders(chapters).stream().anyMatch(folder -> !subfolders(folder).isEmpty());
-    }
-
-    /** The notes of {@code chapter} as it was last deleted, if any are kept; a restored chapter offers them back. */
-    public Optional<OrphanGroup> latestDeleted(String chapter) {
-
-        return folders(folder -> folder.getFileName().toString().startsWith(chapter + DELETED_MARK)).stream()
-                .map(this::orphan)
-                .filter(group -> group.chapter().equals(chapter) && group.cause() == OrphanCause.CHAPTER_DELETED)
-                .max(Comparator.comparing(group -> group.deletedAt().orElse(LocalDateTime.MIN)));
-    }
-
-    /** Moves the notes of {@code group} to {@code chapter}'s board, and removes the group's folder once it is empty. */
-    public void restoreTo(OrphanGroup group, String chapter) {
-
-        try {
-            moveNotes(group.folder(), chapterFolder(chapter));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot move the notes of " + group.folder() + " to " + chapter, e);
-        }
-
-        // A note the board already had under the same id stays where it was, so nothing is lost.
-    }
-
-    /** Deletes the notes of {@code group} and their files for good: they are not in Git, so they cannot come back. */
-    public void deletePermanently(OrphanGroup group) {
-
-        deleteTree(group.folder());
-    }
-
-    /** The folders in {@code notes/} named after none of {@code chapters}. */
-    private List<Path> orphanFolders(Collection<String> chapters) {
-
-        Set<String> names = Set.copyOf(chapters);
-        return folders(folder -> !names.contains(folder.getFileName().toString()));
-    }
-
-    private OrphanGroup orphan(Path folder) {
-
-        String name = folder.getFileName().toString();
-        Matcher deleted = DELETED_FOLDER.matcher(name);
-        List<Note> notes = readNotes(folder);
-        if (!deleted.matches())
-            return new OrphanGroup(folder, name, OrphanCause.CHAPTER_GONE, Optional.empty(), notes);
-
-        Optional<LocalDateTime> at;
-        try {
-            at = Optional.of(LocalDateTime.parse(deleted.group(2), DELETED_TIME));
-        } catch (DateTimeParseException e) {
-            return new OrphanGroup(folder, name, OrphanCause.CHAPTER_GONE, Optional.empty(), notes);
-        }
-
-        // Folders deleted with a note say so; any other deleted folder went with its chapter.
-        String cause = readProperties(folder.resolve(DELETED_FILE)).getProperty("cause", "");
-        OrphanCause orphanCause = cause.equals("note") ? OrphanCause.NOTE_DELETED : OrphanCause.CHAPTER_DELETED;
-        return new OrphanGroup(folder, deleted.group(1), orphanCause, at, notes);
-    }
-
-    private void markDeleted(Path bin, OrphanCause cause) {
-
-        Properties properties = new Properties();
-        properties.setProperty("cause", cause == OrphanCause.NOTE_DELETED ? "note" : "chapter");
-        writeProperties(bin.resolve(DELETED_FILE), properties);
-    }
-
-    private Path binFolder(String chapter) {
-
-        return root.resolve(chapter + DELETED_MARK + LocalDateTime.now(clock).format(DELETED_TIME));
-    }
-
     // Folders and files
 
     private Path chapterFolder(String chapter) {
 
-        if (chapter.isBlank() || chapter.contains("/") || chapter.contains("\\") || chapter.equals("..")
-                || chapter.equals("."))
-            throw new IllegalArgumentException("'%s' cannot name a chapter's notes".formatted(chapter));
-
-        return root.resolve(chapter);
+        return NoteFolders.chapterFolder(root, chapter);
     }
 
     private Path noteFolder(String chapter, String id) {
@@ -444,47 +341,6 @@ public final class NoteStore {
             throw new IllegalArgumentException("No note " + id + " in " + chapter);
 
         return folder;
-    }
-
-    /** The folders directly in {@code notes/} that {@code wanted} accepts; none if there is no {@code notes/}. */
-    private List<Path> folders(Predicate<Path> wanted) {
-
-        return subfolders(root).stream().filter(wanted).toList();
-    }
-
-    /** Moves each note in {@code source} to {@code target}; one with an id {@code target} already has stays put. */
-    private static void moveNotes(Path source, Path target) throws IOException {
-
-        Files.createDirectories(target);
-        try (Stream<Path> entries = Files.list(source)) {
-            for (Path note : entries.filter(Files::isDirectory).toList())
-                if (!Files.exists(target.resolve(note.getFileName())))
-                    move(note, target.resolve(note.getFileName()));
-        }
-
-        removeIfEmpty(source);
-    }
-
-    /**
-     * Removes {@code folder} once it holds no note, with the files Psiche keeps in it; a file the author put there
-     * keeps it, so nothing but Psiche's own files is ever lost.
-     */
-    private static void removeIfEmpty(Path folder) throws IOException {
-
-        if (!Files.isDirectory(folder))
-            return;
-
-        try (Stream<Path> entries = Files.list(folder)) {
-            if (entries.anyMatch(Files::isDirectory))
-                return;
-        }
-        Files.deleteIfExists(folder.resolve(BOARD_FILE));
-        Files.deleteIfExists(folder.resolve(DELETED_FILE));
-
-        try (Stream<Path> entries = Files.list(folder)) {
-            if (entries.findAny().isEmpty())
-                Files.delete(folder);
-        }
     }
 
     /** Reads the properties of the note in {@code folder}, applies {@code change}, and writes them back, alone. */

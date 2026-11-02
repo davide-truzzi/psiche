@@ -50,7 +50,7 @@ public final class DetachedNotes {
             return;
 
         opening = true;
-        thread.run(() -> store.orphans(chapters), groups -> {
+        thread.run(() -> store.detached().orphans(chapters), groups -> {
             DetachedNotesDialog dialog = new DetachedNotesDialog(window.get(), chapters);
             dialog.setOnRestore((group, chapter) -> {
                 restore(store, group, chapter);
@@ -71,13 +71,14 @@ public final class DetachedNotes {
     /** Hands {@code answer} true if {@code store} keeps notes for none of {@code chapters}, for Detached notes. */
     public void hasAny(NoteStore store, List<String> chapters, Consumer<Boolean> answer) {
 
-        thread.run(() -> store.hasOrphans(chapters), answer, failure -> errors.report(READ_FAILURE, failure));
+        thread.run(() -> store.detached().hasOrphans(chapters), answer,
+                failure -> errors.report(READ_FAILURE, failure));
     }
 
     /** Asks, after {@code chapter} is restored, whether the notes it had when it was deleted come back too. */
     public void offerRestore(NoteStore store, String chapter) {
 
-        thread.run(() -> store.latestDeleted(chapter), group -> {
+        thread.run(() -> store.detached().latestDeleted(chapter), group -> {
             if (group.isPresent() && DetachedNotesDialog.askRestore(window.get(), group.get()))
                 restore(store, group.get(), chapter);
         }, failure -> errors.report("Cannot read the notes of " + chapter, failure));
@@ -86,7 +87,7 @@ public final class DetachedNotes {
     /** Shows in {@code dialog} the groups left after the change asked for, or closes it if they can't be read. */
     private void refill(DetachedNotesDialog dialog, NoteStore store, List<String> chapters) {
 
-        thread.run(() -> store.orphans(chapters), dialog::showGroups, failure -> {
+        thread.run(() -> store.detached().orphans(chapters), dialog::showGroups, failure -> {
             errors.report(READ_FAILURE, failure);
             dialog.close();
         });
@@ -94,7 +95,7 @@ public final class DetachedNotes {
 
     private void restore(NoteStore store, OrphanGroup group, String chapter) {
 
-        thread.change(() -> store.restoreTo(group, chapter), () -> {
+        thread.change(() -> store.detached().restoreTo(group, chapter), () -> {
             notesPane.reload(chapter);
             statusBar.info("Restored %s to %s".formatted(DetachedNotesDialog.count(group), chapter));
             changed.run();
@@ -103,7 +104,7 @@ public final class DetachedNotes {
 
     private void delete(NoteStore store, OrphanGroup group) {
 
-        thread.change(() -> store.deletePermanently(group), () -> {
+        thread.change(() -> store.detached().deletePermanently(group), () -> {
             statusBar.info("Deleted the notes of %s for good".formatted(group.chapter()));
             changed.run();
         }, failure -> errors.report("Cannot delete the notes of " + group.chapter(), failure));

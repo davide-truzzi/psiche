@@ -70,7 +70,7 @@ class NotesArchiveTest {
         assertThat(copied.attachment().orElseThrow()).hasFileName("castello.jpg")
                 .hasSameBinaryContentAs(tempDir.resolve("castello.jpg"));
         assertThat(desktop.boardView("01-alba")).isEqualTo(new BoardView(0.8, 120, 40));
-        assertThat(desktop.orphans(List.of("01-alba", "02-sera")))
+        assertThat(desktop.detached().orphans(List.of("01-alba", "02-sera")))
                 .flatExtracting(OrphanGroup::notes).extracting(Note::text)
                 .containsExactly("Lucia waits by the gate.");
     }
@@ -229,7 +229,8 @@ class NotesArchiveTest {
 
         assertThat(report.isEmpty()).isTrue();
         assertThat(desktop().notes("01-alba")).extracting(Note::id).containsExactly(binnedThere.id());
-        assertThat(desktop().orphans(List.of("01-alba"))).flatExtracting(OrphanGroup::notes).extracting(Note::id)
+        assertThat(desktop().detached().orphans(List.of("01-alba")))
+                .flatExtracting(OrphanGroup::notes).extracting(Note::id)
                 .containsExactly(binnedHere.id());
     }
 
