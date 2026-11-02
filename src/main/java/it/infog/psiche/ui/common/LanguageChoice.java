@@ -124,6 +124,16 @@ public final class LanguageChoice extends StackPane {
         return value;
     }
 
+    /** Chooses {@code language}, as if the author had picked it, and closes the list if it is open. */
+    public void setValue(Locale language) {
+
+        if (!languages.contains(language))
+            languages.addFirst(language);
+        value = language;
+        popup.hide();
+        showValue();
+    }
+
     /** Lists the languages that match {@code text}, or all of them for none. */
     private void narrow(String text) {
 

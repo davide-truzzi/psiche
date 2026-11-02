@@ -52,6 +52,8 @@ import static it.infog.psiche.ui.common.Controls.menuItem;
 public final class ChapterEditor {
 
     // Formatting shortcuts, as in common word processors and Markdown editors; Shortcut is Ctrl, or ⌘ on macOS.
+    // Over writer.css's size for the manuscript, which is the default one.
+    private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
     private static final KeyCombination BOLD = new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN);
     private static final KeyCombination ITALIC = new KeyCodeCombination(KeyCode.I, KeyCombination.SHORTCUT_DOWN);
     private static final KeyCombination NUMBERED_LIST =
@@ -195,6 +197,12 @@ public final class ChapterEditor {
     boolean isReading() {
 
         return reading;
+    }
+
+    /** Shows the manuscript's text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
+    public void setFontSize(int fontSize) {
+
+        manuscript.setStyle(FONT_SIZE_STYLE.formatted(fontSize));
     }
 
     /** True while the open chapter has changes that are not on disk. */

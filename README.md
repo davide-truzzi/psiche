@@ -64,12 +64,19 @@ my-book/              ← the folder; the book's title is set in its properties
   drive that is not plugged in, until **Clear list**. With no book open, the folder dialogs start next to the latest
   book.
 - **Preferences**, next to **Book** in the toolbar, holds what applies to the app rather than to one book, in two
-  groups. Nothing changes until you click **Save**:
+  groups. Nothing changes until you click **Apply**, which keeps Preferences open so you can try a size or a theme and
+  see it at once, or **Save**, which closes it. **Revert** puts every field back as it was when Preferences opened,
+  and undoes what you applied since; **Cancel**, or closing Preferences, does the same and closes it:
   - **General**
     - **Startup**: reopen the last book when Psiche Writer starts; off until you turn it on. A book given on the
       command line opens instead, and a last book that is gone is skipped.
-    - **Preview**: **Default**, the page of paper, or **Dark**, light ink on dark paper. The chapter shown renders
-      again in the new theme at once. Exports are not affected.
+    - **Editor font size**: the size of the manuscript's text, from 12 to 32 px, 16 px until you change it. The space
+      between lines grows and shrinks with it.
+    - **Preview theme**: **Default**, the page of paper, or **Dark**, light ink on dark paper. The chapter shown
+      renders again in the new theme at once.
+    - **Preview font size**: the size of the preview's text, from 12 to 32 px, 16 px until you change it; headings,
+      margins and the drop cap follow it. The chapter shown renders again, lined up with the editor.
+    - Exports are not affected by any of these.
   - **New book defaults**
     - **Language** and **Author**: what a new book starts with, English (United States) and no author until you
       choose others. A book's own language and authors stay in **Book properties**.
@@ -360,7 +367,7 @@ What each package holds:
 |---|---|
 | `it.infog.psiche.book` | `BookFolder` (create, open and validate a book; create, list, read and write chapters; read and save the book's properties, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `book.model.BookProperties` holds the properties |
 | `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), adding a line to `.gitignore` and committing it alone, push, a file's history as `FileRevision`s with lines added and removed, and a file as a commit recorded it, via JGit. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
-| `it.infog.psiche.settings` | The app's own settings. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties`, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`), and `model.WindowBounds` where the window was. A value missing or unreadable reads as its default |
+| `it.infog.psiche.settings` | The app's own settings. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties`, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was. A value missing or unreadable reads as its default |
 | `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`) |
 | `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, move to a `-del-` folder with the time. Folders that match no chapter are orphans, for Detached notes to restore or delete for good. A file replaced or removed goes there too, with a copy of its note. How a note sits on disk, read and written whole, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
 | `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF or ODT. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `ZipContainer` is the zip with its mimetype first that ODT and EPUB share, and `Template` the XML templates with `{{placeholders}}` they fill |
@@ -411,7 +418,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `git.HistoryPane` | The History tab: the open chapter's commits with lines added and removed, read on a background thread while the tab is showing; a double-click or Enter reads that version and hands it on to be shown |
 | `git.RevisionDialog` | A past version compared with the saved chapter as tracked changes (written since: underlined; removed since: struck through), with a summary in words, *Close* and *Restore this version* |
 | `export.Exports` | Exports a chapter or the whole book: settles unsaved changes, asks about empty chapters, picks the file and writes it on an export thread of its own, reporting in the status bar |
-| `preferences.PreferencesDialog` | The *Preferences* form, in two fieldsets: General (reopen the last book at startup, the preview's theme) and New book defaults (language and author). It returns what the author saved, and the workspace remembers it and changes the preview's theme |
+| `preferences.PreferencesDialog` | The *Preferences* form, in two fieldsets: General (reopen the last book at startup, the editor's font size, the preview's theme and font size) and New book defaults (language and author). It hands the workspace what the author applies or saves, and the opening values again on Revert, closing only for Save; the workspace remembers it and changes the editor's and the preview's look |
 | `common.StatusBar` | The open chapter's characters, words and pages on the left, lined up with the editor's text (right-click the pages to choose how they are counted), and the latest message (`info` / `error`) and the chapter's saved/unsaved state on the right |
 | `common.Dialogs` | Title prompt, choice between buttons, error alert and folder chooser, owned by and styled like the main window |
 | `preferences.AboutDialog` | *About Psiche Writer*, opened from Preferences: logo, version (read from the module, where the build writes it), author, licence, the Buy Me a Coffee button, and the licences of the fonts and libraries, shown in the app or opened in the browser |

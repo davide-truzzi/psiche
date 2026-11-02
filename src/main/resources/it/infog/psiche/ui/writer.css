@@ -204,8 +204,9 @@
     -fx-cursor: text;
 }
 
+/* 7px at the default 16px, growing and shrinking with the editor's font size from Preferences. */
 .manuscript .text {
-    -fx-line-spacing: 7px;
+    -fx-line-spacing: 0.4375em;
 }
 
 .manuscript:focused .content {

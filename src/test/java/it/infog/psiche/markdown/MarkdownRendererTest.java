@@ -16,7 +16,7 @@ class MarkdownRendererTest {
 
     @Test
     void rendersMarkdownAsHtmlInsideTheArticle() {
-        String page = renderer.render("# The storm\n\nIt was *very* dark.", chaptersDir);
+        String page = renderer.render("# The storm\n\nIt was *very* dark.", chaptersDir, 16);
 
         assertThat(page).contains(
                 "<article>\n<h1 data-start=\"0\" data-end=\"11\">The storm</h1>\n"
@@ -26,7 +26,7 @@ class MarkdownRendererTest {
     @Test
     void marksEachBlockWithWhereItStartsAndEndsInTheText() {
         String page = renderer.render("# The storm\n\nIt was dark.\nAnd cold.\n\n> Run!\n\n- north\n- south",
-                chaptersDir);
+                chaptersDir, 16);
 
         assertThat(page)
                 .contains("<h1 data-start=\"0\" data-end=\"11\">")
@@ -40,14 +40,14 @@ class MarkdownRendererTest {
 
     @Test
     void endsAParagraphOfSeveralLinesAtTheEndOfItsLastLine() {
-        String page = renderer.render("One.\nTwo.\nThree.\n", chaptersDir);
+        String page = renderer.render("One.\nTwo.\nThree.\n", chaptersDir, 16);
 
         assertThat(page).contains("<p data-start=\"0\" data-end=\"16\">One.<br>");
     }
 
     @Test
     void resolvesRelativeMediaLinksAgainstTheGivenDirectory() {
-        String page = renderer.render("![Map](../media/map.png)", chaptersDir);
+        String page = renderer.render("![Map](../media/map.png)", chaptersDir, 16);
 
         assertThat(page)
                 .contains("<base href=\"" + chaptersDir.toUri() + "\">")
@@ -56,6 +56,14 @@ class MarkdownRendererTest {
 
     @Test
     void embedsTheStylesheet() {
-        assertThat(renderer.render("", chaptersDir)).contains("<style>p { text-indent: 1.6em; }</style>");
+        assertThat(renderer.render("", chaptersDir, 16)).contains("<style>p { text-indent: 1.6em; }</style>");
+    }
+
+    @Test
+    void setsTheTextSizeAfterTheStylesheetSoItWins() {
+        String page = renderer.render("", chaptersDir, 22);
+
+        assertThat(page.indexOf("<style>body { font-size: 22px; }</style>"))
+                .isGreaterThan(page.indexOf("<style>p { text-indent: 1.6em; }</style>"));
     }
 }

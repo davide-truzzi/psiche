@@ -5,6 +5,7 @@ import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.settings.Settings;
+import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.book.BookContext;
 import it.infog.psiche.ui.book.RecentBooksMenu;
@@ -87,9 +88,11 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
 
         this.settings = settings;
         this.browser = browser;
-        preview = new PreviewPane(renderers, settings.preferences().previewTheme(), browser);
+        Preferences preferences = settings.preferences();
+        preview = new PreviewPane(renderers, preferences.previewTheme(), preferences.previewFontSize(), browser);
         history = new HistoryPane(this::reportError, this::showRevision);
         chapterEditor = new ChapterEditor(statusBar, this::reportError, welcome);
+        chapterEditor.setFontSize(preferences.editorFontSize());
         unsavedChanges = new UnsavedChanges(chapterEditor, this::window);
         gitControls = new GitControls(() -> unsavedChanges.settle("Save them before committing?"),
                 history::refresh, statusBar, this::reportError);
@@ -244,14 +247,20 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         return pages;
     }
 
-    /** Edits the preferences; once the author saves them, they are remembered and the preview takes its theme. */
+    /** Edits the preferences; each time the author applies or saves them, they are remembered and take effect. */
     private void editPreferences() {
 
-        PreferencesDialog.show(window(), settings.preferences(), browser).ifPresent(preferences -> {
-            settings.savePreferences(preferences);
-            preview.setTheme(preferences.previewTheme());
-            statusBar.info("Preferences saved");
-        });
+        PreferencesDialog.show(window(), settings.preferences(), browser, this::applyPreferences);
+    }
+
+    /** Remembers {@code preferences}, and shows the editor and the preview as they ask. */
+    private void applyPreferences(Preferences preferences) {
+
+        settings.savePreferences(preferences);
+        preview.setTheme(preferences.previewTheme());
+        preview.setFontSize(preferences.previewFontSize());
+        chapterEditor.setFontSize(preferences.editorFontSize());
+        statusBar.info("Preferences saved");
     }
 
     // Shared by the parts

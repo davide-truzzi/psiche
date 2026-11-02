@@ -28,8 +28,8 @@ import java.util.function.Function;
 /**
  * The open chapter typeset as a page of the book, following the editor as the author types. While it is hidden, it
  * neither renders nor scrolls; it catches up with the latest text and position once it shows again. Web and mail links
- * open in the system browser; the preview itself never leaves the page. Its theme can change while it shows a page,
- * which then renders again in the new one.
+ * open in the system browser; the preview itself never leaves the page. Its theme and the size of its text can change
+ * while it shows a page, which then renders again in the new ones.
  */
 public final class PreviewPane extends StackPane {
 
@@ -86,6 +86,8 @@ public final class PreviewPane extends StackPane {
     private int followedPosition;
     private boolean followExactly;
     private MarkdownRenderer renderer;
+    private PreviewTheme theme;
+    private int fontSize;
     // What the page shows, to render it again in another theme; null while it is blank.
     private String shownMarkdown;
     private Path shownBaseDirectory;
@@ -93,12 +95,14 @@ public final class PreviewPane extends StackPane {
     /**
      * @param renderers render pages in a theme
      * @param theme     the theme to start in
+     * @param fontSize  the size of the page's text to start with, in pixels
      * @param browser   opens a web or mail link in the system's default application
      */
-    public PreviewPane(Function<PreviewTheme, MarkdownRenderer> renderers, PreviewTheme theme,
+    public PreviewPane(Function<PreviewTheme, MarkdownRenderer> renderers, PreviewTheme theme, int fontSize,
                        Consumer<String> browser) {
 
         this.renderers = renderers;
+        this.fontSize = fontSize;
         this.browser = browser;
 
         view.setPageFill(Color.TRANSPARENT);
@@ -128,10 +132,33 @@ public final class PreviewPane extends StackPane {
     /** Shows the page in {@code theme} from now on, rendering the page shown again, where it is scrolled to. */
     public void setTheme(PreviewTheme theme) {
 
+        if (theme == this.theme)
+            return;
+
+        this.theme = theme;
         renderer = renderers.apply(theme);
         pseudoClassStateChanged(DARK, theme == PreviewTheme.DARK);
+        renderAgain();
+    }
 
-        // A render already waiting will use the new theme; so will a page loaded later.
+    /**
+     * Shows the page's text {@code fontSize} pixels high from now on, rendering the page shown again, lined up with
+     * the editor, as the text moves with its new size.
+     */
+    public void setFontSize(int fontSize) {
+
+        if (fontSize == this.fontSize)
+            return;
+
+        this.fontSize = fontSize;
+        followExactly = true;
+        renderAgain();
+    }
+
+    /** Renders the page shown again, where it is scrolled to, once something about how it looks has changed. */
+    private void renderAgain() {
+
+        // A render already waiting will look the new way; so will a page loaded later.
         if (shownMarkdown == null || renderWaiting)
             return;
 
@@ -242,7 +269,7 @@ public final class PreviewPane extends StackPane {
         scrollAfterLoad = scroll;
         shownMarkdown = markdown;
         shownBaseDirectory = baseDirectory;
-        view.getEngine().loadContent(renderer.render(markdown, baseDirectory));
+        view.getEngine().loadContent(renderer.render(markdown, baseDirectory, fontSize));
     }
 
     /** Listens for clicks on the whole page, so one listener covers every link in it. */

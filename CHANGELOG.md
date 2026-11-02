@@ -3,6 +3,8 @@
 ## Unreleased
 
 - The preview follows the editor through long paragraphs and to the end of the chapter.
+- **Preferences** sets the editor's and the preview's font size, each on its own. **Apply** puts a change into effect
+  without closing it, and **Revert** goes back to the values Preferences opened with, as **Cancel** does before closing.
 - Deleted notes is now **Detached notes**, as it also holds notes that are not deleted, such as those imported for a
   chapter the book doesn't have. Their cause reads "no such chapter in this book".
 

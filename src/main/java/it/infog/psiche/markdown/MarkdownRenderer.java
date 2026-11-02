@@ -25,6 +25,7 @@ public final class MarkdownRenderer {
             <meta charset="utf-8">
             <base href="%s">
             <style>%s</style>
+            <style>body { font-size: %dpx; }</style>
             </head>
             <body><article>
             %s</article></body>
@@ -46,12 +47,13 @@ public final class MarkdownRenderer {
     /**
      * @param baseDirectory directory that relative links and images resolve against, so {@code ../media/map.png}
      *                      written in a chapter finds the book's media folder
+     * @param fontSize      the size of the page's text in pixels, which the stylesheet's sizes in {@code em} follow
      */
-    public String render(String markdown, Path baseDirectory) {
+    public String render(String markdown, Path baseDirectory, int fontSize) {
 
         String body = renderer.render(parser.parse(markdown));
 
-        return PAGE.formatted(baseDirectory.toUri(), stylesheet, body);
+        return PAGE.formatted(baseDirectory.toUri(), stylesheet, fontSize, body);
     }
 
     private static void markSourceRange(Node node, String tagName, Map<String, String> attributes) {

@@ -128,7 +128,7 @@ class SettingsTest {
     @Test
     void anAuthorWhoChoseNothingHasTheDefaultPreferences() {
         assertThat(settings().preferences())
-                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT))
+                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16))
                 .isEqualTo(Preferences.defaults());
     }
 
@@ -138,21 +138,22 @@ class SettingsTest {
         Settings settings = settings();
         settings.bookOpened(alba);
 
-        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK);
+        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14);
         settings.savePreferences(chosen);
 
         assertThat(settings().preferences()).isEqualTo(chosen);
         assertThat(settings().recentBooks().books()).containsExactly(alba);
         assertThat(Files.readString(folder().path().resolve(Settings.FILE)))
                 .contains("book.language=it-IT", "book.author=Anna Bianchi", "preview.theme=dark",
-                        "startup.reopen-last-book=true");
+                        "startup.reopen-last-book=true", "editor.font-size=20", "preview.font-size=14");
     }
 
     @Test
     void aPreferenceThatCannotBeReadIsItsDefault() throws IOException {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE),
-                "book.language=\npreview.theme=sepia\nstartup.reopen-last-book=sometimes\n");
+                "book.language=\npreview.theme=sepia\nstartup.reopen-last-book=sometimes\neditor.font-size=big\n"
+                        + "preview.font-size=19\n");
 
         assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
     }

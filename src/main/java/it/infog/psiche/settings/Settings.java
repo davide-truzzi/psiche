@@ -50,6 +50,8 @@ public final class Settings {
     private static final String NEW_BOOK_LANGUAGE = "book.language";
     private static final String NEW_BOOK_AUTHOR = "book.author";
     private static final String PREVIEW_THEME = "preview.theme";
+    private static final String EDITOR_FONT_SIZE = "editor.font-size";
+    private static final String PREVIEW_FONT_SIZE = "preview.font-size";
     private static final String WINDOW = "window.";
 
     private final SettingsFolder folder;
@@ -102,7 +104,9 @@ public final class Settings {
         return new Preferences(reopenLastBook,
                 language(settings.getProperty(NEW_BOOK_LANGUAGE)).orElse(defaults.newBookLanguage()),
                 settings.getProperty(NEW_BOOK_AUTHOR, defaults.newBookAuthor()).strip(),
-                theme(settings.getProperty(PREVIEW_THEME)).orElse(defaults.previewTheme()));
+                theme(settings.getProperty(PREVIEW_THEME)).orElse(defaults.previewTheme()),
+                fontSize(settings.getProperty(EDITOR_FONT_SIZE)).orElse(defaults.editorFontSize()),
+                fontSize(settings.getProperty(PREVIEW_FONT_SIZE)).orElse(defaults.previewFontSize()));
     }
 
     /** Remembers what the author chose in Preferences. */
@@ -113,6 +117,8 @@ public final class Settings {
             settings.setProperty(NEW_BOOK_LANGUAGE, preferences.newBookLanguage());
             settings.setProperty(NEW_BOOK_AUTHOR, preferences.newBookAuthor().strip());
             settings.setProperty(PREVIEW_THEME, preferences.previewTheme().name().toLowerCase(Locale.ROOT));
+            settings.setProperty(EDITOR_FONT_SIZE, String.valueOf(preferences.editorFontSize()));
+            settings.setProperty(PREVIEW_FONT_SIZE, String.valueOf(preferences.previewFontSize()));
         });
     }
 
@@ -155,6 +161,19 @@ public final class Settings {
     private static Optional<PreviewTheme> theme(String name) {
 
         return Arrays.stream(PreviewTheme.values()).filter(theme -> theme.name().equalsIgnoreCase(name)).findFirst();
+    }
+
+    /** {@code value} as a font size, if it is one of those Preferences offers. */
+    private static Optional<Integer> fontSize(String value) {
+
+        if (value == null)
+            return Optional.empty();
+
+        try {
+            return Optional.of(Integer.parseInt(value.strip())).filter(Preferences.FONT_SIZES::contains);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /** The window's value {@code name}, a finite number. @throws NumberFormatException if it is missing or not one */
