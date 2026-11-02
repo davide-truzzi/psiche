@@ -13,7 +13,7 @@ import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.git.HistoryPane;
 import it.infog.psiche.ui.git.RevisionDialog;
-import it.infog.psiche.ui.notes.DeletedNotes;
+import it.infog.psiche.ui.notes.DetachedNotes;
 import it.infog.psiche.ui.notes.NotesPane;
 import it.infog.psiche.ui.preview.PreviewPane;
 import javafx.animation.PauseTransition;
@@ -50,7 +50,7 @@ import static it.infog.psiche.ui.common.Controls.menuItem;
  * The open book's chapters: the chapter list with its menus, opening a chapter in the editor, and keeping the preview,
  * notes, history and status bar in step with it. Creating, renaming and deleting a chapter are left to
  * {@link ChapterChanges}, exporting one to {@link Exports}, restoring a deleted one to {@link DeletedChapters}, and
- * the notes left without a chapter to {@link DeletedNotes}.
+ * the notes left without a chapter to {@link DetachedNotes}.
  */
 public final class ChapterContext {
 
@@ -72,14 +72,14 @@ public final class ChapterContext {
     private final Exports exports;
     private final ChapterChanges changes;
     private final DeletedChapters deletedChapters;
-    private final DeletedNotes deletedNotes;
+    private final DetachedNotes detachedNotes;
 
     // Counting parses the whole chapter, so wait for a pause in typing as the preview does, but less long.
     private final PauseTransition countDelay = new PauseTransition(Duration.millis(300));
 
     private final BooleanProperty bookOpen = new SimpleBooleanProperty();
     private final BooleanProperty hasRepository = new SimpleBooleanProperty();
-    // True while notes are kept for no chapter of the book, which shows Deleted notes.
+    // True while notes are kept for no chapter of the book, which shows Detached notes.
     private final BooleanProperty hasOrphans = new SimpleBooleanProperty();
 
     private BookFolder book;
@@ -102,10 +102,10 @@ public final class ChapterContext {
         this.window = window;
 
         changes = new ChapterChanges(chapterEditor, notesPane, gitControls, statusBar, errors, window);
-        deletedNotes = new DeletedNotes(notesPane, statusBar, errors, window, this::checkOrphans);
+        detachedNotes = new DetachedNotes(notesPane, statusBar, errors, window, this::checkOrphans);
         deletedChapters = new DeletedChapters(gitControls, errors, window,
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
-                title -> deletedNotes.offerRestore(notes, title), this::showChapter);
+                title -> detachedNotes.offerRestore(notes, title), this::showChapter);
         sidebar = buildSidebar();
 
         countDelay.setOnFinished(event -> countChapter());
@@ -122,7 +122,7 @@ public final class ChapterContext {
         notesPane.setOnBinned(this::checkOrphans);
     }
 
-    /** The chapter list with New chapter above it, and Deleted chapters and Deleted notes below. */
+    /** The chapter list with New chapter above it, and Deleted chapters and Detached notes below. */
     public VBox sidebar() {
 
         return sidebar;
@@ -234,15 +234,15 @@ public final class ChapterContext {
         deleted.disableProperty().bind(hasRepository.not().or(gitControls.busyProperty()));
 
         // Notes are not in Git, so their bin works without it; it is there only while it holds something.
-        Button deletedNotesButton = button("Deleted notes", this::showDeletedNotes);
-        deletedNotesButton.visibleProperty().bind(hasOrphans);
-        deletedNotesButton.managedProperty().bind(hasOrphans);
+        Button detachedNotesButton = button("Detached notes", this::showDetachedNotes);
+        detachedNotesButton.visibleProperty().bind(hasOrphans);
+        detachedNotesButton.managedProperty().bind(hasOrphans);
 
         // The buttons span the column, inside the footer's padding.
         deleted.setMaxWidth(Double.MAX_VALUE);
-        deletedNotesButton.setMaxWidth(Double.MAX_VALUE);
+        detachedNotesButton.setMaxWidth(Double.MAX_VALUE);
 
-        VBox footer = new VBox(deleted, deletedNotesButton);
+        VBox footer = new VBox(deleted, detachedNotesButton);
         footer.getStyleClass().add("sidebar-footer");
 
         VBox box = new VBox(header, chapterList, footer);
@@ -339,15 +339,15 @@ public final class ChapterContext {
         chapterList.getSelectionModel().select(chapter);
     }
 
-    // Deleted notes
+    // Detached notes
 
-    private void showDeletedNotes() {
+    private void showDetachedNotes() {
 
-        deletedNotes.show(notes, chapterTitles());
+        detachedNotes.show(notes, chapterTitles());
     }
 
     /**
-     * Shows Deleted notes while notes are kept for no chapter of the book; the answer, read on the notes thread, is
+     * Shows Detached notes while notes are kept for no chapter of the book; the answer, read on the notes thread, is
      * dropped if another book has opened meanwhile.
      */
     private void checkOrphans() {
@@ -358,7 +358,7 @@ public final class ChapterContext {
         }
 
         NoteStore checked = notes;
-        deletedNotes.hasAny(notes, chapterTitles(), has -> {
+        detachedNotes.hasAny(notes, chapterTitles(), has -> {
             if (notes == checked)
                 hasOrphans.set(has);
         });

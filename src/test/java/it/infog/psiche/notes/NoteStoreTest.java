@@ -148,7 +148,7 @@ class NoteStoreTest {
     }
 
     @Test
-    void replacingAFileKeepsTheOldOneWithACopyOfTheNoteInDeletedNotes() throws IOException {
+    void replacingAFileKeepsTheOldOneWithACopyOfTheNoteInDetachedNotes() throws IOException {
         NoteStore store = store(MORNING);
         Note note = store.create("01-alba", LAYOUT);
         store.saveText("01-alba", note.id(), "The castle.");
@@ -169,7 +169,7 @@ class NoteStoreTest {
     }
 
     @Test
-    void removingAFileKeepsTheNoteAndPutsTheFileInDeletedNotes() throws IOException {
+    void removingAFileKeepsTheNoteAndPutsTheFileInDetachedNotes() throws IOException {
         NoteStore store = store(MORNING);
         Note note = store.create("01-alba", LAYOUT);
         store.attach("01-alba", note.id(), Files.writeString(tempDir.resolve("map.pdf"), "map"), (bytes, total) -> {});

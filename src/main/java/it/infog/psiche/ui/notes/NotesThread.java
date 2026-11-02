@@ -133,7 +133,7 @@ final class NotesThread {
 
     /**
      * Runs {@code work} on the thread, after the work given before it, whichever board is shown: work on the book's
-     * notes rather than a board's, such as Deleted notes. Then hands what it gives to {@code done}, or its failure to
+     * notes rather than a board's, such as Detached notes. Then hands what it gives to {@code done}, or its failure to
      * {@code failed}, both on the FX thread.
      */
     <T> void run(Supplier<T> work, Consumer<T> done, Consumer<Throwable> failed) {

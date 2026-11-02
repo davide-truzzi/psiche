@@ -180,7 +180,7 @@ public final class NoteStore {
 
     /**
      * Copies {@code file} into the note, under its own name, as the file it carries; a file it carried before goes to
-     * Deleted notes, with a copy of the note. The copy is written beside its place and moved there once whole, so an
+     * Detached notes, with a copy of the note. The copy is written beside its place and moved there once whole, so an
      * interrupted copy never shows as the note's file.
      *
      * @return the file as the note now carries it
@@ -201,14 +201,14 @@ public final class NoteStore {
         return target;
     }
 
-    /** Takes the note's file away, to Deleted notes with a copy of the note; the note keeps its text. */
+    /** Takes the note's file away, to Detached notes with a copy of the note; the note keeps its text. */
     public void removeAttachment(String chapter, String id) {
 
         binFile(chapter, id);
         updateProperties(noteFolder(chapter, id), properties -> properties.remove(FILE_KEY));
     }
 
-    /** Moves the note's file, if it has one on disk, to a copy of the note in Deleted notes. */
+    /** Moves the note's file, if it has one on disk, to a copy of the note in Detached notes. */
     private void binFile(String chapter, String id) {
 
         Path folder = noteFolder(chapter, id);
@@ -311,7 +311,7 @@ public final class NoteStore {
         markDeleted(bin, OrphanCause.CHAPTER_DELETED);
     }
 
-    /** Moves the note to a folder named after its chapter and the time, where Deleted notes finds it. */
+    /** Moves the note to a folder named after its chapter and the time, where Detached notes finds it. */
     public void binNote(String chapter, String id) {
 
         Path note = noteFolder(chapter, id);

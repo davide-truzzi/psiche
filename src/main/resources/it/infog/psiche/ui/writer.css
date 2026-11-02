@@ -326,56 +326,56 @@
     -fx-pref-height: 280;
 }
 
-/* Deleted notes: a group of notes under each line, the notes as small cards in their colours, with the darker layer
+/* Detached notes: a group of notes under each line, the notes as small cards in their colours, with the darker layer
    a note on the board has. */
-.deleted-notes .scroll-pane,
-.deleted-notes .scroll-pane > .viewport {
+.detached-notes .scroll-pane,
+.detached-notes .scroll-pane > .viewport {
     -fx-background-color: transparent;
 }
 
-.deleted-notes .scroll-pane {
+.detached-notes .scroll-pane {
     -fx-pref-width: 700;
     -fx-pref-height: 420;
 }
 
-.deleted-notes-groups {
+.detached-notes-groups {
     -fx-spacing: 18;
     -fx-padding: 16 20;
 }
 
-.deleted-notes-group {
+.detached-notes-group {
     -fx-spacing: 8;
 }
 
-.deleted-notes-heading {
+.detached-notes-heading {
     -fx-spacing: 10;
 }
 
-.deleted-notes-source {
+.detached-notes-source {
     -fx-spacing: 2;
 }
 
-.deleted-notes-heading .button {
+.detached-notes-heading .button {
     -fx-font-size: 12px;
     -fx-padding: 4 10;
 }
 
-.deleted-notes-chapter {
+.detached-notes-chapter {
     -fx-text-fill: -paper;
 }
 
-.deleted-notes-details {
+.detached-notes-details {
     -fx-text-fill: -graphite;
     -fx-font-size: 12px;
 }
 
-.deleted-notes-rule {
+.detached-notes-rule {
     -fx-min-height: 1;
     -fx-max-height: 1;
     -fx-background-color: -desk-edge;
 }
 
-.deleted-notes-cards {
+.detached-notes-cards {
     -fx-hgap: 10;
     -fx-vgap: 10;
 }

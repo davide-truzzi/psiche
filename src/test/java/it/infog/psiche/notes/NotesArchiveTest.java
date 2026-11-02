@@ -49,7 +49,7 @@ class NotesArchiveTest {
     private int exports;
 
     @Test
-    void anExportBringsEveryNoteWithItsFileBoardAndDeletedNotesToABookWithout() throws IOException {
+    void anExportBringsEveryNoteWithItsFileBoardAndDetachedNotesToABookWithout() throws IOException {
         NoteStore laptop = laptop();
         Note note = laptop.create("01-alba", LAYOUT);
         laptop.saveText("01-alba", note.id(), "Marco lies about the letter.");

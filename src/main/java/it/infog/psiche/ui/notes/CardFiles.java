@@ -16,8 +16,8 @@ import java.util.Set;
 
 /**
  * The files on the board's cards: giving a note a file, dropped, chosen or pasted, and the card grown to show it;
- * taking it away, to Deleted notes; opening it or its folder; and asking {@link NoteFiles} for its picture, once, while
- * the tab is showing.
+ * taking it away, to Detached notes; opening it or its folder; and asking {@link NoteFiles} for its picture, once,
+ * while the tab is showing.
  */
 final class CardFiles {
 
@@ -91,14 +91,14 @@ final class CardFiles {
         card.attachment().ifPresent(files::showFolder);
     }
 
-    /** Takes the file away from the note, to Deleted notes. */
+    /** Takes the file away from the note, to Detached notes. */
     void remove(NoteCard card) {
 
         card.setAttachment(Optional.empty());
         pictured.remove(card);
         notes.write("Cannot remove the note's file", (store, chapter) -> store.removeAttachment(chapter, card.id()),
                 board::binned);
-        statusBar.info("File removed: it's in Deleted notes until you remove it for good");
+        statusBar.info("File removed: it's in Detached notes until you remove it for good");
     }
 
     /** Asks for the picture of the card's file, once, while the tab is showing. */
@@ -120,7 +120,7 @@ final class CardFiles {
         if (card.getParent() != board)
             return;
 
-        // The file it replaced, if any, went to Deleted notes.
+        // The file it replaced, if any, went to Detached notes.
         boolean replaced = card.attachment().isPresent();
         card.setAttachment(Optional.of(copy));
         repicture(card);

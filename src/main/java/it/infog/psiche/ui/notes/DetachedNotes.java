@@ -17,9 +17,9 @@ import java.util.function.Supplier;
  * are read and moved on the {@link NotesThread}, after what the board had to write, and a board they are put back on
  * shows them at once.
  */
-public final class DeletedNotes {
+public final class DetachedNotes {
 
-    private static final String READ_FAILURE = "Cannot read the deleted notes";
+    private static final String READ_FAILURE = "Cannot read the detached notes";
 
     private final NotesPane notesPane;
     private final NotesThread thread;
@@ -28,11 +28,11 @@ public final class DeletedNotes {
     private final Supplier<Window> window;
     private final Runnable changed;
 
-    // True from a click on Deleted notes until its dialog closes, so a second click opens no second one.
+    // True from a click on Detached notes until its dialog closes, so a second click opens no second one.
     private boolean opening;
 
     /** @param changed runs once notes have been restored or deleted for good */
-    public DeletedNotes(NotesPane notesPane, StatusBar statusBar, ErrorReporter errors, Supplier<Window> window,
+    public DetachedNotes(NotesPane notesPane, StatusBar statusBar, ErrorReporter errors, Supplier<Window> window,
                         Runnable changed) {
 
         this.notesPane = notesPane;
@@ -51,7 +51,7 @@ public final class DeletedNotes {
 
         opening = true;
         thread.run(() -> store.orphans(chapters), groups -> {
-            DeletedNotesDialog dialog = new DeletedNotesDialog(window.get(), chapters);
+            DetachedNotesDialog dialog = new DetachedNotesDialog(window.get(), chapters);
             dialog.setOnRestore((group, chapter) -> {
                 restore(store, group, chapter);
                 refill(dialog, store, chapters);
@@ -68,7 +68,7 @@ public final class DeletedNotes {
         });
     }
 
-    /** Hands {@code answer} true if {@code store} keeps notes for none of {@code chapters}, for Deleted notes. */
+    /** Hands {@code answer} true if {@code store} keeps notes for none of {@code chapters}, for Detached notes. */
     public void hasAny(NoteStore store, List<String> chapters, Consumer<Boolean> answer) {
 
         thread.run(() -> store.hasOrphans(chapters), answer, failure -> errors.report(READ_FAILURE, failure));
@@ -78,13 +78,13 @@ public final class DeletedNotes {
     public void offerRestore(NoteStore store, String chapter) {
 
         thread.run(() -> store.latestDeleted(chapter), group -> {
-            if (group.isPresent() && DeletedNotesDialog.askRestore(window.get(), group.get()))
+            if (group.isPresent() && DetachedNotesDialog.askRestore(window.get(), group.get()))
                 restore(store, group.get(), chapter);
         }, failure -> errors.report("Cannot read the notes of " + chapter, failure));
     }
 
     /** Shows in {@code dialog} the groups left after the change asked for, or closes it if they can't be read. */
-    private void refill(DeletedNotesDialog dialog, NoteStore store, List<String> chapters) {
+    private void refill(DetachedNotesDialog dialog, NoteStore store, List<String> chapters) {
 
         thread.run(() -> store.orphans(chapters), dialog::showGroups, failure -> {
             errors.report(READ_FAILURE, failure);
@@ -96,7 +96,7 @@ public final class DeletedNotes {
 
         thread.change(() -> store.restoreTo(group, chapter), () -> {
             notesPane.reload(chapter);
-            statusBar.info("Restored %s to %s".formatted(DeletedNotesDialog.count(group), chapter));
+            statusBar.info("Restored %s to %s".formatted(DetachedNotesDialog.count(group), chapter));
             changed.run();
         }, failure -> errors.report("Cannot restore the notes of " + group.chapter(), failure));
     }

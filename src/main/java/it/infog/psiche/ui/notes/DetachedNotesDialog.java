@@ -28,12 +28,12 @@ import java.util.function.Consumer;
 import static it.infog.psiche.ui.common.Controls.button;
 
 /**
- * Deleted notes: the groups of notes left without a chapter, the most recently deleted first, each with the chapter it
+ * Detached notes: the groups of notes left without a chapter, the most recently deleted first, each with the chapter it
  * belonged to, why and when it was left, a small card for each note, and the buttons to put it back on a chapter's
  * board or to delete it for good. Deleting for good is asked first: notes are not in Git, so nothing brings them back.
  * The dialog stays open, the groups shown again after each change, and greyed out while it is made.
  */
-final class DeletedNotesDialog {
+final class DetachedNotesDialog {
 
     private static final ButtonType CLOSE = new ButtonType("Close", ButtonData.CANCEL_CLOSE);
     private static final DateTimeFormatter DELETED_AT = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm");
@@ -47,17 +47,17 @@ final class DeletedNotesDialog {
     private Consumer<OrphanGroup> delete = group -> {};
 
     /** @param chapters the book's chapters, by name, which notes can be restored to */
-    DeletedNotesDialog(Window owner, List<String> chapters) {
+    DetachedNotesDialog(Window owner, List<String> chapters) {
 
         this.chapters = chapters;
 
         Dialogs.ownAndStyle(dialog, owner);
-        dialog.setHeaderText("Deleted notes");
+        dialog.setHeaderText("Detached notes");
         dialog.setResizable(true);
-        dialog.getDialogPane().getStyleClass().add("deleted-notes-dialog");
+        dialog.getDialogPane().getStyleClass().add("detached-notes-dialog");
         dialog.getDialogPane().getButtonTypes().setAll(CLOSE);
 
-        groupList.getStyleClass().add("deleted-notes-groups");
+        groupList.getStyleClass().add("detached-notes-groups");
         ScrollPane scroll = new ScrollPane(groupList);
         scroll.setFitToWidth(true);
 
@@ -65,7 +65,7 @@ final class DeletedNotesDialog {
         hint.getStyleClass().add("history-hint");
 
         VBox content = new VBox(scroll, hint);
-        content.getStyleClass().add("deleted-notes");
+        content.getStyleClass().add("detached-notes");
         dialog.getDialogPane().setContent(content);
     }
 
@@ -100,8 +100,8 @@ final class DeletedNotesDialog {
         groupList.getChildren().clear();
         groupList.setDisable(false);
         if (groups.isEmpty()) {
-            Label none = new Label("No deleted notes.");
-            none.getStyleClass().add("deleted-notes-details");
+            Label none = new Label("No detached notes.");
+            none.getStyleClass().add("detached-notes-details");
             groupList.getChildren().add(none);
             return;
         }
@@ -146,12 +146,12 @@ final class DeletedNotesDialog {
      */
     private VBox groupView(OrphanGroup group) {
 
-        Label chapter = wrapping(group.chapter(), "deleted-notes-chapter");
+        Label chapter = wrapping(group.chapter(), "detached-notes-chapter");
         Label details = wrapping(group.cause().label()
-                + group.deletedAt().map(at -> " · " + DELETED_AT.format(at)).orElse(""), "deleted-notes-details");
+                + group.deletedAt().map(at -> " · " + DELETED_AT.format(at)).orElse(""), "detached-notes-details");
 
         VBox source = new VBox(chapter, details);
-        source.getStyleClass().add("deleted-notes-source");
+        source.getStyleClass().add("detached-notes-source");
         source.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(source, Priority.ALWAYS);
 
@@ -161,15 +161,15 @@ final class DeletedNotesDialog {
         deleteButton.setMinWidth(Region.USE_PREF_SIZE);
 
         HBox heading = new HBox(source, restoreButton, deleteButton);
-        heading.getStyleClass().add("deleted-notes-heading");
+        heading.getStyleClass().add("detached-notes-heading");
         heading.setAlignment(Pos.CENTER_LEFT);
 
         FlowPane cards = new FlowPane();
-        cards.getStyleClass().add("deleted-notes-cards");
+        cards.getStyleClass().add("detached-notes-cards");
         group.notes().forEach(note -> cards.getChildren().add(card(note)));
 
         VBox view = new VBox(heading, cards);
-        view.getStyleClass().add("deleted-notes-group");
+        view.getStyleClass().add("detached-notes-group");
         return view;
     }
 
@@ -202,7 +202,7 @@ final class DeletedNotesDialog {
     private static Region rule() {
 
         Region rule = new Region();
-        rule.getStyleClass().add("deleted-notes-rule");
+        rule.getStyleClass().add("detached-notes-rule");
         return rule;
     }
 

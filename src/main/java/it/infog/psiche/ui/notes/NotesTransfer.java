@@ -205,7 +205,7 @@ public final class NotesTransfer {
         String whose = manifest.title().isBlank() ? "another book" : "\"" + manifest.title() + "\"";
         Optional<ButtonType> choice = Dialogs.choose(window.get(), "These notes are from another book",
                 ("%s holds the notes of %s. Notes for a chapter this book has go on its board; the others go to "
-                        + "Deleted notes. Import them anyway?").formatted(zip.getFileName(), whose),
+                        + "Detached notes. Import them anyway?").formatted(zip.getFileName(), whose),
                 ButtonType.CANCEL, IMPORT_ANYWAY);
 
         return choice.filter(IMPORT_ANYWAY::equals).isPresent();

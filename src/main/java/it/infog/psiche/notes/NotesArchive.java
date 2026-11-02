@@ -35,7 +35,7 @@ import static it.infog.psiche.notes.NoteFolders.temporaryBeside;
 
 /**
  * A book's notes as a zip, to move them to another computer or keep a copy: {@value #MANIFEST} saying whose notes they
- * are, and {@code notes/} as it is on disk, Deleted notes included. Text is compressed; every other file is stored as
+ * are, and {@code notes/} as it is on disk, Detached notes included. Text is compressed; every other file is stored as
  * it is, so an export of multi-GB files runs at the speed of a copy. Entries over 4 GB are written as Zip64, by the
  * JDK.
  * <p>
@@ -133,7 +133,7 @@ public final class NotesArchive {
         }
     }
 
-    /** Every note of the book, in every folder of {@code notes/}, Deleted notes included. */
+    /** Every note of the book, in every folder of {@code notes/}, Detached notes included. */
     private Stream<Path> notes() {
 
         return subfolders(store.root()).stream().flatMap(folder -> subfolders(folder).stream());

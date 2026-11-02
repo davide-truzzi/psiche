@@ -211,7 +211,7 @@ public final class BookContext implements AutoCloseable {
         notesTransfer.exportNotes(book);
     }
 
-    /** Merges the notes in a zip into the open book's, and lists the chapters again for Deleted notes to follow. */
+    /** Merges the notes in a zip into the open book's, and lists the chapters again for Detached notes to follow. */
     public void importNotes() {
 
         notesTransfer.importNotes(book, chapters::refresh);

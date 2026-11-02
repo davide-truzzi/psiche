@@ -59,7 +59,7 @@ public final class NoteCard extends VBox {
 
         void textChanged(NoteCard card, String text);
 
-        /** Moves the note to Deleted notes. */
+        /** Moves the note to Detached notes. */
         void delete(NoteCard card);
 
         /** Clears the Duplicate on Import tag: the author keeps both versions. */
@@ -80,7 +80,7 @@ public final class NoteCard extends VBox {
         /** Opens the note's folder, where its file is, in the system's file manager. */
         void showInFolder(NoteCard card);
 
-        /** Takes the file away from the note, to Deleted notes. */
+        /** Takes the file away from the note, to Detached notes. */
         void removeFile(NoteCard card);
 
         /** Shows {@code items} as the board's one menu, closing any other, at a point on the screen. */

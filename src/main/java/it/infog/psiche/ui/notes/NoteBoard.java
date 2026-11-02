@@ -49,7 +49,7 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     // The board's one right-click menu, so two are never open at once.
     private final ContextMenu menu = new ContextMenu();
 
-    // Runs once something has gone to Deleted notes: a note, or a file the note no longer carries.
+    // Runs once something has gone to Detached notes: a note, or a file the note no longer carries.
     private Runnable onBinned = () -> {};
     private NoteCard selected;
     private int topOrder;
@@ -92,7 +92,7 @@ final class NoteBoard extends Pane implements NoteCard.Board {
         this.onBinned = onBinned;
     }
 
-    /** Tells that something has gone to Deleted notes. */
+    /** Tells that something has gone to Detached notes. */
     void binned() {
 
         onBinned.run();
@@ -136,7 +136,7 @@ final class NoteBoard extends Pane implements NoteCard.Board {
             card.setSelected(true);
     }
 
-    /** Moves the selected note to Deleted notes: false if none is selected. */
+    /** Moves the selected note to Detached notes: false if none is selected. */
     boolean deleteSelected() {
 
         if (selected == null)
@@ -211,7 +211,7 @@ final class NoteBoard extends Pane implements NoteCard.Board {
         updateCounts();
 
         notes.write("Cannot delete the note", (store, chapter) -> store.binNote(chapter, card.id()), this::binned);
-        statusBar.info("Note deleted: it's in Deleted notes until you remove it for good");
+        statusBar.info("Note deleted: it's in Detached notes until you remove it for good");
     }
 
     @Override

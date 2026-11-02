@@ -37,7 +37,7 @@ my-book/              ← the folder; the book's title is set in its properties
 
 - Only `*.md` files directly inside `chapters/` count as chapters. Use prefixes such as `01-`, `02-` to set the order.
 - A chapter's notes follow it when it is renamed in Psiche Writer. When it is deleted, they move to a folder named after
-  it and the time, such as `01-departure-del-2026-11-01-09-30-00`, which frees the name for a new chapter; **Deleted
+  it and the time, such as `01-departure-del-2026-11-01-09-30-00`, which frees the name for a new chapter; **Detached
   notes** brings them back (see [Notes](#notes)).
 
 > [!WARNING]
@@ -234,26 +234,26 @@ my-book/              ← the folder; the book's title is set in its properties
   its name and size; anything else by an icon of its kind (document, audio, video, archive…), its name and its size.
   A file deleted from the note's folder outside Psiche Writer shows as missing. Double-click the file, or use
   **Open**, to open it in its program; **Show in folder** opens its folder.
-- **Replace file…** and **Remove file** put the file the note had in a copy of the note, among the deleted notes.
+- **Replace file…** and **Remove file** put the file the note had in a copy of the note, among the detached notes.
 - Drag an empty spot to move around the board. The wheel scrolls, Shift + wheel sideways, and Ctrl/⌘ + wheel or a
   pinch zooms around the pointer, from the whole board in view up to 200 %; so do the corner's **−**, **+** and
   **Fit**, and Ctrl/⌘ with **+**, **−** and **0** once the board has the focus. Each chapter's board opens again where
   you left it.
 - **×**, **Delete** in the menu, or the Delete key on a selected note moves it out of the chapter, to a folder named
   after the chapter and the time (see [Book layout](#book-layout)); nothing is asked, as nothing is lost.
-- **Deleted notes**, below Deleted chapters, shows while notes are kept for no chapter: notes deleted on their own,
-  those of a deleted chapter, files a note no longer carries, and the notes of a chapter renamed or deleted outside
-  Psiche Writer. It works without Git. Each group shows its chapter, why and when it was left, and its notes as small
-  cards:
+- **Detached notes**, below Deleted chapters, shows while notes are kept for no chapter: notes deleted on their own,
+  those of a deleted chapter, files a note no longer carries, and the notes of a chapter the book doesn't have, renamed
+  or deleted outside Psiche Writer, or imported from another book. It works without Git. Each group shows its chapter,
+  why and when it was left, and its notes as small cards:
   - **Restore to chapter** puts the notes back on the board of the chapter you pick, their own if the book still
     has it, where they were;
   - **Delete permanently** deletes them and their files for good, after asking: notes are not in Git, so nothing
     brings them back.
 - Restoring a chapter from Deleted chapters asks **Restore its notes too?**: **Restore notes** puts back the notes it
-  had when it was deleted; **Chapter only** leaves them in Deleted notes.
+  had when it was deleted; **Chapter only** leaves them in Detached notes.
 - Notes stay out of Git: a book's first note, made or imported, adds `notes/` to its `.gitignore`, in a commit of its
   own. To move them to another computer, or keep a copy, use the Book menu:
-  - **Export notes** writes every note, Deleted notes included, to a zip you pick, by default next to the book's
+  - **Export notes** writes every note, Detached notes included, to a zip you pick, by default next to the book's
     folder as `<title> - notes <date>.zip`. Text is compressed and every other file stored as it is, so even
     gigabytes of video copy at the speed of the disk; the status bar shows how far it has come.
   - **Import notes** merges a zip made by Export notes into the book's notes. It first saves this computer's notes to
@@ -266,8 +266,8 @@ my-book/              ← the folder; the book's title is set in its properties
       red **Duplicate on Import** band, which its **×** clears once you have kept what you want;
     - a note moved, resized or recoloured only on the other computer takes its new place, size and colour; changed
       on both, it keeps this computer's;
-    - deletions are not carried over, and a note stays in the chapter, or among the Deleted notes, where it is here;
-    - a zip of another book asks first; the notes of chapters this book doesn't have go to Deleted notes.
+    - deletions are not carried over, and a note stays in the chapter, or among the Detached notes, where it is here;
+    - a zip of another book asks first; the notes of chapters this book doesn't have go to Detached notes.
 
 ### Git
 - **Commit**: records every change in the book (new, modified and deleted files) in one commit, using the message in
@@ -362,7 +362,7 @@ What each package holds:
 | `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), adding a line to `.gitignore` and committing it alone, push, a file's history as `FileRevision`s with lines added and removed, and a file as a commit recorded it, via JGit. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
 | `it.infog.psiche.settings` | The app's own settings. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties`, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`), and `model.WindowBounds` where the window was. A value missing or unreadable reads as its default |
 | `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`) |
-| `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, move to a `-del-` folder with the time. Folders that match no chapter are orphans, for Deleted notes to restore or delete for good. A file replaced or removed goes there too, with a copy of its note. How a note sits on disk, read and written whole, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
+| `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, move to a `-del-` folder with the time. Folders that match no chapter are orphans, for Detached notes to restore or delete for good. A file replaced or removed goes there too, with a copy of its note. How a note sits on disk, read and written whole, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
 | `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF or ODT. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `ZipContainer` is the zip with its mimetype first that ODT and EPUB share, and `Template` the XML templates with `{{placeholders}}` they fill |
 | `it.infog.psiche.export.pdf` | `ManuscriptPdf` lays out XHTML as a manuscript PDF through OpenHTMLtoPDF with Libertinus embedded: `manuscript.css` for a chapter, plus `book.css` for the book's title page and page breaks. `BundledFontMapper` keeps PDFBox from scanning the computer's fonts |
 | `it.infog.psiche.export.epub` | The EPUB export. `EpubWriter` checks the book for what stores may object to, and writes it: `Pages` makes each XHTML page from `page.xhtml` (cover, title page, chapters, copyright), `Navigation` the contents page with its landmarks and `toc.ncx`, `PackageDocument` the `package.opf` with the metadata from `Accessibility`; `EpubImages` packs the cover and the chapters' images, shrinking the large ones |
@@ -376,7 +376,7 @@ and they have unit tests; `export` reads the book's properties from `book.model`
 
 ```
 WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
-                            ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Deleted notes)
+                            ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Detached notes)
                             ├─ pages:     ChapterEditor │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
                             └─ StatusBar
 ```
@@ -388,7 +388,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `book.BookContext` | The open book: opens, creates and closes books (folder, Git repository, chapter watcher), edits the book's properties and cover and how its pages are counted, and hands the book to `ChapterContext`, and remembers each book opened, for **Open recent** |
 | `book.RecentBooksMenu` | **Open recent** in the Book menu, filled from the settings each time the menu opens: the books by title, a missing one greyed out, and Clear list |
 | `book.BookPropertiesDialog` | The *Book properties* form: title, subtitle, authors, language and copyright, plus the cover's thumbnail with *Choose image…* and *Remove*. It returns the edit, and the workspace writes it |
-| `chapters.ChapterContext` | The open book's chapters: the chapter list, drawn by `ChapterCell`, and its right-click menu, opening a chapter in the editor, restoring a past version into it, and keeping the preview, notes, history, counts and status bar in step with the editor; creating, renaming and deleting a chapter are left to `ChapterChanges`, exporting one to `Exports`, restoring a deleted one to `DeletedChapters`, and the notes left without a chapter to `DeletedNotes`, whose button it shows only while there are any |
+| `chapters.ChapterContext` | The open book's chapters: the chapter list, drawn by `ChapterCell`, and its right-click menu, opening a chapter in the editor, restoring a past version into it, and keeping the preview, notes, history, counts and status bar in step with the editor; creating, renaming and deleting a chapter are left to `ChapterChanges`, exporting one to `Exports`, restoring a deleted one to `DeletedChapters`, and the notes left without a chapter to `DetachedNotes`, whose button it shows only while there are any |
 | `chapters.ChapterChanges` | Creates, renames and deletes chapters after asking the author; a renamed or deleted chapter's notes move with it, through `NoteStore`, and the rename or deletion is committed alone, once everything else is saved and committed |
 | `chapters.ChapterCell` | A chapter in the list: its title, the *unsaved* mark while it has unsaved changes, and its menu |
 | `chapters.DeletedChapters` | *Deleted chapters*: lists the chapters deleted from the book in `DeletedChaptersDialog`, writes the one picked back with its last text, offers back the notes it had then, and commits it on its own, once everything else is saved and committed |
@@ -398,13 +398,13 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `preview.PreviewPane` | The typeset preview in a `WebView`: `render` shows a chapter at once from the top, `renderLater` follows the author's typing after a 500 ms pause and keeps the scroll position, and `followPosition` scrolls to the part of the page rendered from a character of the Markdown, as far down its block as it is through the block's text; while hidden behind the History tab it holds back both and catches up when shown |
 | `git.GitControls` | Commit message, Commit and Push. Runs Git commands one at a time on a background thread, exposes a *busy* flag that the book buttons disable on, and reports each commit so the history reloads; also adds a line to `.gitignore`, for notes |
 | `notes.NotesPane` | The Notes tab: the open chapter's `NoteBoard`, shown in a `BoardViewport` with a `BoardBar` in its corner, and the board's keys; reads a chapter's notes as it opens, again after notes are restored to it, and keeps each chapter's view; asks for pictures only while the tab is showing. `settle()` saves what is pending before a chapter is renamed or deleted, or the app closes |
-| `notes.NoteBoard` | The board itself: the notes as cards, the one selected and the order they lie in; makes new notes, by a double-click, New note, or for files dropped or pasted, writes each change a card reports, and moves deleted notes to the bin and says so |
+| `notes.NoteBoard` | The board itself: the notes as cards, the one selected and the order they lie in; makes new notes, by a double-click, New note, or for files dropped or pasted, writes each change a card reports, and moves detached notes to the bin and says so |
 | `notes.CardFiles` | The files on the cards: gives a note a file dropped, chosen or pasted, growing the card to show it, takes it away to the bin, opens it or its folder, and asks `NoteFiles` for its picture once |
 | `notes.NotesThread` | The thread every read and write of the board's notes runs on, in order; it knows which board is shown, so a change goes to the board it was made on, and what is read is handed back only to the same board |
 | `notes.BoardViewport` | The part of the board in view: panned by dragging an empty spot or with the wheel, zoomed with Ctrl/⌘ + wheel (caught before the notes see it), a pinch or by steps, from the whole board up to 200 %; keeps the board in view, opens a saved view once it has a size, and hands on the view a second after it settles |
 | `notes.NoteCard` | One note on the board: the toolbar and Duplicate on Import band it is dragged by, the paperclip's file menu, the colour swatches, the text typed in place and saved a second after typing stops, its file, the resize corner, and its right-click menus, shown in the board's one menu; a single file dropped on it goes into it; it reports each change to the board |
 | `notes.CardDrag`, `ColorSwatches`, `BoardBar` | Moving and resizing a note with the pointer, at any zoom, kept on the board; the row of colour swatches, the note's own ringed; the corner bar with New note and the zoom |
-| `notes.DeletedNotes`, `DeletedNotesDialog` | *Deleted notes*: the notes left without a chapter, grouped by chapter and cause, put back on a chapter's board or deleted for good after asking, and the *Restore its notes too?* question for a restored chapter; read and moved on the board's notes thread, after what the board had to write |
+| `notes.DetachedNotes`, `DetachedNotesDialog` | *Detached notes*: the notes left without a chapter, grouped by chapter and cause, put back on a chapter's board or deleted for good after asking, and the *Restore its notes too?* question for a restored chapter; read and moved on the board's notes thread, after what the board had to write |
 | `notes.NotesTransfer`, `ImportProgressDialog` | *Export notes* and *Import notes*: the zip picked, by default next to the book's folder, on a thread of their own; the export's progress in the status bar; the import's question for a zip of another book, its backup zip, its progress in a dialog over the window that nothing but the import closes, and what it did, told at the end |
 | `notes.NoteFiles` | The files notes carry: copying them in on a thread of their own, with the progress on the card; a pasted image saved as a PNG; the pictures of images, read in the background, and of PDFs, the first page rendered with PDFBox on another thread; opening a file or its folder |
 | `notes.AttachmentView`, `FileIcons`, `FileLabels` | A note's file on its card: picture, cover, or icon with name and size, missing, or copying; the line icons of each kind of file; a size as people read it and a long name shortened in the middle |

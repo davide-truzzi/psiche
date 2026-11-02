@@ -113,7 +113,7 @@ public final class NotesPane extends StackPane {
         return available.getReadOnlyProperty();
     }
 
-    /** Runs {@code binned} each time a note, or a file a note no longer carries, has gone to Deleted notes. */
+    /** Runs {@code binned} each time a note, or a file a note no longer carries, has gone to Detached notes. */
     public void setOnBinned(Runnable binned) {
 
         board.setOnBinned(binned);
@@ -219,7 +219,7 @@ public final class NotesPane extends StackPane {
 
     /**
      * Ctrl/⌘ with + − 0 zoom, with V pastes into the selected note or on the board; Delete moves the selected note to
-     * Deleted notes; Escape leaves it.
+     * Detached notes; Escape leaves it.
      */
     private void keyPressed(KeyEvent event) {
 

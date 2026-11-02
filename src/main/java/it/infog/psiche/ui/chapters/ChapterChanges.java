@@ -135,7 +135,7 @@ final class ChapterChanges {
             return false;
         }
 
-        // Its notes are kept apart, under its name and the time, for Deleted notes and for a restore.
+        // Its notes are kept apart, under its name and the time, for Detached notes and for a restore.
         try {
             notesPane.settle();
             notes.binChapter(chapter.title());
