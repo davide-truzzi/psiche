@@ -33,6 +33,12 @@ import java.util.function.Function;
  */
 public final class PreviewPane extends StackPane {
 
+    /**
+     * How far down the view the preview puts the place it follows, as a share of the view's height: a third. The
+     * editor reads the place there while the author scrolls, and brings a comment there, so the two line up.
+     */
+    public static final double FOLLOW_POINT = 1.0 / 3;
+
     // Long enough that the preview does not re-render on every keystroke while typing steadily.
     private static final Duration RENDER_DELAY = Duration.millis(500);
     // Short enough to feel immediate, long enough that holding an arrow key scrolls the page once, not per line.
@@ -42,11 +48,11 @@ public final class PreviewPane extends StackPane {
      * Scrolls to character %d of the Markdown, using the data-start and data-end marks the renderer puts on each
      * block. The character lands as far down the last block starting at or before it as it is through that block's
      * text, so a long paragraph is followed line by line; one between blocks lands at the bottom of the block above.
-     * That point goes a third of the way down the view. Unless the second argument asks for it exactly, the page only
-     * moves once that point leaves the middle of the view, so it stays put while typing.
+     * That point goes the third argument's share of the way down the view. Unless the second argument asks for it
+     * exactly, the page only moves once that point leaves the middle of the view, so it stays put while typing.
      */
     private static final String FOLLOW_POSITION = """
-            (function (position, exactly) {
+            (function (position, exactly, point) {
                 let block = null;
                 for (const candidate of document.querySelectorAll('[data-start]')) {
                     if (Number(candidate.dataset.start) > position)
@@ -62,8 +68,8 @@ public final class PreviewPane extends StackPane {
                 }
                 const height = window.innerHeight;
                 if (exactly || y < window.scrollY + height * 0.2 || y > window.scrollY + height * 0.8)
-                    window.scrollTo(0, y - height / 3);
-            })(%d, %b)
+                    window.scrollTo(0, y - height * point);
+            })(%d, %b, %s)
             """;
 
     // Links with these schemes open in the system browser or mail client.
@@ -227,7 +233,7 @@ public final class PreviewPane extends StackPane {
     private void showFollowedPosition() {
 
         if (view.getEngine().getLoadWorker().getState() == Worker.State.SUCCEEDED)
-            view.getEngine().executeScript(FOLLOW_POSITION.formatted(followedPosition, followExactly));
+            view.getEngine().executeScript(FOLLOW_POSITION.formatted(followedPosition, followExactly, FOLLOW_POINT));
     }
 
     private void schedule(Runnable render) {

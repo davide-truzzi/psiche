@@ -17,6 +17,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeSet;
 
+import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
+
 /**
  * Brass dots in the manuscript's left margin where its comments are: one on each line in view where a comment starts,
  * or where one that started above the view first shows, following it as the text scrolls; and one in the top and the
@@ -97,7 +99,7 @@ final class CommentMarks {
             lowering = false;
             area.getCaretBounds()
                     .map(area::screenToLocal)
-                    .ifPresent(caret -> area.scrollYBy(caret.getMinY() - area.getHeight() / 3));
+                    .ifPresent(caret -> area.scrollYBy(caret.getMinY() - area.getHeight() * FOLLOW_POINT));
             place();
             return;
         }

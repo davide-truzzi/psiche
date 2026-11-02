@@ -116,15 +116,7 @@ public final class GitControls extends HBox {
      */
     public <T> void read(BookRepository repository, Function<BookRepository, T> question, Consumer<T> answer) {
 
-        Task<T> task = new Task<>() {
-            @Override
-            protected T call() {
-                return question.apply(repository);
-            }
-        };
-        task.setOnSucceeded(event -> answer.accept(task.getValue()));
-        task.setOnFailed(event -> log.warn("Cannot read the state of the book", task.getException()));
-        executor.execute(task);
+        submit(repository, question, answer, error -> log.warn("Cannot read the state of the book", error));
     }
 
     private void commit() {
@@ -147,26 +139,37 @@ public final class GitControls extends HBox {
         run("Push", BookRepository::push, branch -> statusBar.info("Pushed %s to origin".formatted(branch)));
     }
 
+    /** Runs a command the author asked for, saying so in the status bar, and busy until it ends. */
     private <T> void run(String action, Function<BookRepository, T> command, Consumer<T> onSuccess) {
 
+        busy.set(true);
+        statusBar.info(action + "…");
+
         // Read the field here on the FX thread; the task runs later on the Git thread, when it may have changed.
-        BookRepository target = repository;
+        submit(repository, command, result -> {
+            busy.set(false);
+            onSuccess.accept(result);
+        }, error -> {
+            busy.set(false);
+            errors.report(action + " failed", error);
+        });
+    }
+
+    /**
+     * Applies {@code command} to {@code target} on the Git thread, after what was submitted before, and hands its
+     * result to {@code onSuccess}, or what went wrong to {@code onFailure}, on the FX thread.
+     */
+    private <T> void submit(BookRepository target, Function<BookRepository, T> command, Consumer<T> onSuccess,
+                            Consumer<Throwable> onFailure) {
+
         Task<T> task = new Task<>() {
             @Override
             protected T call() {
                 return command.apply(target);
             }
         };
-        task.setOnSucceeded(event -> {
-            busy.set(false);
-            onSuccess.accept(task.getValue());
-        });
-        task.setOnFailed(event -> {
-            busy.set(false);
-            errors.report(action + " failed", task.getException());
-        });
-        busy.set(true);
-        statusBar.info(action + "…");
+        task.setOnSucceeded(event -> onSuccess.accept(task.getValue()));
+        task.setOnFailed(event -> onFailure.accept(task.getException()));
         executor.execute(task);
     }
 

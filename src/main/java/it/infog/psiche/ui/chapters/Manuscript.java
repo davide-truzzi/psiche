@@ -32,6 +32,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
+
 /**
  * The page the author writes on: the open chapter's text, wrapped, in the manuscript's font, over the welcome and its
  * logo until a book opens. It knows where the author is in the text, the caret while writing and the place in view
@@ -346,7 +348,7 @@ final class Manuscript {
     /** The character a third of the way down the view, where the preview puts the position it follows. */
     private int positionInView() {
 
-        int index = area.hit(area.getPadding().getLeft(), area.getHeight() / 3).getInsertionIndex();
+        int index = area.hit(area.getPadding().getLeft(), area.getHeight() * FOLLOW_POINT).getInsertionIndex();
         return Math.min(index, area.getLength());
     }
 
