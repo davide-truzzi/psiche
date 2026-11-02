@@ -38,6 +38,9 @@ final class FormattingMenu {
             new KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN);
     private static final KeyCombination CLEAR_FORMATTING =
             new KeyCodeCombination(KeyCode.BACK_SLASH, KeyCombination.SHORTCUT_DOWN);
+    // Heading 1 to 4 are Shortcut and the digit of their level.
+    private static final List<KeyCode> HEADING_KEYS = List.of(KeyCode.DIGIT1, KeyCode.DIGIT2, KeyCode.DIGIT3,
+            KeyCode.DIGIT4);
 
     private final Manuscript manuscript;
     private final Map<KeyCombination, Runnable> shortcuts = new LinkedHashMap<>();
@@ -61,9 +64,9 @@ final class FormattingMenu {
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
         MenuItem italic = formatItem("Italic", ITALIC, MarkdownFormatter::italic);
         Menu heading = new Menu("Heading");
-        for (int level = 1; level <= 4; level++)
+        for (int level = 1; level <= HEADING_KEYS.size(); level++)
             heading.getItems().add(formatItem("Heading " + level,
-                    new KeyCodeCombination(KeyCode.valueOf("DIGIT" + level), KeyCombination.SHORTCUT_DOWN),
+                    new KeyCodeCombination(HEADING_KEYS.get(level - 1), KeyCombination.SHORTCUT_DOWN),
                     headingFormat(level)));
         MenuItem bulletedList = formatItem("Bulleted list", BULLETED_LIST, MarkdownFormatter::bulletedList);
         MenuItem numberedList = formatItem("Numbered list", NUMBERED_LIST, MarkdownFormatter::numberedList);

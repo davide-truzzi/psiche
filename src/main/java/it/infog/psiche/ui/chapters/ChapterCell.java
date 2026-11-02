@@ -23,8 +23,8 @@ final class ChapterCell extends ListCell<Chapter> {
 
     private static final PseudoClass CHANGED = PseudoClass.getPseudoClass("changed");
     private static final String UNCHANGED_TIP = "No changes since the last revision";
-    private static final String CHANGED_TIP = "Changed since the last revision.\nCommit to save these changes as a new "
-            + "revision.";
+    private static final String CHANGED_TIP = "Changed since the last revision.\n"
+            + "Commit to save these changes as a new revision.";
 
     private final Region revisionDot = new Region();
     private final StackPane revisionMark = new StackPane(revisionDot);
