@@ -2,6 +2,7 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.model.TextRange;
+import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.ui.common.Logo;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -25,12 +26,11 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.StyleClassedTextArea;
-import org.fxmisc.richtext.model.StyleSpansBuilder;
 import org.fxmisc.richtext.util.UndoUtils;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 
@@ -44,19 +44,21 @@ final class Manuscript {
 
     // Over writer.css's size for the manuscript, which is the default one.
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
-    // The style class of the comments the preview leaves out, which writer.css shows in grey.
-    private static final Collection<String> COMMENT = List.of("comment");
-    private static final Collection<String> TEXT = List.of();
+    // Right in the middle of the left margin; the spelling mistakes' dots sit beside them.
+    private static final double COMMENT_MARK_OFFSET = 0;
 
     private final StyleClassedTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
-    private final CommentMarks commentMarks = new CommentMarks(area);
-    // The logo behind the welcome, and the page that stacks the text over it, and the comments' dots over the text.
+    private final MarginMarks commentMarks =
+            new MarginMarks(area, "comment-mark", COMMENT_MARK_OFFSET, "comment", "comments");
+    private final Mistakes mistakes = new Mistakes(area, this::restyle);
+    // The logo behind the welcome, and the page that stacks the text over it, and the dots over the text.
     private final StackPane welcomeLogo = new StackPane();
-    private final StackPane page = new StackPane(welcomeLogo, scrolled, commentMarks.node());
+    private final StackPane page = new StackPane(welcomeLogo, scrolled, commentMarks.node(), mistakes.node());
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
+    private List<TextRange> comments = List.of();
     // True once the author scrolls the manuscript, until the caret next moves.
     private boolean reading;
 
@@ -68,9 +70,14 @@ final class Manuscript {
         page.getStyleClass().add("manuscript-page");
         area.setWrapText(true);
         area.setEditable(false);
-        // Undo takes back what the author typed, not the comments' colour that follows it.
+        // Undo takes back what the author typed, not the comments' colour and the mistakes' lines that follow it.
         area.setUndoManager(UndoUtils.plainTextUndoManager(area));
-        area.textProperty().addListener((obs, old, text) -> markComments(text));
+        // Each change says where it was, so the mistakes found already can move with the text.
+        area.plainTextChanges().subscribe(change -> {
+            findComments();
+            mistakes.follow(change);
+            restyle();
+        });
         area.setPlaceholder(welcome(welcome), Pos.TOP_LEFT);
         // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
         area.setMouseTransparent(true);
@@ -142,6 +149,7 @@ final class Manuscript {
         reading = false;
         area.replaceText(text);
         area.getUndoManager().forgetHistory();
+        mistakes.checkNow();
     }
 
     /** Replaces the whole text with {@code text}, as one change a single Undo reverts, and starts at the top. */
@@ -183,6 +191,15 @@ final class Manuscript {
     }
 
     // How it looks, and where the author is
+
+    /**
+     * Checks the text's spelling with {@code checker} from now on, {@code ownWords} being right too, and the words that
+     * look like names too if {@code strict}; with none, the text is not checked and shows no mistakes.
+     */
+    void checkSpelling(SpellChecker checker, Set<String> ownWords, boolean strict) {
+
+        mistakes.check(checker, ownWords, strict);
+    }
 
     /** Shows the text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
     void setFontSize(int fontSize) {
@@ -311,23 +328,19 @@ final class Manuscript {
         return welcome;
     }
 
-    /** Gives the comments in {@code text} the comment style, and the rest none, and a dot in the margin. */
-    private void markComments(String text) {
+    /** Finds the text's comments, and gives each line in view with one a dot in the margin. */
+    private void findComments() {
 
-        List<TextRange> comments = text.isEmpty() ? List.of() : HtmlComments.ranges(text);
-        commentMarks.setComments(comments);
-        if (text.isEmpty())
-            return;
+        String text = area.getText();
+        comments = text.isEmpty() ? List.of() : HtmlComments.ranges(text);
+        commentMarks.setParts(comments);
+    }
 
-        StyleSpansBuilder<Collection<String>> spans = new StyleSpansBuilder<>();
-        int end = 0;
-        for (TextRange comment : comments) {
-            spans.add(TEXT, comment.start() - end);
-            spans.add(COMMENT, comment.end() - comment.start());
-            end = comment.end();
-        }
-        spans.add(TEXT, text.length() - end);
-        area.setStyleSpans(0, spans.create());
+    /** Shows the comments in grey and the spelling mistakes with a dotted line under them. */
+    private void restyle() {
+
+        if (area.getLength() > 0)
+            area.setStyleSpans(0, TextStyles.of(area.getLength(), comments, mistakes.ranges()));
     }
 
     /** Puts the caret at the start, with the first line at the top of the view, and the focus. */

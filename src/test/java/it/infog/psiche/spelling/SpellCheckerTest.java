@@ -124,11 +124,31 @@ class SpellCheckerTest {
 
         String markdown = "# Alba\n\nIt began at dwan <!-- a nnote -->, `teh code`, when Elric left.\n";
 
-        List<Word> mistakes = CHECKERS.get("en-US").mistakes(markdown, Set.of("Elric"));
+        List<Word> mistakes = CHECKERS.get("en-US").mistakes(markdown, Set.of("Elric"), true);
 
         assertThat(mistakes).extracting(Word::text).containsExactly("dwan");
         assertThat(markdown.substring(mistakes.getFirst().range().start(), mistakes.getFirst().range().end()))
                 .isEqualTo("dwan");
+    }
+
+    @Test
+    void wordsThatLookLikeNamesAreLeftOutUnlessStrict() {
+
+        String markdown = "Gabriele D'Annunzio, said d'Annunzio, met Elric at dwan near Montenevoso.\n";
+        SpellChecker english = CHECKERS.get("en-US");
+
+        assertThat(english.mistakes(markdown, Set.of(), false)).extracting(Word::text).containsExactly("dwan");
+        assertThat(english.mistakes(markdown, Set.of(), true)).extracting(Word::text)
+                .containsExactly("Gabriele", "D'Annunzio", "d'Annunzio", "Elric", "dwan", "Montenevoso");
+    }
+
+    @Test
+    void aMisspeltWordAtTheStartOfASentenceIsLeftOutUnlessStrict() {
+
+        SpellChecker english = CHECKERS.get("en-US");
+
+        assertThat(english.mistakes("Teh carts left.\n", Set.of(), false)).isEmpty();
+        assertThat(english.mistakes("Teh carts left.\n", Set.of(), true)).extracting(Word::text).containsExactly("Teh");
     }
 
     private static boolean right(String language, String word) {

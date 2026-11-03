@@ -145,6 +145,7 @@ public final class ChapterContext {
 
         bookOpen.set(true);
         hasRepository.set(repository != null);
+        chapterEditor.setBookLanguage(language(book));
         revisions.show(repository);
 
         refresh();
@@ -169,6 +170,13 @@ public final class ChapterContext {
         hasRepository.set(false);
         hasOrphans.set(false);
         revisions.show(null);
+        chapterEditor.setBookLanguage(null);
+    }
+
+    /** Checks the spelling in {@code tag}, the open book's language, after the author changed it. */
+    public void setBookLanguage(String tag) {
+
+        chapterEditor.setBookLanguage(tag);
     }
 
     /** Lists the book's chapters again, keeping the open one selected. */
@@ -214,6 +222,17 @@ public final class ChapterContext {
             chapterEditor.replaceAll(text.get());
             statusBar.info("Restored %s from %s, not saved yet; %s brings back your text".formatted(
                     chapter.title(), revision.shortId(), UNDO.getDisplayText()));
+        }
+    }
+
+    /** The language {@code book} is written in, as its properties say; none if they cannot be read. */
+    private String language(BookFolder book) {
+
+        try {
+            return book.properties().language();
+        } catch (UncheckedIOException e) {
+            errors.report("Cannot read the book's language, so its spelling is not checked", e);
+            return null;
         }
     }
 

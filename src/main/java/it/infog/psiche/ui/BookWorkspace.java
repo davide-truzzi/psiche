@@ -92,8 +92,9 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         preview = new PreviewPane(renderers, preferences.previewTheme(), preferences.previewFontSize(),
                 settings.webViewFolder(), browser);
         history = new HistoryPane(this::reportError, this::showRevision);
-        chapterEditor = new ChapterEditor(statusBar, this::reportError, welcome);
+        chapterEditor = new ChapterEditor(statusBar, this::reportError, welcome, settings::ownWords);
         chapterEditor.setFontSize(preferences.editorFontSize());
+        chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         unsavedChanges = new UnsavedChanges(chapterEditor, this::window);
         gitControls = new GitControls(() -> unsavedChanges.settle("Save them before committing?"),
                 this::committed, statusBar, this::reportError);
@@ -264,6 +265,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         preview.setTheme(preferences.previewTheme());
         preview.setFontSize(preferences.previewFontSize());
         chapterEditor.setFontSize(preferences.editorFontSize());
+        chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         statusBar.info("Preferences saved");
     }
 

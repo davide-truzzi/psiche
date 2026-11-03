@@ -258,15 +258,28 @@
     -fx-fill: -graphite;
 }
 
-/* The comments' dots in the left margin: one on each line in view where a comment is, and one in the top or the
-   bottom margin while comments lie beyond the view that way, which a click scrolls to. Brass, faint until pointed
-   at. */
+/* A spelling mistake: a dotted red line under the word, as a proofreader marks it. */
+.manuscript .paragraph-text .text.misspelled {
+    -rtfx-underline-color: -red-pencil;
+    -rtfx-underline-width: 1.5;
+    -rtfx-underline-dash-array: 1.5 2.5;
+    -rtfx-underline-cap: butt;
+}
+
+/* The dots in the left margin: one on each line in view where a comment or a spelling mistake is, and one in the top
+   or the bottom margin while some lie beyond the view that way, which a click scrolls to. Faint until pointed at. A
+   comment's dot is brass, in the margin's middle; a mistake's is red, beside it, toward the text. */
 .comment-mark {
     -fx-background-color: -brass;
 }
 
-/* The comments' dots, and the revision dots in the chapter list. */
+.mistake-mark {
+    -fx-background-color: -red-pencil;
+}
+
+/* The margin's dots, and the revision dots in the chapter list. */
 .comment-mark,
+.mistake-mark,
 .revision-dot {
     -fx-background-radius: 3;
     -fx-min-width: 6;
@@ -278,13 +291,14 @@
     -fx-opacity: 0.7;
 }
 
-/* Room around an edge dot for the pointer. */
-.comment-edge {
-    -fx-padding: 5;
+/* Room around an edge dot for the pointer: narrow across, so a comment's and a mistake's, 10 apart, never overlap. */
+.margin-edge {
+    -fx-padding: 5 2;
     -fx-cursor: hand;
 }
 
-.comment-edge:hover > .comment-mark {
+.margin-edge:hover > .comment-mark,
+.margin-edge:hover > .mistake-mark {
     -fx-opacity: 1;
 }
 

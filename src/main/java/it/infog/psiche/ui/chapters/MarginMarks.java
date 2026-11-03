@@ -20,41 +20,57 @@ import java.util.TreeSet;
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 
 /**
- * Brass dots in the manuscript's left margin where its comments are: one on each line in view where a comment starts,
- * or where one that started above the view first shows, following it as the text scrolls; and one in the top and the
- * bottom margins while comments lie beyond the view that way, which a click scrolls to the next one. A layer over the
- * text, which only the edge dots take the mouse from.
+ * Dots in the manuscript's left margin where parts of its text are, of one kind, such as its comments or its spelling
+ * mistakes: one on each line in view where such a part starts, or where one that started above the view first shows,
+ * following it as the text scrolls; and one in the top and the bottom margins while parts lie beyond the view that
+ * way, which a click scrolls to the next one. Each kind has its own place across the margin, so dots of two kinds on
+ * one line sit side by side. A layer over the text, which only the edge dots take the mouse from.
  */
-final class CommentMarks {
+final class MarginMarks {
 
-    private static final String MARK = "comment-mark";
-    private static final String EDGE = "comment-edge";
+    private static final String EDGE = "margin-edge";
     private static final String ABOVE = "%s above";
     private static final String BELOW = "%s below";
 
     private final StyleClassedTextArea area;
+    private final String markStyle;
+    private final double offset;
+    private final String one;
+    private final String many;
     private final Pane layer = new Pane();
     private final List<Region> lineMarks = new ArrayList<>();
-    private final StackPane up = edge(-1);
-    private final StackPane down = edge(1);
+    private final StackPane up;
+    private final StackPane down;
     private final Tooltip upTip = new Tooltip();
     private final Tooltip downTip = new Tooltip();
     // Places the dots after each layout of the window that needs it, once the text's lines are where they show.
     private final Runnable afterLayout = this::placeIfNeeded;
-    private List<TextRange> comments = List.of();
+    private List<TextRange> parts = List.of();
     // True from a change in what is in view until the dots are placed again.
     private boolean outdated;
-    // True from a click on an edge dot until the comment it went to is a third of the way down.
+    // True from a click on an edge dot until the part it went to is a third of the way down.
     private boolean lowering;
     // Where the first line in view was when the dots were last placed: the text can move without telling.
     private Bounds shownFrom;
 
-    CommentMarks(StyleClassedTextArea area) {
+    /**
+     * @param markStyle the style class of the dots, which gives them their colour
+     * @param offset    how far right of the margin's middle the dots sit, in pixels
+     * @param one       one such part, as "comment", for the edge dots' tooltips
+     * @param many      several, as "comments"
+     */
+    MarginMarks(StyleClassedTextArea area, String markStyle, double offset, String one, String many) {
 
         this.area = area;
-        layer.getStyleClass().add("comment-marks");
+        this.markStyle = markStyle;
+        this.offset = offset;
+        this.one = one;
+        this.many = many;
+        layer.getStyleClass().add("margin-marks");
         // Clicks go through the layer to the text, but for the edge dots.
         layer.setPickOnBounds(false);
+        up = edge(-1);
+        down = edge(1);
         layer.getChildren().addAll(up, down);
         Tooltip.install(up, upTip);
         Tooltip.install(down, downTip);
@@ -78,10 +94,10 @@ final class CommentMarks {
         return layer;
     }
 
-    /** Shows {@code comments}, where the text has them now, in order. */
-    void setComments(List<TextRange> comments) {
+    /** Shows {@code parts}, where the text has them now, in order. */
+    void setParts(List<TextRange> parts) {
 
-        this.comments = comments;
+        this.parts = parts;
         place();
     }
 
@@ -94,7 +110,7 @@ final class CommentMarks {
 
     private void placeIfNeeded() {
 
-        //the comment an edge dot went to, now that the caret is on it, a third of the way down
+        //the part an edge dot went to, now that the caret is on it, a third of the way down
         if (lowering) {
             lowering = false;
             area.getCaretBounds()
@@ -114,24 +130,24 @@ final class CommentMarks {
         Insets padding = area.getPadding();
         double top = padding.getTop();
         double bottom = area.getHeight() - padding.getBottom();
-        if (comments.isEmpty() || bottom <= top) {
+        if (parts.isEmpty() || bottom <= top) {
             showLines(List.of());
             showEdges(List.of(), List.of());
             return;
         }
 
-        //each comment above, below, or in view on the line it first shows on
+        //each part above, below, or in view on the line it first shows on
         TextRange shown = shown();
         List<TextRange> above = new ArrayList<>();
         List<TextRange> below = new ArrayList<>();
         TreeSet<Double> lines = new TreeSet<>();
-        for (TextRange comment : comments) {
-            if (comment.end() <= shown.start())
-                above.add(comment);
-            else if (comment.start() > shown.end())
-                below.add(comment);
+        for (TextRange part : parts) {
+            if (part.end() <= shown.start())
+                above.add(part);
+            else if (part.start() > shown.end())
+                below.add(part);
             else
-                lineCentre(Math.max(comment.start(), shown.start()))
+                lineCentre(Math.max(part.start(), shown.start()))
                         .filter(y -> y >= top && y <= bottom)
                         .ifPresent(lines::add);
         }
@@ -188,7 +204,7 @@ final class CommentMarks {
         }
     }
 
-    /** The edge dots, each shown while comments lie beyond the view its way, and saying how many. */
+    /** The edge dots, each shown while parts lie beyond the view its way, and saying how many. */
     private void showEdges(List<TextRange> above, List<TextRange> below) {
 
         Insets padding = area.getPadding();
@@ -196,26 +212,26 @@ final class CommentMarks {
         double x = marginCentre();
 
         up.setVisible(!above.isEmpty());
-        upTip.setText(ABOVE.formatted(comments(above.size())));
+        upTip.setText(ABOVE.formatted(count(above.size())));
         centreAt(up, x, text.getMinY() + padding.getTop() / 2);
 
         down.setVisible(!below.isEmpty());
-        downTip.setText(BELOW.formatted(comments(below.size())));
+        downTip.setText(BELOW.formatted(count(below.size())));
         centreAt(down, x, text.getMaxY() - padding.getBottom() / 2);
     }
 
     /**
-     * Scrolls to the nearest comment beyond the view in {@code direction}, -1 up or 1 down, with the caret on it, a
-     * third of the way down the view, where the preview puts the place it follows.
+     * Scrolls to the nearest part beyond the view in {@code direction}, -1 up or 1 down, with the caret on it, a third
+     * of the way down the view, where the preview puts the place it follows.
      */
     private void goTo(int direction) {
 
         TextRange shown = shown();
         Optional<TextRange> next = direction < 0
-                ? comments.stream().filter(comment -> comment.end() <= shown.start()).reduce((first, second) -> second)
-                : comments.stream().filter(comment -> comment.start() > shown.end()).findFirst();
-        next.ifPresent(comment -> {
-            area.moveTo(comment.start());
+                ? parts.stream().filter(part -> part.end() <= shown.start()).reduce((first, second) -> second)
+                : parts.stream().filter(part -> part.start() > shown.end()).findFirst();
+        next.ifPresent(part -> {
+            area.moveTo(part.start());
             area.requestFollowCaret();
             area.requestFocus();
             // Following the caret brings it just inside the edge; once it is there, it goes a third of the way down.
@@ -224,10 +240,10 @@ final class CommentMarks {
         });
     }
 
-    /** The middle of the left margin, in the layer's coordinates. */
+    /** Where the dots sit across the left margin, its middle and this kind's offset, in the layer's coordinates. */
     private double marginCentre() {
 
-        return layer.sceneToLocal(area.localToScene(0, 0)).getX() + area.getPadding().getLeft() / 2;
+        return layer.sceneToLocal(area.localToScene(0, 0)).getX() + area.getPadding().getLeft() / 2 + offset;
     }
 
     private static void centreAt(Region node, double x, double y) {
@@ -236,14 +252,14 @@ final class CommentMarks {
         node.relocate(x - node.getWidth() / 2, y - node.getHeight() / 2);
     }
 
-    private static Region mark() {
+    private Region mark() {
 
         Region mark = new Region();
-        mark.getStyleClass().add(MARK);
+        mark.getStyleClass().add(markStyle);
         return mark;
     }
 
-    /** A dot with room around it for the pointer, which scrolls to the next comment in {@code direction}. */
+    /** A dot with room around it for the pointer, which scrolls to the next part in {@code direction}. */
     private StackPane edge(int direction) {
 
         StackPane edge = new StackPane(mark());
@@ -254,8 +270,8 @@ final class CommentMarks {
     }
 
     /** "1 comment", or "3 comments". */
-    private static String comments(int count) {
+    private String count(int count) {
 
-        return count == 1 ? "1 comment" : count + " comments";
+        return count == 1 ? "1 " + one : count + " " + many;
     }
 }

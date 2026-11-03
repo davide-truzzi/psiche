@@ -78,6 +78,8 @@ public final class PreferencesDialog {
         //fields
         CheckBox reopen = new CheckBox("Reopen the last book when Psiche Writer starts");
         CheckBox checkSpelling = new CheckBox("Check spelling");
+        CheckBox strictSpelling = new CheckBox("Strict spell check");
+        strictSpelling.disableProperty().bind(checkSpelling.selectedProperty().not());
         LanguageChoice language = new LanguageChoice(preferences.newBookLanguage());
         TextField author = new TextField();
         author.setPromptText("Your name, as it goes on the cover");
@@ -93,10 +95,12 @@ public final class PreferencesDialog {
             editorFontSize.setValue(shown.editorFontSize());
             previewFontSize.setValue(shown.previewFontSize());
             checkSpelling.setSelected(shown.checkSpelling());
+            strictSpelling.setSelected(shown.strictSpelling());
         };
         fill.accept(preferences);
 
         Label spellingHint = hint("In the languages Psiche has a dictionary for.");
+        Label strictHint = hint("Also checks the words with a capital, as names have.");
         Label newBooksHint = hint("A book's own language and authors are in Book properties.");
 
         //groups
@@ -107,6 +111,8 @@ public final class PreferencesDialog {
         general.addRow(3, new Label("Preview font size"), previewFontSize);
         general.addRow(4, new Label("Spelling"), checkSpelling);
         general.add(spellingHint, 1, 5);
+        general.add(strictSpelling, 1, 6);
+        general.add(strictHint, 1, 7);
 
         GridPane newBooks = new GridPane();
         newBooks.addRow(0, new Label("Language"), DictionaryMark.after(language));
@@ -120,7 +126,8 @@ public final class PreferencesDialog {
 
         Supplier<Preferences> chosen = () -> new Preferences(reopen.isSelected(),
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
-                editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected());
+                editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected(),
+                strictSpelling.isSelected());
 
         // Apply and Revert, unlike the dialog's other buttons, leave it open.
         AtomicReference<Preferences> applied = new AtomicReference<>(preferences);

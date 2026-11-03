@@ -202,6 +202,16 @@ my-book/              ← the folder; the book's title is set in its properties
   comment that starts above the view gets its dot on its first line in view. While comments lie above or below the
   view, a dot shows in the page's top or bottom margin, with how many in its tooltip: clicking it brings the next one
   that way a third of the way down the editor, with the caret on it.
+- The editor checks the spelling in the book's language, offline, with the dictionary Psiche brings for it: English,
+  Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal. A book in another country's
+  variety uses its language's: Swiss Italian is checked in Italian. A word spelt wrong gets a dotted red line under
+  it, and the line a red dot in the margin, beside a comment's brass dot if it has one, with red dots in the top and
+  bottom margins for those beyond the view, as for comments. The text is checked a moment after you stop typing;
+  only prose is, not code, comments, links' addresses or words with digits. Words that start with a capital letter,
+  or have one after an apostrophe, as names do ("Montenevoso", "d'Annunzio"), are left out, so a novel's people and
+  places need not be added one by one; **Strict spell check** in Preferences checks them too. **Check spelling**
+  there turns it off for every book; Book properties and Preferences show a green tick after a language Psiche has a
+  dictionary for.
   - **Clear formatting** `Ctrl+\` removes heading, list and quote markers and the bold or italic the selection
     touches.
   - Each format is a single step for Undo.
@@ -394,7 +404,7 @@ and they have unit tests; `export` reads the book's properties from `book.model`
 ```
 WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
                             ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Detached notes)
-                            ├─ pages:     ChapterEditor (Manuscript · CommentMarks · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
+                            ├─ pages:     ChapterEditor (Manuscript · MarginMarks · Mistakes · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
                             └─ StatusBar
 ```
 
@@ -412,7 +422,8 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.DeletedChapters` | *Deleted chapters*: lists the chapters deleted from the book in `DeletedChaptersDialog`, writes the one picked back with its last text, offers back the notes it had then, and commits it on its own, once everything else is saved and committed |
 | `chapters.ChapterEditor` | The manuscript editor for one chapter at a time: which chapter is open, the text last saved, which chapters have unsaved changes, and `open` / `close` / `save` / `saveAll` / `discardAll`, plus `replaceAll`, which swaps in a restored version as one undoable edit. The page it writes on is `Manuscript`, with `FormattingMenu` |
 | `chapters.Manuscript` | The page the author writes on, a RichTextFX `StyleClassedTextArea` in a scroll pane: the welcome and its logo until a book opens, the font size from Preferences, where the text starts for the status bar, and the current position for the preview to follow (the caret's while writing, the one a third of the way down the view while scrolling to read). Cut, copy and paste are plain text. The only class that knows which text control the editor uses |
-| `chapters.CommentMarks` | The comments' brass dots: a layer over the manuscript, placed after each layout pass so the dots sit on the lines as they show, with a dot per line in view that has a comment, and the edge dots that count the comments above and below the view and scroll to the next one |
+| `chapters.MarginMarks` | The dots in the manuscript's margin, one layer per kind: the comments' brass ones in the margin's middle, the spelling mistakes' red ones beside them. Placed after each layout pass so the dots sit on the lines as they show, with a dot per line in view that has such a part, and the edge dots that count those above and below the view and scroll to the next one |
+| `chapters.Mistakes`, `TextStyles`, `Spelling` | The spelling mistakes: found by the book's `SpellChecker` a moment after typing stops, moved with the text meanwhile, and let go when typing touches one; `TextStyles` gives the text its comment and mistake styles together; `Spelling` picks the dictionary of the open book's language while checking is on, reading it on a thread of its own the first time and keeping it |
 | `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, above the editing commands |
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |
 | `chapters.UnsavedChanges` | Asks whether to save or discard unsaved chapters before a book is replaced, a commit, an export or closing the window |

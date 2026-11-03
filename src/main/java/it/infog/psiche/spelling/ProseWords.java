@@ -21,9 +21,11 @@ import java.util.regex.Pattern;
  */
 public final class ProseWords {
 
-    // Letters, with apostrophes, straight or curly, and hyphens between them, and maybe a final apostrophe.
+    // Inside a word, between its letters: apostrophes, straight or curly, and hyphens.
+    private static final String JOINERS = "'’-";
+    // Letters, with joiners between them, and maybe a final apostrophe.
     private static final Pattern WORD =
-            Pattern.compile("[\\p{L}\\p{M}\\p{N}]+(?:['’-][\\p{L}\\p{M}\\p{N}]+)*['’]?");
+            Pattern.compile("[\\p{L}\\p{M}\\p{N}]+(?:[" + JOINERS + "][\\p{L}\\p{M}\\p{N}]+)*['’]?");
     private static final Pattern DIGIT = Pattern.compile("\\p{N}");
     // Written in the prose but not words: web and mail addresses, and HTML entities such as &amp;.
     private static final Pattern NOT_WORDS = Pattern.compile("(?:https?://|www\\.)\\S+|\\S+@\\S+\\.\\S+|&#?\\w+;");
@@ -45,6 +47,12 @@ public final class ProseWords {
         });
 
         return words;
+    }
+
+    /** True if {@code character} can be part of a word: a letter, a digit, an apostrophe or a hyphen. */
+    public static boolean isWordCharacter(char character) {
+
+        return Character.isLetterOrDigit(character) || JOINERS.indexOf(character) >= 0;
     }
 
     /** Adds the words of {@code markdown} inside {@code span}, a run of prose, to {@code words}. */

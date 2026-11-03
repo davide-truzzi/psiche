@@ -2,6 +2,7 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -15,6 +16,8 @@ import javafx.scene.Node;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * The manuscript editor: one chapter at a time. Switching chapters never writes to disk; unsaved text stays in memory
@@ -28,16 +31,24 @@ public final class ChapterEditor {
     private final Drafts drafts = new Drafts();
     private final StatusBar statusBar;
     private final ErrorReporter errors;
+    private final Supplier<Set<String>> ownWords;
+    private final Spelling spelling = new Spelling(this::checkSpelling);
+    private Optional<SpellChecker> checker = Optional.empty();
+    private boolean strictSpelling;
 
     private BookFolder book;
     private Chapter chapter;
     private String savedText = "";
 
-    /** @param welcome shown in the empty editor from the start until a book opens; see {@link #hideWelcome} */
-    public ChapterEditor(StatusBar statusBar, ErrorReporter errors, String welcome) {
+    /**
+     * @param welcome  shown in the empty editor from the start until a book opens; see {@link #hideWelcome}
+     * @param ownWords the words the author made right for the spell checker, read when it starts checking
+     */
+    public ChapterEditor(StatusBar statusBar, ErrorReporter errors, String welcome, Supplier<Set<String>> ownWords) {
 
         this.statusBar = statusBar;
         this.errors = errors;
+        this.ownWords = ownWords;
 
         manuscript = new Manuscript(welcome);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
@@ -102,6 +113,25 @@ public final class ChapterEditor {
     public void setFontSize(int fontSize) {
 
         manuscript.setFontSize(fontSize);
+    }
+
+    /**
+     * Turns spell checking on or off, as Preferences asks, and with it on, checks the words with a capital letter too,
+     * which names have, if {@code strict}.
+     */
+    public void setSpelling(boolean on, boolean strict) {
+
+        boolean strictChanged = strict != strictSpelling;
+        strictSpelling = strict;
+        spelling.setOn(on);
+        if (strictChanged)
+            checkSpelling(checker);
+    }
+
+    /** Checks the spelling in the open book's language, a BCP 47 tag; none with {@code null} while no book is open. */
+    void setBookLanguage(String tag) {
+
+        spelling.setBookLanguage(tag);
     }
 
     /** True while the open chapter has changes that are not on disk. */
@@ -275,6 +305,12 @@ public final class ChapterEditor {
             manuscript.setText(savedText);
             trackDraft();
         }
+    }
+
+    private void checkSpelling(Optional<SpellChecker> checker) {
+
+        this.checker = checker;
+        manuscript.checkSpelling(checker.orElse(null), checker.isPresent() ? ownWords.get() : Set.of(), strictSpelling);
     }
 
     /** Records the open chapter's text as a draft while it differs from disk, and forgets it once it matches. */

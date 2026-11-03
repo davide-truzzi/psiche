@@ -24,6 +24,10 @@ import java.util.stream.Collectors;
  * A word is right if the dictionary knows it, or if it is one of the author's own words, as written there or with a
  * capital letter, as at the start of a sentence, or all in capitals. The curly apostrophe writers type (’) counts as
  * the straight one (') the dictionaries know, and a final apostrophe that is a closing quote is let go.
+ * <p>
+ * Looking for a chapter's mistakes, it leaves out the words that look like names unless asked to be strict: those
+ * that start with a capital letter, or have one right after an apostrophe, as "d'Annunzio" and "dell'Aquila". A
+ * novel's people and places would otherwise each have to be added to the author's words.
  */
 public final class SpellChecker {
 
@@ -73,11 +77,16 @@ public final class SpellChecker {
         return isKnown(straight(word), straightened(ownWords));
     }
 
-    /** The words of {@code markdown}'s prose that are spelt wrong, by the dictionary and {@code ownWords}, in order. */
-    public synchronized List<Word> mistakes(String markdown, Collection<String> ownWords) {
+    /**
+     * The words of {@code markdown}'s prose that are spelt wrong, by the dictionary and {@code ownWords}, in order.
+     *
+     * @param strict true to check the words that look like names too, which are left out otherwise
+     */
+    public synchronized List<Word> mistakes(String markdown, Collection<String> ownWords, boolean strict) {
 
         Set<String> own = straightened(ownWords);
         return ProseWords.of(markdown).stream()
+                .filter(word -> strict || !looksLikeAName(word.text()))
                 .filter(word -> !isKnown(straight(word.text()), own))
                 .toList();
     }
@@ -94,6 +103,17 @@ public final class SpellChecker {
                 .map(suggestion -> curly ? suggestion.replace(APOSTROPHE, CURLY_APOSTROPHE) : suggestion)
                 .limit(SUGGESTIONS)
                 .toList();
+    }
+
+    /** True if {@code word} starts with a capital letter, or has one right after an apostrophe, as names do. */
+    private static boolean looksLikeAName(String word) {
+
+        if (Character.isUpperCase(word.codePointAt(0)))
+            return true;
+
+        int afterApostrophe = straight(word).indexOf(APOSTROPHE) + 1;
+        return afterApostrophe > 0 && afterApostrophe < word.length()
+                && Character.isUpperCase(word.codePointAt(afterApostrophe));
     }
 
     /** True if {@code word}, with straight apostrophes, is known, with or without a final apostrophe. */
