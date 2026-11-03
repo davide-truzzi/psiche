@@ -23,10 +23,12 @@ body {
     line-height: 1.8;
 }
 
+/* A word longer than the line, such as names pasted without their spaces, breaks instead of widening the page. */
 article {
     max-width: 34em;
     margin: 0 auto;
     padding: 4.5em 2.5em 7em;
+    overflow-wrap: break-word;
 }
 
 h1, h2, h3, h4 {

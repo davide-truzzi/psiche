@@ -27,12 +27,16 @@
     }
 }
 
-/* Set on the root too, so not even empty space falls back to the renderer's built-in Times. */
+/*
+ * Set on the root too, so not even empty space falls back to the renderer's built-in Times. A word longer than the
+ * line, such as names pasted without their spaces, breaks instead of running off the page.
+ */
 html, body {
     font-family: "Libertinus Serif", serif;
     font-size: 12pt;
     line-height: 2;
     color: #000000;
+    word-wrap: break-word;
 }
 
 /* The chapter's title, a third of the way down its first page. */
