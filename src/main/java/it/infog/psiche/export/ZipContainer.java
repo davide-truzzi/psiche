@@ -9,12 +9,18 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * A zip whose first entry is its mimetype, stored uncompressed, so other programs can tell its type from the file's
- * first bytes. ODF documents and EPUB books are both built this way.
+ * A zip of a document's parts. ODF documents and EPUB books start with their mimetype, stored uncompressed, so other
+ * programs can tell their type from the file's first bytes; a DOCX has none.
  */
 public final class ZipContainer implements AutoCloseable {
 
     private final ZipOutputStream zip;
+
+    /** Creates {@code target}, replacing a file already there. */
+    public ZipContainer(Path target) throws IOException {
+
+        zip = new ZipOutputStream(Files.newOutputStream(target));
+    }
 
     /**
      * Creates {@code target}, replacing a file already there, and writes {@code mimetype} into it.
@@ -23,7 +29,7 @@ public final class ZipContainer implements AutoCloseable {
      */
     public ZipContainer(Path target, String mimetype) throws IOException {
 
-        zip = new ZipOutputStream(Files.newOutputStream(target));
+        this(target);
         writeMimetype(mimetype);
     }
 

@@ -27,6 +27,8 @@ final class OdtBody implements DocumentBody {
     // The page the next paragraph or heading starts, and the bookmark it carries; null when it simply follows on.
     private PageStart pageStart;
     private String bookmark;
+    // The number the list just opened starts at, for its first item; null when it counts from 1, or once written.
+    private Integer listStart;
 
     @Override
     public void startPage(PageStart start, String bookmark) {
@@ -93,15 +95,20 @@ final class OdtBody implements DocumentBody {
     }
 
     @Override
-    public void openList(Style style) {
+    public void openList(Style style, int start) {
 
         xml.append("<text:list text:style-name=\"%s\">\n".formatted(style.odtName()));
+        listStart = start == 1 ? null : start;
     }
 
+    /** Opens an item; a list's first item gives the number it starts at, unless it is 1. */
     @Override
-    public void openListItem(Integer number) {
+    public void openListItem() {
 
-        xml.append(number == null ? "<text:list-item>" : "<text:list-item text:start-value=\"%d\">".formatted(number));
+        xml.append(listStart == null
+                ? "<text:list-item>"
+                : "<text:list-item text:start-value=\"%d\">".formatted(listStart));
+        listStart = null;
     }
 
     @Override

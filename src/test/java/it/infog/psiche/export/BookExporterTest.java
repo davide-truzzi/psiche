@@ -21,11 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import javax.imageio.ImageIO;
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +31,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.zip.ZipFile;
 
+import static it.infog.psiche.export.ZipParts.entry;
+import static it.infog.psiche.export.ZipParts.parse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BookExporterTest {
@@ -199,18 +198,6 @@ class BookExporterTest {
         assertThat(entry(target, "META-INF/manifest.xml")).contains("manifest:full-path=\"Pictures/image1.png\"");
     }
 
-    private static String entry(Path odt, String name) throws IOException {
-        try (ZipFile zip = new ZipFile(odt.toFile()); InputStream in = zip.getInputStream(zip.getEntry(name))) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
-
-    /** Parses with namespaces, so an attribute whose prefix the part does not declare fails the test. */
-    private static void parse(String xml) throws Exception {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
-    }
 
     /** The number, from 1, of the page {@code destination} leads to. */
     private static int targetPage(PDDocument pdf, PDDestination destination) throws IOException {

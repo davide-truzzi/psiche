@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- The file's properties, as a word processor shows them: the chapter's title, the authors and the language. -->
+<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+                   xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>{{title}}</dc:title>
+    <dc:creator>{{authors}}</dc:creator>
+    <dc:language>{{language}}</dc:language>
+</cp:coreProperties>

@@ -1,6 +1,7 @@
 package it.infog.psiche.export;
 
 import it.infog.psiche.book.model.BookProperties;
+import it.infog.psiche.export.docx.DocxWriter;
 import it.infog.psiche.export.odt.OdtWriter;
 import it.infog.psiche.export.pdf.ManuscriptPdf;
 import org.commonmark.parser.Parser;
@@ -10,13 +11,14 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Writes a chapter to a file outside the book, as Markdown or as a manuscript PDF or OpenDocument text. */
+/** Writes a chapter to a file outside the book, as Markdown or as a manuscript PDF, OpenDocument text or DOCX. */
 public final class ChapterExporter {
 
     private static final Parser PARSER = Parser.builder().build();
 
     private final ManuscriptPdf pdf = new ManuscriptPdf();
     private final OdtWriter odt = new OdtWriter();
+    private final DocxWriter docx = new DocxWriter();
 
     /** Writes the chapter's Markdown as it is; links to the book's media stay relative to the book's chapters. */
     public void markdown(String markdown, Path target) {
@@ -53,5 +55,18 @@ public final class ChapterExporter {
     public void manuscriptOdt(String markdown, String title, BookProperties book, Path baseDirectory, Path target) {
 
         odt.writeChapter(PARSER.parse(markdown), title, ManuscriptHeader.of(book), book, baseDirectory, target);
+    }
+
+    /**
+     * Writes the chapter as a Word document laid out like the ODT, in the same named styles. It names a common serif
+     * font without embedding one, so it opens alike in every word processor.
+     *
+     * @param title         the chapter's title, for the file's properties
+     * @param book          the book the chapter belongs to, for the header and the file's author and language
+     * @param baseDirectory the directory images resolve against, the book's chapters; the images are packed in
+     */
+    public void manuscriptDocx(String markdown, String title, BookProperties book, Path baseDirectory, Path target) {
+
+        docx.writeChapter(PARSER.parse(markdown), title, ManuscriptHeader.of(book), book, baseDirectory, target);
     }
 }

@@ -39,11 +39,14 @@ public interface DocumentBody {
 
     void closeLink();
 
-    /** Opens a list of {@link Style#BULLETS} or {@link Style#NUMBERING}; a nested list is opened inside an item. */
-    void openList(Style style);
+    /**
+     * Opens a list of {@link Style#BULLETS} or {@link Style#NUMBERING}; a nested list is opened inside an item.
+     *
+     * @param start the number of the first item, for a numbered list; each numbered list counts from its own
+     */
+    void openList(Style style, int start);
 
-    /** Opens an item of the list; {@code number} restarts the numbering there, or is null to go on counting. */
-    void openListItem(Integer number);
+    void openListItem();
 
     void closeListItem();
 

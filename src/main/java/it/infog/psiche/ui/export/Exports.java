@@ -42,7 +42,7 @@ public final class Exports {
 
     /** The formats a chapter can be exported to. */
     public static final List<ExportFormat> CHAPTER_FORMATS =
-            List.of(ExportFormat.PDF, ExportFormat.ODT, ExportFormat.MARKDOWN);
+            List.of(ExportFormat.PDF, ExportFormat.ODT, ExportFormat.DOCX, ExportFormat.MARKDOWN);
 
     private static final ButtonType PLACEHOLDERS = new ButtonType("Export as placeholders", ButtonData.YES);
     private static final ButtonType SKIP = new ButtonType("Skip them", ButtonData.NO);
@@ -101,6 +101,8 @@ public final class Exports {
                 case PDF -> chapterExporter.manuscriptPdf(markdown, chapter.title(), properties, chaptersDir,
                         target.get());
                 case ODT -> chapterExporter.manuscriptOdt(markdown, chapter.title(), properties, chaptersDir,
+                        target.get());
+                case DOCX -> chapterExporter.manuscriptDocx(markdown, chapter.title(), properties, chaptersDir,
                         target.get());
                 case MARKDOWN -> chapterExporter.markdown(markdown, target.get());
             }

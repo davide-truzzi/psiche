@@ -137,11 +137,11 @@ final class ChapterRenderer extends AbstractVisitor {
      */
     private void list(Node list, Style style, int start) {
 
-        body.openList(style);
+        body.openList(style, start);
         listDepth++;
 
         for (Node item = list.getFirstChild(); item != null; item = item.getNext()) {
-            body.openListItem(item == list.getFirstChild() && start != 1 ? start : null);
+            body.openListItem();
             visitChildren(item);
             body.closeListItem();
         }

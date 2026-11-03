@@ -5,6 +5,7 @@ public enum ExportFormat {
 
     PDF("PDF", "pdf"),
     ODT("ODT", "odt"),
+    DOCX("DOCX", "docx"),
     MARKDOWN("Markdown", "md"),
     /** The book as an EPUB 3 for Apple Books, Kobo, Google Play Books and the distributors. */
     EPUB("EPUB", "epub"),

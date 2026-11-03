@@ -8,15 +8,10 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.xml.sax.SAXException;
 
 import javax.imageio.ImageIO;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +21,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
+import static it.infog.psiche.export.ZipParts.entry;
+import static it.infog.psiche.export.ZipParts.parse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChapterExporterTest {
@@ -222,17 +219,5 @@ class ChapterExporterTest {
 
         assertThat(entry(target, "content.xml")).contains("<text:p text:style-name=\"Preformatted_20_Text\">"
                 + "<text:s text:c=\"2\"/>x <text:s/>y<text:line-break/><text:tab/>z</text:p>");
-    }
-
-    private static String entry(Path odt, String name) throws IOException {
-        try (ZipFile zip = new ZipFile(odt.toFile()); InputStream in = zip.getInputStream(zip.getEntry(name))) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
-    }
-
-    private static void parse(String xml) throws ParserConfigurationException, SAXException, IOException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
     }
 }

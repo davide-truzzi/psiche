@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  The lists: bullets and numbers, three levels each, indented as in the ODT (1.25cm, 2cm and 2.75cm, in twentieths of
+  a point). Each list of the text is an instance of one of the two, listed at the end, so each numbered list starts at
+  its own number.
+-->
+<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+    <w:abstractNum w:abstractNumId="0">
+        <w:multiLevelType w:val="hybridMultilevel"/>
+        <w:lvl w:ilvl="0">
+            <w:start w:val="1"/>
+            <w:numFmt w:val="bullet"/>
+            <w:lvlText w:val="•"/>
+            <w:lvlJc w:val="left"/>
+            <w:pPr>
+                <w:ind w:left="709" w:hanging="284"/>
+            </w:pPr>
+        </w:lvl>
+        <w:lvl w:ilvl="1">
+            <w:start w:val="1"/>
+            <w:numFmt w:val="bullet"/>
+            <w:lvlText w:val="◦"/>
+            <w:lvlJc w:val="left"/>
+            <w:pPr>
+                <w:ind w:left="1134" w:hanging="284"/>
+            </w:pPr>
+        </w:lvl>
+        <w:lvl w:ilvl="2">
+            <w:start w:val="1"/>
+            <w:numFmt w:val="bullet"/>
+            <w:lvlText w:val="▪"/>
+            <w:lvlJc w:val="left"/>
+            <w:pPr>
+                <w:ind w:left="1559" w:hanging="284"/>
+            </w:pPr>
+        </w:lvl>
+    </w:abstractNum>
+
+    <w:abstractNum w:abstractNumId="1">
+        <w:multiLevelType w:val="hybridMultilevel"/>
+        <w:lvl w:ilvl="0">
+            <w:start w:val="1"/>
+            <w:numFmt w:val="decimal"/>
+            <w:lvlText w:val="%1."/>
+            <w:lvlJc w:val="left"/>
+            <w:pPr>
+                <w:ind w:left="709" w:hanging="340"/>
+            </w:pPr>
+        </w:lvl>
+        <w:lvl w:ilvl="1">
+            <w:start w:val="1"/>
+            <w:numFmt w:val="lowerLetter"/>
+            <w:lvlText w:val="%2."/>
+            <w:lvlJc w:val="left"/>
+            <w:pPr>
+                <w:ind w:left="1134" w:hanging="340"/>
+            </w:pPr>
+        </w:lvl>
+        <w:lvl w:ilvl="2">
+            <w:start w:val="1"/>
+            <w:numFmt w:val="lowerRoman"/>
+            <w:lvlText w:val="%3."/>
+            <w:lvlJc w:val="left"/>
+            <w:pPr>
+                <w:ind w:left="1559" w:hanging="340"/>
+            </w:pPr>
+        </w:lvl>
+    </w:abstractNum>
+
+{{lists}}</w:numbering>
