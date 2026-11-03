@@ -25,6 +25,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -32,7 +34,8 @@ import java.util.stream.Collectors;
 /**
  * The app's settings, kept in {@value #FILE} in the {@link SettingsFolder}, as a properties file anyone can read: the
  * books opened lately, which the Book menu offers again, what the author chose in Preferences, and where the window
- * was.
+ * was. Beside it, {@value #OWN_WORDS_FILE} lists the words the author added to the spell checker or told it to
+ * ignore, one per line, for every book.
  * <p>
  * Settings never stand in the author's way: a missing or damaged file reads as no settings, and a file that cannot
  * be written is logged and left as it was. Each change reads the file again first, so two windows of the app do not
@@ -54,6 +57,7 @@ public final class Settings {
     private static final String PREVIEW_FONT_SIZE = "preview.font-size";
     private static final String WINDOW = "window.";
     private static final String WEB_VIEW_FOLDER = "webview";
+    private static final String OWN_WORDS_FILE = "words.txt";
 
     private final SettingsFolder folder;
 
@@ -69,6 +73,30 @@ public final class Settings {
     public Path webViewFolder() {
 
         return folder.path().resolve(WEB_VIEW_FOLDER);
+    }
+
+    /** The words the author added to the spell checker or told it to ignore; none if there is no file yet. */
+    public Set<String> ownWords() {
+
+        try {
+            return Files.readAllLines(folder.path().resolve(OWN_WORDS_FILE), StandardCharsets.UTF_8).stream()
+                    .map(String::strip)
+                    .filter(word -> !word.isEmpty())
+                    .collect(Collectors.toUnmodifiableSet());
+        } catch (NoSuchFileException e) {
+            return Set.of();
+        } catch (IOException e) {
+            log.warn("Cannot read the author's words in {}; using none", folder.path(), e);
+            return Set.of();
+        }
+    }
+
+    /** Adds {@code word} to the author's words, which another window may have changed meanwhile, in order. */
+    public void addOwnWord(String word) {
+
+        Set<String> words = new TreeSet<>(ownWords());
+        if (words.add(word.strip()))
+            writeFile(OWN_WORDS_FILE, String.join("\n", words) + "\n");
     }
 
     /** The books opened lately, the latest first. */
@@ -278,12 +306,18 @@ public final class Settings {
                 .sorted()
                 .collect(Collectors.joining("\n", COMMENT + "\n", "\n"));
 
-        Path file = folder.path().resolve(FILE);
+        writeFile(FILE, entries);
+    }
+
+    /** Writes {@code text} whole as the file {@code name} of the settings folder, in place of the one there. */
+    private void writeFile(String name, String text) {
+
+        Path file = folder.path().resolve(name);
         try {
             Files.createDirectories(folder.path());
-            Path temporary = Files.createTempFile(folder.path(), FILE, ".tmp");
+            Path temporary = Files.createTempFile(folder.path(), name, ".tmp");
             try {
-                Files.writeString(temporary, entries, StandardCharsets.UTF_8);
+                Files.writeString(temporary, text, StandardCharsets.UTF_8);
                 try {
                     Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
                 } catch (AtomicMoveNotSupportedException e) {
@@ -294,7 +328,7 @@ public final class Settings {
                 Files.deleteIfExists(temporary);
             }
         } catch (IOException e) {
-            log.warn("Cannot save the settings in {}", folder.path(), e);
+            log.warn("Cannot save {} in {}", name, folder.path(), e);
         }
     }
 }

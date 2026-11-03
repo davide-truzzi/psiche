@@ -8,6 +8,8 @@ module it.infog.psiche {
     requires openhtmltopdf.core;
     requires openhtmltopdf.pdfbox;
     requires org.apache.fontbox;
+    requires org.apache.lucene.analysis.common;
+    requires org.apache.lucene.core;
     requires org.apache.pdfbox;
     requires org.apache.pdfbox.io;
     requires org.eclipse.jgit;

@@ -186,6 +186,29 @@ class SettingsTest {
     }
 
     @Test
+    void withoutAFileTheAuthorHasNoOwnWords() {
+        assertThat(settings().ownWords()).isEmpty();
+    }
+
+    @Test
+    void theAuthorsOwnWordsAreKeptOneALineInOrderAndOnce() throws IOException {
+        settings().addOwnWord("Elric");
+        settings().addOwnWord(" drago ");
+        settings().addOwnWord("Elric");
+
+        assertThat(settings().ownWords()).containsExactlyInAnyOrder("Elric", "drago");
+        assertThat(Files.readString(folder().path().resolve("words.txt"))).isEqualTo("Elric\ndrago\n");
+    }
+
+    @Test
+    void theAuthorsOwnWordsSkipBlankLines() throws IOException {
+        Files.createDirectories(folder().path());
+        Files.writeString(folder().path().resolve("words.txt"), "Melniboné\n\n  \nMa'ar\n");
+
+        assertThat(settings().ownWords()).containsExactlyInAnyOrder("Melniboné", "Ma'ar");
+    }
+
+    @Test
     void thePreviewKeepsItsDataInTheSettingsFolder() {
         assertThat(settings().webViewFolder()).isEqualTo(tempDir.resolve("config/psiche/webview"));
     }

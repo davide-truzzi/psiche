@@ -9,6 +9,7 @@ assertj = "3.27.7"
 epubcheck = "5.3.0"
 twelvemonkeys = "3.15.3"
 richtextfx = "0.11.7"
+lucene = "10.4.0"
 
 [libraries]
 javafx-base = { module = "org.openjfx:javafx-base", version.ref = "javafx" }
@@ -28,3 +29,5 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 epubcheck = { module = "org.w3c:epubcheck", version.ref = "epubcheck" }
 imageio-webp = { module = "com.twelvemonkeys.imageio:imageio-webp", version.ref = "twelvemonkeys" }
 richtextfx = { module = "org.fxmisc.richtext:richtextfx", version.ref = "richtextfx" }
+lucene-core = { module = "org.apache.lucene:lucene-core", version.ref = "lucene" }
+lucene-analysis-common = { module = "org.apache.lucene:lucene-analysis-common", version.ref = "lucene" }

@@ -37,6 +37,9 @@ dependencies {
     implementation(libs.slf4j.api)
     // The editor's text, which, unlike JavaFX's TextArea, can show parts of it in another colour, such as comments.
     implementation(libs.richtextfx)
+    // The spell checker: Lucene's Hunspell, in pure Java, which reads LibreOffice's dictionaries, bundled in the app.
+    implementation(libs.lucene.core)
+    implementation(libs.lucene.analysis.common)
     // Reads WebP images, which neither JavaFX nor the JDK can, so a note shows a picture of them; it adds itself to
     // ImageIO, so no code names it.
     runtimeOnly(libs.imageio.webp)
