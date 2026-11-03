@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.preview;
 
+import it.infog.psiche.common.Template;
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import javafx.animation.Animation;
@@ -22,6 +23,7 @@ import org.w3c.dom.events.EventTarget;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -44,33 +46,8 @@ public final class PreviewPane extends StackPane {
     // Short enough to feel immediate, long enough that holding an arrow key scrolls the page once, not per line.
     private static final Duration FOLLOW_DELAY = Duration.millis(120);
 
-    /*
-     * Scrolls to character %d of the Markdown, using the data-start and data-end marks the renderer puts on each
-     * block. The character lands as far down the last block starting at or before it as it is through that block's
-     * text, so a long paragraph is followed line by line; one between blocks lands at the bottom of the block above.
-     * That point goes the third argument's share of the way down the view. Unless the second argument asks for it
-     * exactly, the page only moves once that point leaves the middle of the view, so it stays put while typing.
-     */
-    private static final String FOLLOW_POSITION = """
-            (function (position, exactly, point) {
-                let block = null;
-                for (const candidate of document.querySelectorAll('[data-start]')) {
-                    if (Number(candidate.dataset.start) > position)
-                        break;
-                    block = candidate;
-                }
-                let y = 0;
-                if (block !== null) {
-                    const box = block.getBoundingClientRect();
-                    const start = Number(block.dataset.start), end = Number(block.dataset.end);
-                    const through = Math.min(1, (position - start) / Math.max(1, end - start));
-                    y = box.top + window.scrollY + box.height * through;
-                }
-                const height = window.innerHeight;
-                if (exactly || y < window.scrollY + height * 0.2 || y > window.scrollY + height * 0.8)
-                    window.scrollTo(0, y - height * point);
-            })(%d, %b, %s)
-            """;
+    // Scrolls the page to a character of the Markdown, as the script explains.
+    private static final Template FOLLOW_POSITION = Template.load(PreviewPane.class, "follow-position.js");
 
     // Puts a new article in place of the page's, the rest of the page kept as it is.
     private static final String REPLACE_ARTICLE = "document.querySelector('article').innerHTML = %s;";
@@ -245,7 +222,10 @@ public final class PreviewPane extends StackPane {
     private void showFollowedPosition() {
 
         if (view.getEngine().getLoadWorker().getState() == Worker.State.SUCCEEDED)
-            view.getEngine().executeScript(FOLLOW_POSITION.formatted(followedPosition, followExactly, FOLLOW_POINT));
+            view.getEngine().executeScript(FOLLOW_POSITION.fill(Map.of(
+                    "position", String.valueOf(followedPosition),
+                    "exactly", String.valueOf(followExactly),
+                    "point", String.valueOf(FOLLOW_POINT))));
     }
 
     private void schedule(Runnable render) {

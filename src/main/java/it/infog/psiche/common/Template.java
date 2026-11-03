@@ -1,4 +1,4 @@
-package it.infog.psiche.export;
+package it.infog.psiche.common;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,7 +8,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** An XML file of an exported document, such as an ODT's {@code styles.xml}, kept as a resource with placeholders. */
+/**
+ * A file the app fills in, kept as a resource with placeholders: a part of an exported document, such as an ODT's
+ * {@code styles.xml}, the preview's page, or a script the preview runs.
+ */
 public final class Template {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([\\w-]+)}}");

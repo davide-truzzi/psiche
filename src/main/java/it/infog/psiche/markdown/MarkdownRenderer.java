@@ -1,5 +1,7 @@
 package it.infog.psiche.markdown;
 
+import it.infog.psiche.common.Template;
+
 import org.commonmark.node.Block;
 import org.commonmark.node.Document;
 import org.commonmark.node.Node;
@@ -18,25 +20,12 @@ import java.util.Map;
  */
 public final class MarkdownRenderer {
 
-    private static final String PAGE = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-            <meta charset="utf-8">
-            <base href="%s">
-            <style>%s</style>
-            <style>body { font-size: %dpx; }</style>
-            </head>
-            <body><article>
-            %s</article></body>
-            </html>
-            """;
-
     private final Parser parser = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
     private final HtmlRenderer renderer = HtmlRenderer.builder()
             .softbreak("<br>") // Forces <br> for all soft breaks
             .attributeProviderFactory(context -> MarkdownRenderer::markSourceRange)
             .build();
+    private final Template page = Template.load(MarkdownRenderer.class, "preview.html");
     private final String stylesheet;
 
     public MarkdownRenderer(String stylesheet) {
@@ -51,7 +40,11 @@ public final class MarkdownRenderer {
      */
     public String render(String markdown, Path baseDirectory, int fontSize) {
 
-        return PAGE.formatted(baseDirectory.toUri(), stylesheet, fontSize, renderArticle(markdown));
+        return page.fill(Map.of(
+                "base", baseDirectory.toUri().toString(),
+                "style", stylesheet,
+                "font-size", String.valueOf(fontSize),
+                "article", renderArticle(markdown)));
     }
 
     /**

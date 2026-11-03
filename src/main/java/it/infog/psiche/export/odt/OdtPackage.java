@@ -1,5 +1,6 @@
 package it.infog.psiche.export.odt;
 
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.ZipContainer;
 import it.infog.psiche.export.document.model.Picture;
 
@@ -16,13 +17,7 @@ final class OdtPackage implements AutoCloseable {
 
     static final String MIMETYPE = "application/vnd.oasis.opendocument.text";
 
-    private static final String MANIFEST = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" \
-            manifest:version="1.3">
-              <manifest:file-entry manifest:full-path="/" manifest:version="1.3" manifest:media-type="%s"/>
-            %s</manifest:manifest>
-            """;
+    private static final Template MANIFEST = Template.load(OdtPackage.class, "manifest.xml");
     private static final String MANIFEST_ENTRY = """
               <manifest:file-entry manifest:full-path="%s" manifest:media-type="%s"/>
             """;
@@ -58,7 +53,7 @@ final class OdtPackage implements AutoCloseable {
         try {
             StringBuilder entries = new StringBuilder();
             parts.forEach((name, mediaType) -> entries.append(MANIFEST_ENTRY.formatted(name, mediaType)));
-            addXml("META-INF/manifest.xml", MANIFEST.formatted(MIMETYPE, entries));
+            addXml("META-INF/manifest.xml", MANIFEST.fill(Map.of("mimetype", MIMETYPE, "entries", entries.toString())));
         } finally {
             zip.close();
         }

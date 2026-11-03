@@ -1,7 +1,7 @@
 package it.infog.psiche.export.docx;
 
 import it.infog.psiche.book.model.BookProperties;
-import it.infog.psiche.export.Template;
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.XmlText;
 import it.infog.psiche.export.document.Manuscript;
 import it.infog.psiche.export.document.Pictures;

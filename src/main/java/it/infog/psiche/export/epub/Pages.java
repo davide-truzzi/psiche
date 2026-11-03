@@ -1,6 +1,6 @@
 package it.infog.psiche.export.epub;
 
-import it.infog.psiche.export.Template;
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.XhtmlRenderer;
 import it.infog.psiche.export.epub.model.EpubImage;
 import it.infog.psiche.export.epub.model.EpubPage;
@@ -28,6 +28,8 @@ final class Pages {
             + "<link rel=\"stylesheet\" type=\"text/css\" href=\"../%s\"/>\n".formatted(FRONT_MATTER_STYLE);
 
     private final Template page = Template.load(Pages.class, "page.xhtml");
+    // The cover's section, inside its page.
+    private final Template coverSection = Template.load(Pages.class, "cover.xhtml");
     private final String language;
 
     /** @param language the book's language, a BCP 47 tag such as {@code it-IT}, set on every page */
@@ -44,16 +46,11 @@ final class Pages {
      */
     EpubPage cover(EpubImage cover, String title) {
 
-        String content = """
-                <section class="cover" epub:type="cover">
-                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" \
-                width="100%%" height="100%%" viewBox="0 0 %d %d" preserveAspectRatio="xMidYMid meet" role="img" \
-                aria-label="%s">
-                <image width="%d" height="%d" xlink:href="../%s"/>
-                </svg>
-                </section>
-                """.formatted(cover.width(), cover.height(), escape(title), cover.width(), cover.height(),
-                cover.path());
+        String content = coverSection.fill(Map.of(
+                "width", String.valueOf(cover.width()),
+                "height", String.valueOf(cover.height()),
+                "title", escape(title),
+                "path", cover.path()));
 
         return page("cover", title, " class=\"cover-page\" epub:type=\"frontmatter\"", ALL_STYLESHEETS, content,
                 "svg");

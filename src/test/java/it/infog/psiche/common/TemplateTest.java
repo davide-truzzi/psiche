@@ -1,4 +1,4 @@
-package it.infog.psiche.export;
+package it.infog.psiche.common;
 
 import it.infog.psiche.export.odt.OdtWriter;
 import org.junit.jupiter.api.Test;

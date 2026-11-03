@@ -1,6 +1,6 @@
 package it.infog.psiche.export.epub;
 
-import it.infog.psiche.export.Template;
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.XhtmlRenderer;
 import it.infog.psiche.export.epub.model.EpubPage;
 import it.infog.psiche.export.model.Contents;

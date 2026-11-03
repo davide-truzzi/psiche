@@ -1,0 +1,22 @@
+<!-- An image drawn in the line like a large character, its size in English Metric Units (360000 to the
+     centimetre). Its number is its own in the document; its title is what a screen reader reads; its relationship
+     leads to the picture packed in the document. -->
+<w:drawing>
+<wp:inline distT="0" distB="0" distL="0" distR="0">
+<wp:extent cx="{{width}}" cy="{{height}}"/>
+<wp:docPr id="{{number}}" name="Picture {{number}}" descr="{{title}}"/>
+<wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>
+<a:graphic>
+<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+<pic:pic>
+<pic:nvPicPr><pic:cNvPr id="{{number}}" name="Picture {{number}}" descr="{{title}}"/><pic:cNvPicPr/></pic:nvPicPr>
+<pic:blipFill><a:blip r:embed="{{relationship}}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+<pic:spPr>
+<a:xfrm><a:off x="0" y="0"/><a:ext cx="{{width}}" cy="{{height}}"/></a:xfrm>
+<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+</pic:spPr>
+</pic:pic>
+</a:graphicData>
+</a:graphic>
+</wp:inline>
+</w:drawing>

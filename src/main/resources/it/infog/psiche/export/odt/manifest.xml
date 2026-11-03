@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The list of the document's parts, which a word processor reads to find them: the document itself, of its
+     mimetype, then every part added, each with its media type. -->
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3">
+  <manifest:file-entry manifest:full-path="/" manifest:version="1.3" manifest:media-type="{{mimetype}}"/>
+{{entries}}</manifest:manifest>

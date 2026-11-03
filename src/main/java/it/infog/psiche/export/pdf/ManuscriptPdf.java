@@ -1,6 +1,7 @@
 package it.infog.psiche.export.pdf;
 
 import it.infog.psiche.book.model.BookProperties;
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.model.Contents;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -14,6 +15,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.logging.Level;
 
 import static it.infog.psiche.export.XmlText.escape;
@@ -27,21 +29,7 @@ public final class ManuscriptPdf {
 
     private static final String FONTS = "/it/infog/psiche/export/pdf/fonts/";
 
-    // XHTML, as the renderer reads it: the head carries the PDF's title, author and language.
-    private static final String PAGE = """
-            <!DOCTYPE html>
-            <html xmlns="http://www.w3.org/1999/xhtml" lang="%s">
-            <head>
-            <meta charset="utf-8" />
-            <title>%s</title>
-            <meta name="author" content="%s" />
-            <style>%s</style>
-            %s</head>
-            <body>
-            %s</body>
-            </html>
-            """;
-
+    private final Template page = Template.load(ManuscriptPdf.class, "page.xhtml");
     private final String chapterStyle;
     private final String bookStyle;
 
@@ -94,9 +82,13 @@ public final class ManuscriptPdf {
     private void write(String stylesheet, String title, String header, BookProperties book, String head, String body,
                        Path baseDirectory, Path target) {
 
-        String authors = String.join(", ", book.authors());
-        String style = stylesheet.replace("{{header}}", cssString(header));
-        String html = PAGE.formatted(escape(book.language()), escape(title), escape(authors), style, head, body);
+        String html = page.fill(Map.of(
+                "language", escape(book.language()),
+                "title", escape(title),
+                "authors", escape(String.join(", ", book.authors())),
+                "style", stylesheet.replace("{{header}}", cssString(header)),
+                "head", head,
+                "body", body));
 
         try (OutputStream out = Files.newOutputStream(target)) {
             PdfRendererBuilder builder = new PdfRendererBuilder();

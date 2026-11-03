@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- The content type of every part, which a word processor reads to tell them apart: XML by default, the images by
+     their extension, and each XML part by its name. -->
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="xml" ContentType="application/xml"/>
+{{types}}</Types>

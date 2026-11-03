@@ -1,7 +1,7 @@
 package it.infog.psiche.export.epub;
 
 import it.infog.psiche.book.model.BookProperties;
-import it.infog.psiche.export.Template;
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.epub.model.EpubImage;
 import it.infog.psiche.export.epub.model.EpubPage;
 

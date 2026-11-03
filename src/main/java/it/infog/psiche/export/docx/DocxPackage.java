@@ -1,5 +1,6 @@
 package it.infog.psiche.export.docx;
 
+import it.infog.psiche.common.Template;
 import it.infog.psiche.export.ZipContainer;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.docx.model.enums.Part;
@@ -17,12 +18,7 @@ import java.util.regex.Pattern;
  */
 final class DocxPackage implements AutoCloseable {
 
-    private static final String CONTENT_TYPES = """
-            <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-            <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-            <Default Extension="xml" ContentType="application/xml"/>
-            %s</Types>
-            """;
+    private static final Template CONTENT_TYPES = Template.load(DocxPackage.class, "content-types.xml");
     // The templates explain themselves in XML comments, which the package leaves out, as Word's own files have none.
     private static final Pattern COMMENT = Pattern.compile("<!--.*?-->\\s*", Pattern.DOTALL);
 
@@ -40,7 +36,7 @@ final class DocxPackage implements AutoCloseable {
     /** Adds {@code part}, its template filled in as {@code xml}. */
     void add(Part part, String xml) throws IOException {
 
-        zip.addText(part.path(), COMMENT.matcher(xml).replaceAll(""));
+        addXml(part.path(), xml);
         overrides.put("/" + part.path(), part.contentType());
     }
 
@@ -49,6 +45,12 @@ final class DocxPackage implements AutoCloseable {
 
         zip.addFile(picture.entry(), picture.file());
         defaults.put(picture.entry().substring(picture.entry().lastIndexOf('.') + 1), picture.mediaType());
+    }
+
+    /** Adds the XML part {@code name}, without the comments of its template. */
+    private void addXml(String name, String xml) throws IOException {
+
+        zip.addText(name, COMMENT.matcher(xml).replaceAll(""));
     }
 
     /** Writes the content types of the parts added, and closes the file. */
@@ -61,7 +63,7 @@ final class DocxPackage implements AutoCloseable {
                     "<Default Extension=\"%s\" ContentType=\"%s\"/>\n".formatted(extension, type)));
             overrides.forEach((name, type) -> types.append(
                     "<Override PartName=\"%s\" ContentType=\"%s\"/>\n".formatted(name, type)));
-            zip.addText("[Content_Types].xml", CONTENT_TYPES.formatted(types));
+            addXml("[Content_Types].xml", CONTENT_TYPES.fill(Map.of("types", types.toString())));
         } finally {
             zip.close();
         }
