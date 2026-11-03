@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Psiche uses far less power while you read or think: with a chapter open and nothing happening, it kept a processor
+  core fully busy, redrawing the window hundreds of times a second for the comments' dots; now it takes a few per
+  cent. The caret blinks for ten seconds after you last type or click, then stays shown, as in GTK and GNOME; and
+  the preview, after a pause in typing, changes its text in place instead of loading the whole page again.
 - **Spell checking**, offline, in the book's language: English, Italian, French, Spanish, German, and Portuguese
   from Brazil and from Portugal. A word spelt wrong gets a dotted red line under it and a red dot in the margin,
   beside a comment's dot if its line has one, with red dots at the top and bottom of the page counting those beyond

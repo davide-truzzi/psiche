@@ -72,6 +72,10 @@ public final class PreviewPane extends StackPane {
             })(%d, %b, %s)
             """;
 
+    // Puts a new article in place of the page's, the rest of the page kept as it is.
+    private static final String REPLACE_ARTICLE = "document.querySelector('article').innerHTML = %s;";
+    private static final String SCROLL_TO = "window.scrollTo(0, %s)";
+
     // Links with these schemes open in the system browser or mail client.
     private static final List<String> EXTERNAL_SCHEMES = List.of("http:", "https:", "mailto:");
     // Lets the frame around the page, seen while it loads, follow the theme.
@@ -97,6 +101,10 @@ public final class PreviewPane extends StackPane {
     // What the page shows, to render it again in another theme; null while it is blank.
     private String shownMarkdown;
     private Path shownBaseDirectory;
+    // How the page in the view was loaded; while a render would load it the same way, it only replaces the article.
+    private MarkdownRenderer loadedRenderer;
+    private Path loadedBaseDirectory;
+    private int loadedFontSize;
 
     /**
      * @param renderers render pages in a theme
@@ -119,7 +127,7 @@ public final class PreviewPane extends StackPane {
         // Loading a page resets its scroll position, so scroll the new page to where it should be.
         view.getEngine().getLoadWorker().stateProperty().addListener((obs, old, state) -> {
             if (state == Worker.State.SUCCEEDED) {
-                view.getEngine().executeScript("window.scrollTo(0, %s)".formatted(scrollAfterLoad));
+                view.getEngine().executeScript(SCROLL_TO.formatted(scrollAfterLoad));
                 showFollowedPosition();
                 catchLinkClicks();
             }
@@ -213,6 +221,7 @@ public final class PreviewPane extends StackPane {
 
         schedule(() -> {
             shownMarkdown = null;
+            loadedRenderer = null;
             view.getEngine().loadContent("");
         });
     }
@@ -273,12 +282,35 @@ public final class PreviewPane extends StackPane {
             showFollowedPosition();
     }
 
+    /**
+     * Shows {@code markdown} scrolled to {@code scroll}. A page loaded the same way, for the same folder, theme and
+     * font size, only has its article replaced: loading it whole again would also read its stylesheet and fonts anew,
+     * which costs about half as much again, at each pause in typing.
+     */
     private void load(String markdown, Path baseDirectory, double scroll) {
 
-        scrollAfterLoad = scroll;
         shownMarkdown = markdown;
         shownBaseDirectory = baseDirectory;
+        if (isLoadedFor(baseDirectory)) {
+            String article = renderer.renderArticle(markdown);
+            view.getEngine().executeScript(REPLACE_ARTICLE.formatted(JavaScript.string(article)));
+            view.getEngine().executeScript(SCROLL_TO.formatted(scroll));
+            showFollowedPosition();
+            return;
+        }
+
+        scrollAfterLoad = scroll;
+        loadedRenderer = renderer;
+        loadedBaseDirectory = baseDirectory;
+        loadedFontSize = fontSize;
         view.getEngine().loadContent(renderer.render(markdown, baseDirectory, fontSize));
+    }
+
+    /** True if the page in the view is loaded, and was loaded for {@code baseDirectory}, the theme and font size. */
+    private boolean isLoadedFor(Path baseDirectory) {
+
+        return view.getEngine().getLoadWorker().getState() == Worker.State.SUCCEEDED && loadedRenderer == renderer
+                && loadedFontSize == fontSize && baseDirectory.equals(loadedBaseDirectory);
     }
 
     /** Listens for clicks on the whole page, so one listener covers every link in it. */

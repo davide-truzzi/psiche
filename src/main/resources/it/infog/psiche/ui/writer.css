@@ -311,6 +311,12 @@
     -fx-stroke: #e7dcc6;
 }
 
+/* RichTextFX's own blinking off, over its stylesheet's 500ms: its animation would draw the window sixty times a
+   second. CaretBlink blinks the caret instead. */
+.manuscript.styled-text-area .caret {
+    -rtfx-blink-rate: 0ms;
+}
+
 .manuscript .selection {
     -fx-fill: rgba(224, 74, 47, 0.45);
 }

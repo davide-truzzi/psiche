@@ -77,6 +77,8 @@ final class Manuscript {
         area.setEditable(false);
         // Undo takes back what the author typed, not the comments' colour and the mistakes' lines that follow it.
         area.setUndoManager(UndoUtils.plainTextUndoManager(area));
+        // Kept by the area it listens to.
+        new CaretBlink(area);
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             findComments();

@@ -51,9 +51,16 @@ public final class MarkdownRenderer {
      */
     public String render(String markdown, Path baseDirectory, int fontSize) {
 
-        String body = renderer.render(parser.parse(markdown));
+        return PAGE.formatted(baseDirectory.toUri(), stylesheet, fontSize, renderArticle(markdown));
+    }
 
-        return PAGE.formatted(baseDirectory.toUri(), stylesheet, fontSize, body);
+    /**
+     * The page's article alone, without the page around it, to put in place of the article of a page already shown,
+     * which keeps its stylesheet, fonts and scroll position.
+     */
+    public String renderArticle(String markdown) {
+
+        return renderer.render(parser.parse(markdown));
     }
 
     private static void markSourceRange(Node node, String tagName, Map<String, String> attributes) {
