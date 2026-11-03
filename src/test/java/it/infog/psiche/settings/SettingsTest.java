@@ -185,6 +185,11 @@ class SettingsTest {
         assertThat(settings().windowBounds()).isEmpty();
     }
 
+    @Test
+    void thePreviewKeepsItsDataInTheSettingsFolder() {
+        assertThat(settings().webViewFolder()).isEqualTo(tempDir.resolve("config/psiche/webview"));
+    }
+
     private Settings settings() {
         return new Settings(folder());
     }

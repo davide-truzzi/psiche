@@ -102,15 +102,18 @@ public final class PreviewPane extends StackPane {
      * @param renderers render pages in a theme
      * @param theme     the theme to start in
      * @param fontSize  the size of the page's text to start with, in pixels
+     * @param data      the folder the web engine keeps its own data in, which it makes as it needs it
      * @param browser   opens a web or mail link in the system's default application
      */
     public PreviewPane(Function<PreviewTheme, MarkdownRenderer> renderers, PreviewTheme theme, int fontSize,
-                       Consumer<String> browser) {
+                       Path data, Consumer<String> browser) {
 
         this.renderers = renderers;
         this.fontSize = fontSize;
         this.browser = browser;
 
+        // Without one, the engine makes a folder named after the app's main class in the home folder.
+        view.getEngine().setUserDataDirectory(data.toFile());
         view.setPageFill(Color.TRANSPARENT);
         view.setContextMenuEnabled(false);
         // Loading a page resets its scroll position, so scroll the new page to where it should be.

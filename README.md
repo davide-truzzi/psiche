@@ -90,7 +90,7 @@ my-book/              ← the folder; the book's title is set in its properties
 - The window opens where it was when you last closed it, maximized if it was. If it would be off every screen, for
   example after a monitor is unplugged, it opens at its default size instead.
 - The settings (the recent books, the preferences and where the window was) live in `settings.properties`, never
-  inside the app:
+  inside the app, in a folder that also holds `webview`, where the preview's web engine keeps its own data:
   - Linux: `$XDG_CONFIG_HOME/psiche`, by default `~/.config/psiche`. A `psiche.AppImage.config` folder next to the
     AppImage moves them there, as AppImage's portable mode does for any app.
   - Windows: `%APPDATA%\psiche`. macOS: `~/Library/Application Support/psiche`.

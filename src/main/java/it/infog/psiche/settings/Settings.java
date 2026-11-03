@@ -53,12 +53,22 @@ public final class Settings {
     private static final String EDITOR_FONT_SIZE = "editor.font-size";
     private static final String PREVIEW_FONT_SIZE = "preview.font-size";
     private static final String WINDOW = "window.";
+    private static final String WEB_VIEW_FOLDER = "webview";
 
     private final SettingsFolder folder;
 
     public Settings(SettingsFolder folder) {
 
         this.folder = folder;
+    }
+
+    /**
+     * The folder the preview's web engine keeps its data in. Psiche stores nothing there, but the engine always makes
+     * one, by default as a folder of its own in the home folder; here it stays with the settings.
+     */
+    public Path webViewFolder() {
+
+        return folder.path().resolve(WEB_VIEW_FOLDER);
     }
 
     /** The books opened lately, the latest first. */

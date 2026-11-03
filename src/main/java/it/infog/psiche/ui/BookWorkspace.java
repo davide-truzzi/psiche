@@ -89,7 +89,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         this.settings = settings;
         this.browser = browser;
         Preferences preferences = settings.preferences();
-        preview = new PreviewPane(renderers, preferences.previewTheme(), preferences.previewFontSize(), browser);
+        preview = new PreviewPane(renderers, preferences.previewTheme(), preferences.previewFontSize(),
+                settings.webViewFolder(), browser);
         history = new HistoryPane(this::reportError, this::showRevision);
         chapterEditor = new ChapterEditor(statusBar, this::reportError, welcome);
         chapterEditor.setFontSize(preferences.editorFontSize());

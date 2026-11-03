@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The preview no longer leaves a hidden folder named after the app, `.it.infog.psiche.ui.WriterApp`, in the home
+  folder: its web engine's data now goes in the settings folder, as `webview`.
+
 ## 0.2.0 Alpha (2026-11-02)
 
 The second release for testing. The manuscript editor is new underneath: it looks and works as before, and now it can
