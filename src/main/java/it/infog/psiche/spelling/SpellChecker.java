@@ -1,7 +1,7 @@
 package it.infog.psiche.spelling;
 
 import it.infog.psiche.spelling.model.Word;
-import it.infog.psiche.spelling.model.enums.SpellingLanguage;
+import it.infog.psiche.spelling.model.SpellingLanguage;
 import org.apache.lucene.analysis.hunspell.Dictionary;
 import org.apache.lucene.analysis.hunspell.Hunspell;
 import org.apache.lucene.analysis.hunspell.TimeoutPolicy;

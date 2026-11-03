@@ -1,0 +1,11 @@
+# The spelling dictionaries the app brings, one a line, by BCP 47 language tag. Each is the folder of that name next
+# to this file, holding <tag>.aff and <tag>.dic, with the README that states its authors and licence. A book is
+# checked with the dictionary of its language and country, or else with the first one listed for its language.
+# To add one, or to remove one, add or remove its folder and its line, and its row in SOURCES.md.
+en-US
+it-IT
+fr-FR
+es-ES
+de-DE
+pt-BR
+pt-PT
