@@ -209,7 +209,10 @@ my-book/              ← the folder; the book's title is set in its properties
   bottom margins for those beyond the view, as for comments. The text is checked a moment after you stop typing;
   only prose is, not code, comments, links' addresses or words with digits. Words that start with a capital letter,
   or have one after an apostrophe, as names do ("Montenevoso", "d'Annunzio"), are left out, so a novel's people and
-  places need not be added one by one; **Strict spell check** in Preferences checks them too. **Check spelling**
+  places need not be added one by one; **Strict spell check** in Preferences checks them too. Right-click a marked
+  word for up to five words you may have meant, which replace it (`Ctrl+Z` brings it back), or for **Add to
+  dictionary** or **Ignore**: both make it right in every book, and Psiche keeps such words in `words.txt` in its
+  settings folder. **Check spelling**
   there turns it off for every book; Book properties and Preferences show a green tick after a language Psiche has a
   dictionary for.
   - **Clear formatting** `Ctrl+\` removes heading, list and quote markers and the bold or italic the selection
@@ -423,6 +426,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.ChapterEditor` | The manuscript editor for one chapter at a time: which chapter is open, the text last saved, which chapters have unsaved changes, and `open` / `close` / `save` / `saveAll` / `discardAll`, plus `replaceAll`, which swaps in a restored version as one undoable edit. The page it writes on is `Manuscript`, with `FormattingMenu` |
 | `chapters.Manuscript` | The page the author writes on, a RichTextFX `StyleClassedTextArea` in a scroll pane: the welcome and its logo until a book opens, the font size from Preferences, where the text starts for the status bar, and the current position for the preview to follow (the caret's while writing, the one a third of the way down the view while scrolling to read). Cut, copy and paste are plain text. The only class that knows which text control the editor uses |
 | `chapters.MarginMarks` | The dots in the manuscript's margin, one layer per kind: the comments' brass ones in the margin's middle, the spelling mistakes' red ones beside them. Placed after each layout pass so the dots sit on the lines as they show, with a dot per line in view that has such a part, and the edge dots that count those above and below the view and scroll to the next one |
+| `chapters.SpellingMenu` | Over a marked word, the spelling part of the manuscript's right-click menu: up to five suggestions, each replacing the word as one undoable change, then Add to dictionary and Ignore, which put it in the author's words for every book |
 | `chapters.Mistakes`, `TextStyles`, `Spelling` | The spelling mistakes: found by the book's `SpellChecker` a moment after typing stops, moved with the text meanwhile, and let go when typing touches one; `TextStyles` gives the text its comment and mistake styles together; `Spelling` picks the dictionary of the open book's language while checking is on, reading it on a thread of its own the first time and keeping it |
 | `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, above the editing commands |
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |

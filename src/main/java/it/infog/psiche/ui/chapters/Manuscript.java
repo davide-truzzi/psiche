@@ -3,6 +3,7 @@ package it.infog.psiche.ui.chapters;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.spelling.SpellChecker;
+import it.infog.psiche.spelling.model.Word;
 import it.infog.psiche.ui.common.Logo;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -19,6 +20,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -30,6 +32,7 @@ import org.fxmisc.richtext.util.UndoUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
@@ -59,6 +62,8 @@ final class Manuscript {
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     private List<TextRange> comments = List.of();
+    // Where the right-click menu was last asked for, in the text: under the pointer, or at the caret from the keyboard.
+    private int menuIndex;
     // True once the author scrolls the manuscript, until the caret next moves.
     private boolean reading;
 
@@ -78,6 +83,9 @@ final class Manuscript {
             mistakes.follow(change);
             restyle();
         });
+        area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> menuIndex = event.isKeyboardTrigger()
+                ? area.getCaretPosition()
+                : area.hit(event.getX(), event.getY()).getInsertionIndex());
         area.setPlaceholder(welcome(welcome), Pos.TOP_LEFT);
         // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
         area.setMouseTransparent(true);
@@ -243,6 +251,18 @@ final class Manuscript {
                     shortcut.getValue().run();
                     event.consume();
                 }));
+    }
+
+    /** The spelling mistake the right-click menu was opened on, with the word as it is written; none if it was not. */
+    Optional<Word> menuMistake() {
+
+        return mistakes.at(menuIndex).map(range -> new Word(area.getText(range.start(), range.end()), range));
+    }
+
+    /** Up to five words the author may have meant by {@code word}, the likeliest first. */
+    List<String> suggestions(String word) {
+
+        return mistakes.suggestions(word);
     }
 
     boolean isEditable() {

@@ -17,6 +17,7 @@ import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -32,6 +33,7 @@ public final class ChapterEditor {
     private final StatusBar statusBar;
     private final ErrorReporter errors;
     private final Supplier<Set<String>> ownWords;
+    private final Consumer<String> addOwnWord;
     private final Spelling spelling = new Spelling(this::checkSpelling);
     private Optional<SpellChecker> checker = Optional.empty();
     private boolean strictSpelling;
@@ -42,17 +44,20 @@ public final class ChapterEditor {
 
     /**
      * @param welcome  shown in the empty editor from the start until a book opens; see {@link #hideWelcome}
-     * @param ownWords the words the author made right for the spell checker, read when it starts checking
+     * @param ownWords   the words the author made right for the spell checker, read when it starts checking
+     * @param addOwnWord adds a word to them, for every book
      */
-    public ChapterEditor(StatusBar statusBar, ErrorReporter errors, String welcome, Supplier<Set<String>> ownWords) {
+    public ChapterEditor(StatusBar statusBar, ErrorReporter errors, String welcome, Supplier<Set<String>> ownWords,
+                         Consumer<String> addOwnWord) {
 
         this.statusBar = statusBar;
         this.errors = errors;
         this.ownWords = ownWords;
+        this.addOwnWord = addOwnWord;
 
         manuscript = new Manuscript(welcome);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
-        FormattingMenu.attach(manuscript);
+        SpellingMenu.attach(FormattingMenu.attach(manuscript), manuscript, this::makeRight);
     }
 
     public Node node() {
@@ -305,6 +310,14 @@ public final class ChapterEditor {
             manuscript.setText(savedText);
             trackDraft();
         }
+    }
+
+    /** Makes {@code word} right in every book, and checks the text again, where it is right at once. */
+    private void makeRight(String word) {
+
+        addOwnWord.accept(word);
+        checkSpelling(checker);
+        statusBar.info("\"%s\" will not be marked as a mistake again, in any book".formatted(word));
     }
 
     private void checkSpelling(Optional<SpellChecker> checker) {

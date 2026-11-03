@@ -12,6 +12,7 @@ import org.fxmisc.richtext.model.PlainTextChange;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -55,6 +56,18 @@ final class Mistakes {
     List<TextRange> ranges() {
 
         return ranges;
+    }
+
+    /** The mistake at {@code index}, a position in the text, from its first letter to just after its last; if any. */
+    Optional<TextRange> at(int index) {
+
+        return ranges.stream().filter(range -> range.start() <= index && index <= range.end()).findFirst();
+    }
+
+    /** Up to five words the author may have meant by {@code word}, the likeliest first; none while not checking. */
+    List<String> suggestions(String word) {
+
+        return checker == null ? List.of() : checker.suggestions(word);
     }
 
     /**

@@ -50,12 +50,17 @@ final class FormattingMenu {
         this.manuscript = manuscript;
     }
 
-    /** Gives {@code manuscript} the menu on a right-click, and its shortcuts while it has the focus. */
-    static void attach(Manuscript manuscript) {
+    /**
+     * Gives {@code manuscript} the menu on a right-click, and its shortcuts while it has the focus.
+     *
+     * @return the menu, for other parts of the editor to add to
+     */
+    static ContextMenu attach(Manuscript manuscript) {
 
         FormattingMenu formatting = new FormattingMenu(manuscript);
         ContextMenu menu = formatting.menu();
         manuscript.setMenu(menu, formatting.shortcuts);
+        return menu;
     }
 
     private ContextMenu menu() {
