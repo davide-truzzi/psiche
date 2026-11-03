@@ -49,7 +49,7 @@ final class MarginMarks {
     private boolean outdated;
     // True from a click on an edge dot until the part it went to is a third of the way down.
     private boolean lowering;
-    // Where the first line in view was when the dots were last placed: the text can move without telling.
+    // Where the first paragraph in view was when the dots were last placed: the text can move without telling.
     private Bounds shownFrom;
     // True from placing the dots after a change until they are placed once more, on the next pulse.
     private boolean settling;
@@ -121,8 +121,8 @@ final class MarginMarks {
             return;
         }
 
-        Bounds firstLine = firstLine();
-        if (!outdated && !settling && Objects.equals(firstLine, shownFrom))
+        Bounds firstParagraph = firstParagraph();
+        if (!outdated && !settling && Objects.equals(firstParagraph, shownFrom))
             return;
 
         // RichTextFX may still move a paragraph in this pulse, after the dots are placed: they are placed once more.
@@ -130,7 +130,7 @@ final class MarginMarks {
         if (settling)
             Platform.requestNextPulse();
         outdated = false;
-        shownFrom = firstLine;
+        shownFrom = firstParagraph;
 
         Insets padding = area.getPadding();
         double top = padding.getTop();
@@ -179,14 +179,17 @@ final class MarginMarks {
         return new TextRange(first, last);
     }
 
-    /** Where the first line in view is on the screen; null while nothing is laid out. */
-    private Bounds firstLine() {
+    /**
+     * Where the first paragraph in view is on the screen, by its own box; null while nothing is laid out. Asked after
+     * every pulse, it must not ask where a character is: RichTextFX finds that by adding a shape to the paragraph and
+     * taking it away, which changes the scene and so asks for another pulse, and then another, without end.
+     */
+    private Bounds firstParagraph() {
 
-        if (area.getLength() == 0)
+        if (area.getLength() == 0 || area.getVisibleParagraphs().isEmpty())
             return null;
 
-        int first = shown().start();
-        return area.getCharacterBoundsOnScreen(first, Math.min(first + 1, area.getLength())).orElse(null);
+        return area.getVisibleParagraphBoundsOnScreen(0);
     }
 
     /** Where character {@code index} is on the screen, which gives its line's height; empty if not laid out. */
