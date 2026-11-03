@@ -11,11 +11,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 /**
- * The spelling dictionaries the app brings, as {@value #INDEX} in the spelling resources lists them, one a line by
- * BCP 47 tag, in the order a language's dictionaries are preferred. Adding a dictionary, or removing one, takes its
- * folder and its line there, and no code: see {@code SOURCES.md} beside it.
+ * The spelling dictionaries the app brings, as {@value #INDEX} in the spelling resources lists them, one a line: its
+ * BCP 47 tag, where it comes from and its licence, in the order a language's dictionaries are preferred. Adding a
+ * dictionary, or removing one, takes its folder and its line there, and no code: see {@code SOURCES.md} beside it.
  * <p>
  * A book is checked with the dictionary of its language and country, or else with the first one listed for its
  * language: a book in Portuguese from Portugal with the Portuguese one, from Angola with the first Portuguese one
@@ -25,6 +26,8 @@ public final class Dictionaries {
 
     static final String INDEX = "dictionaries.txt";
     private static final String COMMENT = "#";
+    // Between a dictionary's tag, its source and its licence.
+    private static final String FIELDS = " | ";
 
     private Dictionaries() {
     }
@@ -48,10 +51,11 @@ public final class Dictionaries {
     }
 
     /**
-     * The dictionaries {@code index} lists, one tag a line; blank lines and those starting with {@value #COMMENT} are
-     * notes.
+     * The dictionaries {@code index} lists, one a line, as "tag | source | licence"; blank lines and those starting
+     * with {@value #COMMENT} are notes.
      *
-     * @throws IllegalStateException if a line is no well-formed language tag, which only a build can cause
+     * @throws IllegalStateException if a line has no well-formed language tag, source and licence, which only a build
+     *                               can cause
      */
     static List<SpellingLanguage> read(BufferedReader index) {
 
@@ -62,13 +66,18 @@ public final class Dictionaries {
                 .toList();
     }
 
-    private static SpellingLanguage language(String tag) {
+    private static SpellingLanguage language(String line) {
 
+        String[] fields = line.split(Pattern.quote(FIELDS), -1);
+        String tag = fields[0].strip();
         Locale locale = Locale.forLanguageTag(tag);
         if (locale.getLanguage().isEmpty() || !locale.toLanguageTag().equals(tag))
             throw new IllegalStateException("'%s' in the spelling %s is no language tag".formatted(tag, INDEX));
+        if (fields.length != 3 || fields[1].isBlank() || fields[2].isBlank())
+            throw new IllegalStateException(
+                    "'%s' in the spelling %s needs its source and its licence".formatted(line, INDEX));
 
-        return new SpellingLanguage(locale);
+        return new SpellingLanguage(locale, fields[1].strip(), fields[2].strip());
     }
 
     /** The index, read once, the first time a dictionary is asked for. */

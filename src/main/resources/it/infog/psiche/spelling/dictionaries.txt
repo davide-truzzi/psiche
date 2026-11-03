@@ -1,11 +1,12 @@
-# The spelling dictionaries the app brings, one a line, by BCP 47 language tag. Each is the folder of that name next
-# to this file, holding <tag>.aff and <tag>.dic, with the README that states its authors and licence. A book is
-# checked with the dictionary of its language and country, or else with the first one listed for its language.
+# The spelling dictionaries the app brings, one a line: its BCP 47 language tag, where it comes from, and its licence,
+# split by " | ". Each is the folder of its tag next to this file, holding <tag>.aff and <tag>.dic, with the README
+# that states its authors and licence. A book is checked with the dictionary of its language and country, or else
+# with the first one listed for its language. About lists them as they are here.
 # To add one, or to remove one, add or remove its folder and its line, and its row in SOURCES.md.
-en-US
-it-IT
-fr-FR
-es-ES
-de-DE
-pt-BR
-pt-PT
+en-US | SCOWL, 2020.12.07 | SCOWL's permissive notice; the affix file under the BSD licence
+it-IT | LibreItalia, 5.1.1 | GPL 3
+fr-FR | Grammalecte "Classique", 7.7 | MPL 2.0
+es-ES | RLA-ES | GPL 3 or later, LGPL 3 or later or MPL 1.1 or later
+de-DE | igerman98 with frami | GPL 2 or 3
+pt-BR | VERO | LGPL 3 or MPL
+pt-PT | Universidade do Minho | GPL 2, LGPL 2.1 or MPL 1.1

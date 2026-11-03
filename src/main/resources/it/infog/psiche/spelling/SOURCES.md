@@ -20,7 +20,8 @@ README that states its authors and licence.
 1. Copy the `.aff` and `.dic` files, and the README or licence file, from the repository into a folder named after
    the dictionary's BCP 47 tag, such as `nl-NL`, renaming the two files after it: `nl-NL.aff`, `nl-NL.dic`. Check
    its licence first: it must allow its use in a GPL 3 app.
-2. Add its tag to `dictionaries.txt`, below any other of its language it should give way to.
+2. Add its line to `dictionaries.txt`, as `tag | source | licence`, below any other of its language it should give
+   way to. About lists the dictionaries from there.
 3. Add its row above, with the upstream commit if it differs.
 4. Run the spelling tests: they check that the folders and `dictionaries.txt` match, and that each dictionary loads.
 

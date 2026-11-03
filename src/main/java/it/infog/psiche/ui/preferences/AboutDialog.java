@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.preferences;
 
+import it.infog.psiche.spelling.Dictionaries;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.Logo;
@@ -24,8 +25,10 @@ import java.io.UncheckedIOException;
 import java.lang.module.ModuleDescriptor;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Psiche Writer's name, version and author, the licence it is distributed under, a way to support it, and the
@@ -73,8 +76,16 @@ final class AboutDialog {
             new Credit("RichTextFX, Flowless", "BSD 2-Clause",
                     "https://github.com/FXMisc/RichTextFX/blob/master/LICENSE"),
             new Credit("ReactFX, UndoFX, WellBehavedFX", "BSD 2-Clause", "https://opensource.org/license/bsd-2-clause"),
+            new Credit("Apache Lucene (spell checking)", "Apache License 2.0",
+                    "https://www.apache.org/licenses/LICENSE-2.0"),
             new Credit("OpenJFX, Java runtime", "GPL 2 with the Classpath Exception",
                     "https://openjdk.org/legal/gplv2+ce.html"));
+
+    private static final String DICTIONARIES = "Spelling dictionaries";
+    private static final String DICTIONARIES_LICENCES = "Several, one each";
+    private static final String DICTIONARIES_INTRO = "Psiche checks the spelling with Hunspell dictionaries that "
+            + "LibreOffice gathers, each under its own licence. Each sits in the app with the README that names its "
+            + "authors and states its licence in full.\n\n";
 
     private AboutDialog() {
     }
@@ -94,7 +105,8 @@ final class AboutDialog {
         Label version = new Label("Version " + version());
         Label copyright = new Label("© 2026 Davide Truzzi");
         Label licence = new Label("Free software under the GNU General Public License, version 3 or later");
-        Hyperlink gpl = link("Read the licence", () -> showText(dialog, "GNU General Public License, version 3", GPL));
+        Hyperlink gpl = link("Read the licence",
+                () -> showText(dialog, "GNU General Public License, version 3", read(GPL)));
         Button coffee = coffeeButton(() -> browser.accept(COFFEE));
         Label support = new Label("Help Davide support this project");
 
@@ -107,9 +119,11 @@ final class AboutDialog {
             Credit credit = CREDITS.get(row);
             Runnable open = credit.source().startsWith("https://")
                     ? () -> browser.accept(credit.source())
-                    : () -> showText(dialog, credit.name() + " · " + credit.licence(), credit.source());
+                    : () -> showText(dialog, credit.name() + " · " + credit.licence(), read(credit.source()));
             credits.addRow(row, new Label(credit.name()), link(credit.licence(), open));
         }
+        credits.addRow(CREDITS.size(), new Label(DICTIONARIES),
+                link(DICTIONARIES_LICENCES, () -> showText(dialog, DICTIONARIES, dictionaries())));
 
         VBox content = new VBox(app, Controls.fieldset("Licences", credits, NAME_WIDTH));
         content.getStyleClass().add("about-content");
@@ -165,14 +179,23 @@ final class AboutDialog {
     }
 
     /** Shows the text at {@code resource}, a licence inside the app, under {@code title}, above the About dialog. */
-    private static void showText(Dialog<?> about, String title, String resource) {
+    /** The dictionaries the app brings, each with its language, its source and its licence, as the index lists them. */
+    private static String dictionaries() {
+
+        return Dictionaries.bundled().stream()
+                .map(language -> "%s: %s. %s.".formatted(language.locale().getDisplayName(Locale.ENGLISH),
+                        language.source(), language.licence()))
+                .collect(Collectors.joining("\n", DICTIONARIES_INTRO, "\n"));
+    }
+
+    private static void showText(Dialog<?> about, String title, String content) {
 
         Dialog<ButtonType> dialog = new Dialog<>();
         Dialogs.ownAndStyle(dialog, about.getDialogPane().getScene().getWindow());
         dialog.setHeaderText(title);
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CLOSE);
 
-        TextArea text = new TextArea(read(resource));
+        TextArea text = new TextArea(content);
         text.setEditable(false);
         text.getStyleClass().add("licence-text");
         dialog.getDialogPane().setContent(text);

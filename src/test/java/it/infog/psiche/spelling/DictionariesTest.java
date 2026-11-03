@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 class DictionariesTest {
 
@@ -77,18 +78,29 @@ class DictionariesTest {
     }
 
     @Test
-    void theIndexSkipsNotesAndBlankLines() {
+    void theIndexGivesEachDictionarysSourceAndLicenceAndSkipsNotesAndBlankLines() {
 
-        assertThat(Dictionaries.read(new BufferedReader(new StringReader("# A note\n\n  it-IT  \npt-BR\n"))))
-                .extracting(SpellingLanguage::tag)
-                .containsExactly("it-IT", "pt-BR");
+        String index = "# A note\n\n  it-IT | LibreItalia, 5.1.1 | GPL 3  \npt-BR | VERO | LGPL 3 or MPL\n";
+
+        assertThat(Dictionaries.read(new BufferedReader(new StringReader(index))))
+                .extracting(SpellingLanguage::tag, SpellingLanguage::source, SpellingLanguage::licence)
+                .containsExactly(tuple("it-IT", "LibreItalia, 5.1.1", "GPL 3"),
+                        tuple("pt-BR", "VERO", "LGPL 3 or MPL"));
     }
 
     @Test
     void aLineThatIsNoLanguageTagIsRefused() {
 
-        assertThatThrownBy(() -> Dictionaries.read(new BufferedReader(new StringReader("it_IT\n"))))
+        assertThatThrownBy(() -> Dictionaries.read(new BufferedReader(new StringReader("it_IT | A | B\n"))))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("'it_IT'");
+    }
+
+    @Test
+    void aLineWithoutItsSourceOrLicenceIsRefused() {
+
+        assertThatThrownBy(() -> Dictionaries.read(new BufferedReader(new StringReader("it-IT | LibreItalia\n"))))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("needs its source and its licence");
     }
 }

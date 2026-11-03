@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Spell checking**, offline, in the book's language: English, Italian, French, Spanish, German, and Portuguese
+  from Brazil and from Portugal. A word spelt wrong gets a dotted red line under it and a red dot in the margin,
+  beside a comment's dot if its line has one, with red dots at the top and bottom of the page counting those beyond
+  the view, which a click goes to. Right-click one for suggestions, or for **Add to dictionary** or **Ignore**, which
+  make it right in every book. Words with a capital letter, as names have, are left out unless **Strict spell check**
+  is on in Preferences, where **Check spelling** turns it all off. Book properties and Preferences show a green tick
+  after a language Psiche has a dictionary for.
 - The packages offer every language in **Book properties** and **Preferences**: their Java runtime only knew English.
 - Dates read the same in every language, as DD/MM/YYYY with a 24-hour time: the History tab, past versions, Deleted
   chapters and Detached notes.

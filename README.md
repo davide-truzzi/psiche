@@ -502,13 +502,14 @@ The fonts and libraries it ships with keep their own licences:
 |---|---|
 | Libertinus Serif, Courier Prime (fonts) | SIL Open Font License 1.1, its text next to each font in `ui/fonts` |
 | OpenHTMLtoPDF | GNU Lesser General Public License 2.1 or later |
-| Apache PDFBox, FontBox, XmpBox, pdfbox-graphics2d, Apache Commons Codec and Logging, JavaEWAH | Apache License 2.0 |
+| Apache PDFBox, FontBox, XmpBox, pdfbox-graphics2d, Apache Commons Codec and Logging, JavaEWAH, Apache Lucene (spell checking) | Apache License 2.0 |
 | JGit | Eclipse Distribution License 1.0 (BSD 3-Clause) |
 | commonmark-java | BSD 2-Clause |
 | SLF4J | MIT License |
 | TwelveMonkeys ImageIO (WebP pictures) | BSD 3-Clause |
 | RichTextFX, and the Flowless, ReactFX, UndoFX and WellBehavedFX libraries it uses (the editor's text) | BSD 2-Clause |
 | OpenJFX, and the Java runtime in the packages | GNU General Public License 2 with the Classpath Exception |
+| The spelling dictionaries, from LibreOffice: English (SCOWL), Italian (LibreItalia), French (Grammalecte), Spanish (RLA-ES), German (igerman98, frami), Portuguese from Brazil (VERO) and from Portugal (Universidade do Minho) | Each its own: GPL, LGPL, MPL, BSD or SCOWL's permissive notice, as `spelling/dictionaries.txt` and `spelling/SOURCES.md` say, its README beside it |
 
 The Buy Me a Coffee logo on the About dialog's support button is Buy Me a Coffee's trademark, from their brand bundle,
 and links only to their page.
