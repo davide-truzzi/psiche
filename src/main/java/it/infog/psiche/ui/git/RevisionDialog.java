@@ -5,6 +5,7 @@ import it.infog.psiche.git.model.Comparison;
 import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.git.model.Paragraph;
 import it.infog.psiche.git.model.Segment;
+import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.Dialogs;
 
 import javafx.application.Platform;
@@ -62,7 +63,7 @@ public final class RevisionDialog {
 
         // Named as the chapter was called in that version, which differs from today's name before a rename.
         String version = "%s at %s, %s".formatted(HistoryPane.chapterTitle(revision.path()), revision.shortId(),
-                HistoryPane.COMMIT_TIME.format(revision.time()));
+                DateFormats.DAY_AND_TIME.format(revision.time()));
         Label summary = new Label();
         summary.getStyleClass().add("revision-summary");
 

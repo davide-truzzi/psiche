@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The packages offer every language in **Book properties** and **Preferences**: their Java runtime only knew English.
+- Dates read the same in every language, as DD/MM/YYYY with a 24-hour time: the History tab, past versions, Deleted
+  chapters and Detached notes.
 - The preview no longer leaves a hidden folder named after the app, `.it.infog.psiche.ui.WriterApp`, in the home
   folder: its web engine's data now goes in the settings folder, as `webview`.
 

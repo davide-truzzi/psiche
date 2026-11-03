@@ -2,6 +2,7 @@ package it.infog.psiche.ui.notes;
 
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.OrphanGroup;
+import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.notes.card.FileLabels;
 
@@ -20,7 +21,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -37,9 +37,6 @@ import static it.infog.psiche.ui.common.Controls.button;
 final class DetachedNotesDialog {
 
     private static final ButtonType CLOSE = new ButtonType("Close", ButtonData.CANCEL_CLOSE);
-    private static final DateTimeFormatter DELETED_AT = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm");
-    private static final DateTimeFormatter DELETED_DAY = DateTimeFormatter.ofPattern("d MMM yyyy");
-    private static final DateTimeFormatter DELETED_TIME = DateTimeFormatter.ofPattern("HH:mm");
 
     private final Dialog<ButtonType> dialog = new Dialog<>();
     private final VBox groupList = new VBox();
@@ -129,7 +126,7 @@ final class DetachedNotesDialog {
         ButtonType chapterOnly = new ButtonType("Chapter only", ButtonData.CANCEL_CLOSE);
         ButtonType restoreNotes = new ButtonType("Restore notes", ButtonData.OK_DONE);
         String when = group.deletedAt()
-                .map(at -> ", on %s at %s".formatted(DELETED_DAY.format(at), DELETED_TIME.format(at)))
+                .map(at -> ", on %s at %s".formatted(DateFormats.DAY.format(at), DateFormats.TIME.format(at)))
                 .orElse("");
 
         return Dialogs.choose(owner, "Restore its notes too?",
@@ -148,8 +145,8 @@ final class DetachedNotesDialog {
     private VBox groupView(OrphanGroup group) {
 
         Label chapter = wrapping(group.chapter(), "detached-notes-chapter");
-        Label details = wrapping(group.cause().label()
-                + group.deletedAt().map(at -> " · " + DELETED_AT.format(at)).orElse(""), "detached-notes-details");
+        String when = group.deletedAt().map(at -> " · " + DateFormats.DAY_AND_TIME.format(at)).orElse("");
+        Label details = wrapping(group.cause().label() + when, "detached-notes-details");
 
         VBox source = new VBox(chapter, details);
         source.getStyleClass().add("detached-notes-source");

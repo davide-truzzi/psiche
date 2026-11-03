@@ -121,6 +121,8 @@ val runtimeModules = listOf(
     "jdk.unsupported", "jdk.xml.dom",
     // JavaFX's web module needs it. Maven's jdk-jsobject jar is empty: the JDK has the real module.
     "jdk.jsobject",
+    // Every language but English: the languages a book can be written in, and their names.
+    "jdk.localedata",
 )
 
 val jlinkRuntime by tasks.registering(Exec::class) {

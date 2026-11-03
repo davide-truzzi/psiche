@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.git.model.DeletedChapter;
+import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.git.HistoryPane;
 import javafx.scene.control.Button;
@@ -96,7 +97,7 @@ public final class DeletedChaptersDialog {
             }
 
             title.setText(HistoryPane.chapterTitle(chapter.path()));
-            details.setText("deleted %s · %s".formatted(HistoryPane.COMMIT_TIME.format(chapter.deletedAt()),
+            details.setText("deleted %s · %s".formatted(DateFormats.DAY_AND_TIME.format(chapter.deletedAt()),
                     chapter.deletedInId()));
             setGraphic(content);
         }

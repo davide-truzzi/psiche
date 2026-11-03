@@ -3,6 +3,7 @@ package it.infog.psiche.ui.git;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.model.FileRevision;
+import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.ErrorReporter;
 
 import javafx.beans.property.BooleanProperty;
@@ -18,8 +19,6 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 import java.nio.file.Path;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -31,9 +30,6 @@ import java.util.concurrent.Executors;
  * RevisionOpener}.
  */
 public final class HistoryPane extends VBox {
-
-    public static final DateTimeFormatter COMMIT_TIME =
-            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm").withZone(ZoneId.systemDefault());
 
     // Reading the history walks every commit, so it runs off the FX thread.
     private final ExecutorService executor =
@@ -213,7 +209,7 @@ public final class HistoryPane extends VBox {
             message.setText(revision.message());
             added.setText("+" + revision.linesAdded());
             removed.setText("−" + revision.linesRemoved());
-            String when = "%s · %s".formatted(revision.shortId(), COMMIT_TIME.format(revision.time()));
+            String when = "%s · %s".formatted(revision.shortId(), DateFormats.DAY_AND_TIME.format(revision.time()));
             details.setText(revision.renamedFrom() == null
                     ? when
                     : "%s · renamed from %s".formatted(when, chapterTitle(revision.renamedFrom())));
