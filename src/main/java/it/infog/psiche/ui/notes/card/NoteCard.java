@@ -308,7 +308,7 @@ public final class NoteCard extends VBox {
 
         Button delete = new Button("×");
         delete.getStyleClass().add("note-delete");
-        delete.setTooltip(new Tooltip("Delete"));
+        delete.setTooltip(new Tooltip("Detach"));
         delete.setOnAction(event -> board.delete(this));
 
         HBox tools = new HBox(file, colorDot, delete);
@@ -331,7 +331,7 @@ public final class NoteCard extends VBox {
         for (NoteColor each : NoteColor.values())
             colors.getItems().add(menuItem(each.label(), () -> recolor(each)));
 
-        items.addAll(List.of(new SeparatorMenuItem(), colors, menuItem("Delete", () -> board.delete(this))));
+        items.addAll(List.of(new SeparatorMenuItem(), colors, menuItem("Detach", () -> board.delete(this))));
         return items;
     }
 
