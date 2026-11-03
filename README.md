@@ -14,8 +14,8 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 **0.2.0 Alpha**, the second release for testing. Psiche Writer does what a book needs from first draft to export:
 create or open a book, write its chapters in Markdown with a typeset preview beside them, keep notes on each
-chapter's board, commit and push with Git, browse or restore earlier versions, and export the book to PDF, ODT or
-EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and expect things to change
+chapter's board, commit and push with Git, browse or restore earlier versions, and export the book to PDF, ODT,
+DOCX or EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and expect things to change
 before 1.0. What this release holds is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Book layout
@@ -129,13 +129,18 @@ my-book/              ← the folder; the book's title is set in its properties
   - **PDF**: a manuscript to send to an editor. A4, 12pt Libertinus Serif (embedded), double-spaced, indented
     paragraphs, the authors, the book's title and the page number at the top of every page, the Psiche mark in black
     under the chapter's title, and `* * *` for scene breaks. Raw HTML in the chapter is printed as text, and links to
-    the book's own files keep only their text. HTML comments (`<!-- a note -->`) are notes to yourself: the PDF and ODT
-    leave them out.
+    the book's own files keep only their text. HTML comments (`<!-- a note -->`) are notes to yourself: the PDF, ODT
+    and DOCX leave them out. A word longer than the line, such as names pasted without their spaces, is broken where
+    the line ends.
   - **ODT**: the same manuscript as an OpenDocument text file, for an editor to work on in LibreOffice, Word or
     any other word processor. The text is set in named styles (*Text Body*, *First Paragraph*, *Heading 1*,
     *Quotations*, *Scene Break*…), so restyling one changes the whole chapter. It names Liberation Serif without
     embedding it, so where that font is missing the word processor's own serif takes its place. Images are packed
     into the file; web and mail links stay links, links to the book's own files keep only their text.
+  - **DOCX**: the same manuscript as a Word document, laid out like the ODT. Where Word has a style of its own it is
+    used (*Heading 1*–*4*, *Title*, *Subtitle*, *Emphasis*, *Strong*), so Word's navigator lists the headings;
+    the others keep the ODT's names (*Body Text*, *First Paragraph*, *Quotations*, *Scene Break*…). Each numbered
+    list starts at its own number, as in the chapter.
   - **Markdown**: the chapter's file as it is. Image links still point to `../media/`, so images show only next
     to the book's media folder.
 - **Export** in the Book menu writes the whole book, as it is saved, to one file you pick (by default named after
@@ -151,6 +156,10 @@ my-book/              ← the folder; the book's title is set in its properties
     styles (*Contents Heading*, *Contents 1*, *Index Link*). Each line links to its chapter's bookmark (`chapter-1`,
     …) and holds a page field, which the word processor works out as it lays the book out, and again when the text
     changes (in Word, update the fields with F9).
+  - **DOCX**: the same book as a Word document, laid out like the ODT: the title page and the contents in a section
+    without the header, then the chapters in a section with it, numbered from 1. The contents use Word's own styles
+    (*TOC Heading*, *TOC 1*), and each line links to its chapter, but shows no page: Word works out page fields only
+    when asked, and asks the reader first when a file wants them worked out on opening.
   - **EPUB**: an EPUB 3 ready for Apple Books, Kobo, Google Play Books and distributors. It reads: the cover, full
     screen; the title page (title, subtitle, authors); the contents, a link per chapter; the chapters, a page each, set
     by the book's own `media/style.css`, with the Psiche mark, a red Ψ hidden from screen readers, under each title; and
@@ -390,13 +399,16 @@ What each package holds:
 | `it.infog.psiche.book` | `BookFolder` (create, open and validate a book; create, list, read and write chapters; read and save the book's properties, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `book.model.BookProperties` holds the properties |
 | `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), adding a line to `.gitignore` and committing it alone, push, and the files changed since the last commit, via JGit. `BookHistory`, from `BookRepository.history()`, reads what the commits recorded: a file's history as `FileRevision`s with lines added and removed, whether a name was ever used, the deleted chapters, and a file as a commit recorded it. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
 | `it.infog.psiche.settings` | The app's own settings. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties` and `words.txt`, the author's own words for the spell checker, shared by every book, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was. A value missing or unreadable reads as its default |
-| `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF and ODT exports |
+| `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports |
 | `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, go to `DetachedNoteStore`, from `NoteStore.detached()`, and so does a file replaced or removed, with a copy of its note. `DetachedNoteStore` keeps them in a `-del-` folder with the time and why, and lists the folders that match no chapter as orphans, for Detached notes to restore or delete for good. How a note sits on disk, read and written whole, and how notes move between folders, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
 | `it.infog.psiche.spelling` | Spell checking, offline. `SpellChecker` checks words in one language with the Hunspell dictionary the app brings for it, through Lucene's Hunspell, and suggests others; it takes the author's own words, a curly apostrophe as a straight one, and a closing quote after a word. `ProseWords` finds the words of a chapter's prose, leaving out code, HTML and comments, link and image targets, addresses, entities and words with digits. `Dictionaries` reads the list of the dictionaries the app brings, `dictionaries.txt` in the resources (English, Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal), and picks a book's: its country's, or else the first of its language; each is a `model.SpellingLanguage`. A dictionary, from LibreOffice, is a folder named by its tag with its licence, and adding or removing one takes its folder and its line, no code; `SOURCES.md` says where each came from and how |
-| `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF or ODT. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `ZipContainer` is the zip with its mimetype first that ODT and EPUB share, and `Template` the XML templates with `{{placeholders}}` they fill |
+| `it.infog.psiche.common` | `Template`: a resource file with `{{placeholders}}`, filled in by name: the exports' XML parts, the PDF's and the preview's pages, and the script the preview follows the editor with |
+| `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF, ODT or DOCX. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `ZipContainer` is the zip of a document's parts, with its mimetype first for ODT and EPUB, and `XmlText` the one escaping of text for every format's XML |
 | `it.infog.psiche.export.pdf` | `ManuscriptPdf` lays out XHTML as a manuscript PDF through OpenHTMLtoPDF with Libertinus embedded: `manuscript.css` for a chapter, plus `book.css` for the book's title page and page breaks. `BundledFontMapper` keeps PDFBox from scanning the computer's fonts |
 | `it.infog.psiche.export.epub` | The EPUB export. `EpubWriter` checks the book for what stores may object to, and writes it: `Pages` makes each XHTML page from `page.xhtml` (cover, title page, chapters, copyright), `Navigation` the contents page with its landmarks and `toc.ncx`, `PackageDocument` the `package.opf` with the metadata from `Accessibility`; `EpubImages` packs the cover and the chapters' images, shrinking the large ones |
-| `it.infog.psiche.export.odt` | The ODT export, of a chapter or the whole book. `OdtWriter` fills the document's XML parts from templates (`content.xml`, `styles.xml`, `meta.xml`) and has `OdtPackage` zip them with the images `Pictures` found. `ContentRenderer` (and for the book `TitlePageRenderer` and `ContentsRenderer`) writes the text into an `OdtBody` as paragraphs and spans that only name a `Style`, whose look `styles.xml` defines; `OdtBody` gives the first paragraph after a `PageStart` (title page, first chapter, later chapter) the automatic style that starts the page. `OdtText` escapes text and keeps its spaces |
+| `it.infog.psiche.export.document` | What a word processor's document holds, the same for ODT and DOCX. `Manuscript` writes a chapter, or the whole book in its order (title page, contents, each chapter on a new page), into a `DocumentBody`, the interface each format implements: `ChapterRenderer` the Markdown, `TitlePageRenderer` and `ContentsRenderer` the book's front matter, all as paragraphs, headings, spans and lists that only name a `Style`, and the `PageStart`s between them. `Pictures` finds the images and their sizes, packed where each format keeps them |
+| `it.infog.psiche.export.odt` | The ODT export. `OdtBody` writes a `DocumentBody` as ODF, giving the first paragraph after a `PageStart` the automatic style that starts the page; `OdtText` keeps its spaces. `OdtWriter` fills the parts from templates (`content.xml`, `styles.xml`, `meta.xml`) and has `OdtPackage` zip them with the images and the manifest |
+| `it.infog.psiche.export.docx` | The DOCX export. `DocxBody` writes a `DocumentBody` as WordprocessingML: runs styled from the spans open around them, each list an instance of `Numbering`, images through `Drawing`, links and images listed by `Relationships`, and the book's front matter closed as a section without the header. `StyleIds` names each `Style` as `styles.xml` does. `DocxWriter` fills every `Part` from its template and has `DocxPackage` zip them with the images and their content types |
 | `it.infog.psiche.ui` | The JavaFX window: `WriterApp` and `BookWorkspace`, with the components below in a sub-package per theme: `ui.book`, `ui.chapters`, `ui.preview`, `ui.git`, `ui.export` and `ui.preferences`, and `ui.common` for what they all use |
 
 Only the `ui` package depends on the others. `book`, `git`, `markdown`, `export` and `settings` don't depend on JavaFX,
@@ -485,8 +497,9 @@ callbacks (`ErrorReporter`, the check before committing, the after-commit hook, 
   remove the old ones yourself.
 - A file still copying into a note when the app closes is not attached; only a hidden temporary file is left in the
   note's folder.
-- A chapter exports to a manuscript PDF or ODT, or to Markdown; the whole book to a manuscript PDF or ODT, or to
-  EPUB, each with the same contents after the title page. Links between chapters, and DOCX, are not there yet.
+- A chapter exports to a manuscript PDF, ODT or DOCX, or to Markdown; the whole book to a manuscript PDF, ODT or
+  DOCX, or to EPUB, each with the same contents after the title page. Links between chapters are not there yet.
+- The book's DOCX lists its chapters without their pages (see Export above).
 - The EPUB declares no accessibility conformance (`dcterms:conformsTo`): that needs someone to evaluate the book.
 
 ## Licence

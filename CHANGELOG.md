@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **DOCX export**, for a chapter and for the whole book, in **Export**: the same manuscript as the ODT, in Word's own
+  styles where it has them, so its navigator lists the headings. The book's contents link to each chapter but show no
+  page numbers: Word would only work them out after asking the reader.
+- A word longer than the line, such as names pasted without their spaces, is broken where the line ends: the preview
+  scrolled sideways, and the PDF cut it off at the edge of the page.
 - Psiche uses far less power while you read or think: with a chapter open and nothing happening, it kept a processor
   core fully busy, redrawing the window hundreds of times a second for the comments' dots; now it takes a few per
   cent. The caret blinks for ten seconds after you last type or click, then stays shown, as in GTK and GNOME; and
