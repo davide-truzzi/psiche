@@ -1,6 +1,7 @@
 package it.infog.psiche.export;
 
 import it.infog.psiche.book.model.BookProperties;
+import it.infog.psiche.export.docx.DocxWriter;
 import it.infog.psiche.export.epub.EpubWriter;
 import it.infog.psiche.export.model.BookExport;
 import it.infog.psiche.export.model.ExportedChapter;
@@ -19,6 +20,7 @@ public final class BookExporter {
 
     private final ManuscriptPdf pdf = new ManuscriptPdf();
     private final OdtWriter odt = new OdtWriter();
+    private final DocxWriter docx = new DocxWriter();
     private final EpubWriter epub = new EpubWriter();
 
     /**
@@ -51,6 +53,16 @@ public final class BookExporter {
     public void manuscriptOdt(BookExport book, Path target) {
 
         odt.writeBook(book, ManuscriptHeader.of(book.properties()), target);
+    }
+
+    /**
+     * Writes the book as a Word document, laid out like the ODT: the title page and the contents without the header,
+     * then every chapter on a new page, numbered from 1. The contents link to the chapters but show no pages, which
+     * Word would only work out after asking the reader.
+     */
+    public void manuscriptDocx(BookExport book, Path target) {
+
+        docx.writeBook(book, ManuscriptHeader.of(book.properties()), target);
     }
 
     /**

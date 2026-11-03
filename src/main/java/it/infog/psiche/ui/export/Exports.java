@@ -38,7 +38,7 @@ public final class Exports {
 
     /** The formats the whole book can be exported to. */
     public static final List<ExportFormat> BOOK_FORMATS =
-            List.of(ExportFormat.PDF, ExportFormat.ODT, ExportFormat.EPUB, ExportFormat.EPUB_KINDLE);
+            List.of(ExportFormat.PDF, ExportFormat.ODT, ExportFormat.DOCX, ExportFormat.EPUB, ExportFormat.EPUB_KINDLE);
 
     /** The formats a chapter can be exported to. */
     public static final List<ExportFormat> CHAPTER_FORMATS =
@@ -171,6 +171,7 @@ public final class Exports {
             switch (format) {
                 case PDF -> bookExporter.manuscriptPdf(assembled, target.get());
                 case ODT -> bookExporter.manuscriptOdt(assembled, target.get());
+                case DOCX -> bookExporter.manuscriptDocx(assembled, target.get());
                 case EPUB, EPUB_KINDLE -> bookExporter.epub(assembled, epub.get(), target.get());
                 case MARKDOWN -> throw new IllegalArgumentException("The book cannot be exported to Markdown");
             }
