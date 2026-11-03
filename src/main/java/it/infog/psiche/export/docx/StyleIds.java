@@ -9,8 +9,6 @@ import it.infog.psiche.export.document.model.enums.Style;
  */
 final class StyleIds {
 
-    /** The paragraph style of the page header. */
-    static final String HEADER = "Header";
     /** The character style of a web or mail link. */
     static final String HYPERLINK = "Hyperlink";
 

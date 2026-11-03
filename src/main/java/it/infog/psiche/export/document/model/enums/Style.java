@@ -36,7 +36,7 @@ public enum Style {
 
     // The book's contents, named as LibreOffice names its own table of contents' styles
     CONTENTS_HEADING("Contents_20_Heading"),
-    /** A line of the contents: the chapter's title, dot leaders, and the page it starts on. */
+    /** A line of the contents: the chapter's title, and in the ODT dot leaders and the page it starts on. */
     CONTENTS_1("Contents_20_1"),
 
     // Spans

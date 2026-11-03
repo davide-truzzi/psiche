@@ -14,7 +14,8 @@ final class Numbering {
     private static final int NUMBERS = 1;
     /** The deepest level the definitions draw, from 0; lists nested further are drawn at it. */
     static final int DEEPEST_LEVEL = 2;
-    // How far each level's text is indented, in twentieths of a point: 1.25cm, 2cm and 2.75cm, as in the ODT.
+    // How far each level's text is indented, in twentieths of a point: 1.25cm, 2cm and 2.75cm, as in the ODT; the
+    // same as numbering.xml's, which draws the bullets and numbers there.
     private static final int[] INDENTS = {709, 1134, 1559};
 
     private final StringBuilder instances = new StringBuilder();

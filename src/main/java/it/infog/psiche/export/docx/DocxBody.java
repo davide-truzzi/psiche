@@ -31,6 +31,16 @@ final class DocxBody implements DocumentBody {
     private static final String NUMBERED_FROM_1 = "<w:pgNumType w:start=\"1\"/>";
     // The text runs keep their spaces, which XML would otherwise let a word processor collapse.
     private static final String TEXT_START = "<w:t xml:space=\"preserve\">";
+    // What each span's character style looks like, given directly to a run inside another span, which takes one style
+    // only. In the order WordprocessingML lists a run's properties, so a style can come twice; as in styles.xml.
+    private static final List<Map.Entry<String, String>> DIRECT_LOOKS = List.of(
+            Map.entry(StyleIds.of(Style.SOURCE_TEXT),
+                    "<w:rFonts w:ascii=\"Liberation Mono\" w:hAnsi=\"Liberation Mono\"/>"),
+            Map.entry(StyleIds.of(Style.STRONG_EMPHASIS), "<w:b/>"),
+            Map.entry(StyleIds.of(Style.EMPHASIS), "<w:i/>"),
+            Map.entry(StyleIds.HYPERLINK, "<w:color w:val=\"0563C1\"/>"),
+            Map.entry(StyleIds.of(Style.SOURCE_TEXT), "<w:sz w:val=\"21\"/>"),
+            Map.entry(StyleIds.HYPERLINK, "<w:u w:val=\"single\"/>"));
 
     private final StringBuilder xml = new StringBuilder();
     private final Numbering numbering = new Numbering();
@@ -248,7 +258,7 @@ final class DocxBody implements DocumentBody {
 
     /**
      * The properties of a run of text: the innermost span's character style, since a run takes one, and directly the
-     * look of the spans around it, so bold inside italic is both; in the order WordprocessingML lists them.
+     * look of the spans around it, so bold inside italic is both.
      */
     private String runProperties() {
 
@@ -257,18 +267,9 @@ final class DocxBody implements DocumentBody {
 
         List<String> around = spans.stream().skip(1).toList();
         StringBuilder properties = new StringBuilder("<w:rPr><w:rStyle w:val=\"%s\"/>".formatted(spans.peek()));
-        if (around.contains(StyleIds.of(Style.SOURCE_TEXT)))
-            properties.append("<w:rFonts w:ascii=\"Liberation Mono\" w:hAnsi=\"Liberation Mono\"/>");
-        if (around.contains(StyleIds.of(Style.STRONG_EMPHASIS)))
-            properties.append("<w:b/>");
-        if (around.contains(StyleIds.of(Style.EMPHASIS)))
-            properties.append("<w:i/>");
-        if (around.contains(StyleIds.HYPERLINK))
-            properties.append("<w:color w:val=\"0563C1\"/>");
-        if (around.contains(StyleIds.of(Style.SOURCE_TEXT)))
-            properties.append("<w:sz w:val=\"21\"/>");
-        if (around.contains(StyleIds.HYPERLINK))
-            properties.append("<w:u w:val=\"single\"/>");
+        for (Map.Entry<String, String> look : DIRECT_LOOKS)
+            if (around.contains(look.getKey()))
+                properties.append(look.getValue());
 
         return properties.append("</w:rPr>").toString();
     }

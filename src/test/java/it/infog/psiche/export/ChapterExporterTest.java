@@ -48,7 +48,8 @@ class ChapterExporterTest {
     @Test
     void manuscriptPdfIsA4WithTheChapterAndAHeaderOnEveryPage() throws IOException {
         Path target = tempDir.resolve("01-alba.pdf");
-        String chapter = "# Alba\n\nÈ così — «sì», disse lei… *piano*.\n\n" + "Una riga che riempie la pagina.\n\n".repeat(60);
+        String chapter = "# Alba\n\nÈ così — «sì», disse lei… *piano*.\n\n"
+                + "Una riga che riempie la pagina.\n\n".repeat(60);
 
         exporter.manuscriptPdf(chapter, "01-alba", BOOK, tempDir, target);
 
