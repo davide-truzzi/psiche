@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 Alpha (2026-11-03)
+
+The third release for testing: spell checking in six languages, export to DOCX, and far less power used while
+nothing happens.
+
+### What is new
 
 - **DOCX export**, for a chapter and for the whole book, in **Export**: the same manuscript as the ODT, in Word's own
   styles where it has them, so its navigator lists the headings. The book's contents link to each chapter but show no
@@ -23,6 +28,14 @@
   chapters and Detached notes.
 - The preview no longer leaves a hidden folder named after the app, `.it.infog.psiche.ui.WriterApp`, in the home
   folder: its web engine's data now goes in the settings folder, as `webview`.
+
+### For testers
+
+- The DOCX export was checked in LibreOffice: tell us how a chapter and a whole book open in Word, and whether
+  anything looks different from the ODT.
+- Spell checking: tell us about words marked wrong that are right, especially in Italian, French, Spanish, German
+  and Portuguese, and whether a long chapter with many mistakes still scrolls smoothly.
+- On a laptop, the battery should now last much longer with Psiche open; tell us if it doesn't.
 
 ## 0.2.0 Alpha (2026-11-02)
 
