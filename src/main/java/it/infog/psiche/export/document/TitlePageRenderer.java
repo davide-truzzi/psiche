@@ -1,9 +1,9 @@
-package it.infog.psiche.export.odt;
+package it.infog.psiche.export.document;
 
+import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.export.document.model.enums.PageStart;
+import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.export.model.TitlePage;
-import it.infog.psiche.export.odt.model.Picture;
-import it.infog.psiche.export.odt.model.enums.PageStart;
-import it.infog.psiche.export.odt.model.enums.Style;
 
 import java.util.Optional;
 
@@ -21,14 +21,14 @@ final class TitlePageRenderer {
      *
      * @param cover the title page's cover, packed into the document
      */
-    static void write(OdtBody body, TitlePage page, Optional<Picture> cover) {
+    static void write(DocumentBody body, TitlePage page, Optional<Picture> cover) {
 
         body.startPage(PageStart.TITLE_PAGE, null);
 
         cover.ifPresent(picture -> {
             body.openParagraph(Style.COVER);
             body.image(picture, page.title());
-            body.append("</text:p>\n");
+            body.closeParagraph();
         });
 
         for (TitlePage.Line line : page.lines()) {
@@ -40,7 +40,7 @@ final class TitlePageRenderer {
 
             body.openParagraph(style);
             body.text(line.text(), false);
-            body.append("</text:p>\n");
+            body.closeParagraph();
         }
     }
 }

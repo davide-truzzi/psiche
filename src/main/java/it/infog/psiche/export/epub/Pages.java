@@ -10,7 +10,7 @@ import it.infog.psiche.export.model.TitlePage;
 import java.util.Map;
 import java.util.Optional;
 
-import static it.infog.psiche.export.XhtmlRenderer.escape;
+import static it.infog.psiche.export.XmlText.escape;
 
 /**
  * The EPUB's XHTML pages, all from {@code page.xhtml}. Each carries its part of the book in {@code epub:type} and in

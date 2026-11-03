@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static it.infog.psiche.export.XhtmlRenderer.escape;
+import static it.infog.psiche.export.XmlText.escape;
 
 /**
  * How readers find their way through the EPUB:

@@ -1,6 +1,6 @@
-package it.infog.psiche.export.odt;
+package it.infog.psiche.export.document;
 
-import it.infog.psiche.export.odt.model.Picture;
+import it.infog.psiche.export.document.model.Picture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,7 @@ import java.util.Optional;
  * The images a chapter shows, found as the chapter is rendered. Each one is read once, to learn its format and size,
  * and named for its entry in the document; an image used twice is packed once.
  */
-final class Pictures {
+public final class Pictures {
 
     private static final Logger log = LoggerFactory.getLogger(Pictures.class);
 
@@ -36,12 +36,18 @@ final class Pictures {
     private static final double COVER_MAX_HEIGHT_CM = 13;
 
     private final Path baseDirectory;
+    private final String entryPrefix;
     private final Map<Path, Picture> found = new LinkedHashMap<>();
 
-    /** @param baseDirectory the directory image links are relative to, the book's chapters */
-    Pictures(Path baseDirectory) {
+    /**
+     * @param baseDirectory the directory image links are relative to, the book's chapters
+     * @param entryPrefix   where the format packs its images, and how it names them, such as {@code Pictures/image};
+     *                      each one adds its number and extension
+     */
+    public Pictures(Path baseDirectory, String entryPrefix) {
 
         this.baseDirectory = baseDirectory;
+        this.entryPrefix = entryPrefix;
     }
 
     /**
@@ -60,7 +66,7 @@ final class Pictures {
     }
 
     /** Every image found so far, in the order the chapter shows them. */
-    Collection<Picture> all() {
+    public Collection<Picture> all() {
 
         return List.copyOf(found.values());
     }
@@ -74,7 +80,7 @@ final class Pictures {
         if (found.containsKey(file))
             return Optional.of(found.get(file));
 
-        Optional<Picture> picture = read(file, "Pictures/image" + (found.size() + 1), maxWidth, maxHeight);
+        Optional<Picture> picture = read(file, entryPrefix + (found.size() + 1), maxWidth, maxHeight);
         picture.ifPresent(read -> found.put(read.file(), read));
 
         return picture;

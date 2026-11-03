@@ -1,7 +1,7 @@
 package it.infog.psiche.export.odt;
 
 import it.infog.psiche.export.ZipContainer;
-import it.infog.psiche.export.odt.model.Picture;
+import it.infog.psiche.export.document.model.Picture;
 
 import java.io.IOException;
 import java.nio.file.Path;

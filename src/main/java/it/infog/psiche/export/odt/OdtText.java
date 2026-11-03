@@ -1,22 +1,11 @@
 package it.infog.psiche.export.odt;
 
-/** Text as the document's XML holds it: escaped, and with its runs of spaces and its tabs kept. */
+import it.infog.psiche.export.XmlText;
+
+/** Text as an ODT's XML holds it: escaped, and with its runs of spaces and its tabs kept. */
 final class OdtText {
 
-    // Characters below the space that XML 1.0 does not allow, even escaped; tab and line ends are allowed.
-    private static final String NOT_IN_XML = "[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]";
-
     private OdtText() {
-    }
-
-    /** {@code text} escaped for an XML element or a double-quoted attribute, without the characters XML forbids. */
-    static String escape(String text) {
-
-        return text.replaceAll(NOT_IN_XML, "")
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
     }
 
     /**
@@ -29,7 +18,7 @@ final class OdtText {
      */
     static void append(StringBuilder xml, String text, boolean lineStart) {
 
-        String escaped = escape(text);
+        String escaped = XmlText.escape(text);
         int i = 0;
         while (i < escaped.length()) {
             char c = escaped.charAt(i);

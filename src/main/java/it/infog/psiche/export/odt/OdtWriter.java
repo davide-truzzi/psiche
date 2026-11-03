@@ -2,10 +2,11 @@ package it.infog.psiche.export.odt;
 
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.export.Template;
+import it.infog.psiche.export.XmlText;
+import it.infog.psiche.export.document.Manuscript;
+import it.infog.psiche.export.document.Pictures;
+import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.model.BookExport;
-import it.infog.psiche.export.model.ExportedChapter;
-import it.infog.psiche.export.odt.model.Picture;
-import it.infog.psiche.export.odt.model.enums.PageStart;
 
 import org.commonmark.node.Node;
 
@@ -20,14 +21,17 @@ import java.util.Map;
  * <p>
  * The file is a zip ({@link OdtPackage}) of XML parts filled in from templates next to this class:
  * <ul>
- *     <li>{@code content.xml}: the text, written into an {@link OdtBody} by {@link ContentRenderer} (and for the book
- *     {@link TitlePageRenderer}), which only names styles;</li>
+ *     <li>{@code content.xml}: the text, written into an {@link OdtBody} by {@link Manuscript}, which only names
+ *     styles;</li>
  *     <li>{@code styles.xml}: those styles, the A4 page and its header with the authors, title and page number;</li>
  *     <li>{@code meta.xml}: the title, authors and language a word processor shows in the file's properties;</li>
  *     <li>the images, found by {@link Pictures}.</li>
  * </ul>
  */
 public final class OdtWriter {
+
+    // Where the images are packed, numbered from 1.
+    private static final String PICTURES = "Pictures/image";
 
     private final Template content = Template.load(OdtWriter.class, "content.xml");
     private final Template styles = Template.load(OdtWriter.class, "styles.xml");
@@ -46,8 +50,8 @@ public final class OdtWriter {
                              Path target) {
 
         OdtBody body = new OdtBody();
-        Pictures pictures = new Pictures(baseDirectory);
-        document.accept(new ContentRenderer(body, pictures));
+        Pictures pictures = new Pictures(baseDirectory, PICTURES);
+        Manuscript.writeChapter(body, document, pictures);
 
         write(body, pictures, title, header, book, target);
     }
@@ -62,16 +66,8 @@ public final class OdtWriter {
     public void writeBook(BookExport book, String header, Path target) {
 
         OdtBody body = new OdtBody();
-        Pictures pictures = new Pictures(book.baseDirectory());
-        TitlePageRenderer.write(body, book.titlePage(), book.titlePage().cover().flatMap(pictures::cover));
-        ContentsRenderer.write(body, book.contents());
-
-        //chapters
-        for (ExportedChapter chapter : book.chapters()) {
-            boolean first = chapter == book.chapters().getFirst();
-            body.startPage(first ? PageStart.FIRST_CHAPTER : PageStart.CHAPTER, chapter.id());
-            chapter.document().accept(new ContentRenderer(body, pictures));
-        }
+        Pictures pictures = new Pictures(book.baseDirectory(), PICTURES);
+        Manuscript.writeBook(body, book, pictures);
 
         write(body, pictures, book.properties().title(), header, book.properties(), target);
     }
@@ -104,7 +100,7 @@ public final class OdtWriter {
         Locale locale = Locale.forLanguageTag(language);
 
         return styles.fill(Map.of(
-                "header", OdtText.escape(header),
+                "header", XmlText.escape(header),
                 "language", locale.getLanguage().isEmpty() ? "none" : locale.getLanguage(),
                 "country", locale.getCountry().isEmpty() ? "none" : locale.getCountry()));
     }
@@ -112,8 +108,8 @@ public final class OdtWriter {
     private String meta(String title, BookProperties book) {
 
         return meta.fill(Map.of(
-                "title", OdtText.escape(title),
-                "authors", OdtText.escape(String.join(", ", book.authors())),
-                "language", OdtText.escape(book.language())));
+                "title", XmlText.escape(title),
+                "authors", XmlText.escape(String.join(", ", book.authors())),
+                "language", XmlText.escape(book.language())));
     }
 }

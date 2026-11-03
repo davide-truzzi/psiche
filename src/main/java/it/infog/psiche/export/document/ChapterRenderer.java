@@ -1,7 +1,7 @@
-package it.infog.psiche.export.odt;
+package it.infog.psiche.export.document;
 
-import it.infog.psiche.export.odt.model.Picture;
-import it.infog.psiche.export.odt.model.enums.Style;
+import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.markdown.HtmlComments;
 
 import org.commonmark.node.AbstractVisitor;
@@ -29,17 +29,16 @@ import java.util.Iterator;
 import java.util.Optional;
 
 /**
- * Turns a chapter's Markdown into the body of the document's {@code content.xml}: headings, paragraphs, lists and
- * spans that only name their {@link Style}, so the look stays in {@code styles.xml}. It follows the manuscript PDF:
- * scene breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, and a line break inside a
+ * Writes a chapter's Markdown into a {@link DocumentBody}, in any format: headings, paragraphs, lists and spans that
+ * only name their {@link Style}, so the look stays in the format's stylesheet. It follows the manuscript PDF: scene
+ * breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, and a line break inside a
  * paragraph is kept.
  */
-final class ContentRenderer extends AbstractVisitor {
+final class ChapterRenderer extends AbstractVisitor {
 
     private static final String SCENE_BREAK = "* * *";
-    private static final String LINE_BREAK = "<text:line-break/>";
 
-    private final OdtBody body;
+    private final DocumentBody body;
     private final Pictures pictures;
 
     // Paragraphs are indented, except the chapter's first and the one after a heading, scene break, quote or list.
@@ -54,7 +53,7 @@ final class ContentRenderer extends AbstractVisitor {
      * @param body     where the chapter is written
      * @param pictures where the chapter's images are found, and collected to be packed into the document
      */
-    ContentRenderer(OdtBody body, Pictures pictures) {
+    ChapterRenderer(DocumentBody body, Pictures pictures) {
 
         this.body = body;
         this.pictures = pictures;
@@ -68,7 +67,7 @@ final class ContentRenderer extends AbstractVisitor {
 
         body.openHeading(Style.heading(heading.getLevel()), Math.min(heading.getLevel(), 4));
         visitChildren(heading);
-        body.append("</text:h>\n");
+        body.closeHeading();
 
         indentNext = false;
     }
@@ -76,9 +75,9 @@ final class ContentRenderer extends AbstractVisitor {
     @Override
     public void visit(Paragraph paragraph) {
 
-        openParagraph(paragraphStyle(paragraph));
+        body.openParagraph(paragraphStyle(paragraph));
         visitChildren(paragraph);
-        body.append("</text:p>\n");
+        body.closeParagraph();
 
         indentNext = true;
     }
@@ -100,8 +99,9 @@ final class ContentRenderer extends AbstractVisitor {
     @Override
     public void visit(ThematicBreak thematicBreak) {
 
-        openParagraph(Style.SCENE_BREAK);
-        body.append(SCENE_BREAK).append("</text:p>\n");
+        body.openParagraph(Style.SCENE_BREAK);
+        body.text(SCENE_BREAK, false);
+        body.closeParagraph();
 
         indentNext = false;
     }
@@ -137,21 +137,17 @@ final class ContentRenderer extends AbstractVisitor {
      */
     private void list(Node list, Style style, int start) {
 
-        body.append("<text:list text:style-name=\"%s\">\n".formatted(style.xmlName()));
+        body.openList(style);
         listDepth++;
 
         for (Node item = list.getFirstChild(); item != null; item = item.getNext()) {
-            if (item == list.getFirstChild() && start != 1)
-                body.append("<text:list-item text:start-value=\"%d\">".formatted(start));
-            else
-                body.append("<text:list-item>");
-
+            body.openListItem(item == list.getFirstChild() && start != 1 ? start : null);
             visitChildren(item);
-            body.append("</text:list-item>\n");
+            body.closeListItem();
         }
 
         listDepth--;
-        body.append("</text:list>\n");
+        body.closeList();
 
         indentNext = false;
     }
@@ -190,21 +186,16 @@ final class ContentRenderer extends AbstractVisitor {
      */
     private void lines(Style style, String literal, boolean code) {
 
-        openParagraph(style);
+        body.openParagraph(style);
 
         Iterator<String> lines = literal.stripTrailing().lines().iterator();
         while (lines.hasNext()) {
             body.text(lines.next(), code);
             if (lines.hasNext())
-                body.append(LINE_BREAK);
+                body.lineBreak();
         }
 
-        body.append("</text:p>\n");
-    }
-
-    private void openParagraph(Style style) {
-
-        body.openParagraph(style);
+        body.closeParagraph();
     }
 
     // Inline text
@@ -225,9 +216,9 @@ final class ContentRenderer extends AbstractVisitor {
     @Override
     public void visit(Code code) {
 
-        body.append("<text:span text:style-name=\"%s\">".formatted(Style.SOURCE_TEXT.xmlName()));
+        body.openSpan(Style.SOURCE_TEXT);
         body.text(code.getLiteral(), false);
-        body.append("</text:span>");
+        body.closeSpan();
     }
 
     @Override
@@ -245,22 +236,22 @@ final class ContentRenderer extends AbstractVisitor {
     /** {@code node}'s text in a span of {@code style}; spans nest, so bold inside italic is both. */
     private void span(Style style, Node node) {
 
-        body.append("<text:span text:style-name=\"%s\">".formatted(style.xmlName()));
+        body.openSpan(style);
         visitChildren(node);
-        body.append("</text:span>");
+        body.closeSpan();
     }
 
     /** A line break inside a paragraph is kept, as in the PDF and the preview. */
     @Override
     public void visit(SoftLineBreak softLineBreak) {
 
-        body.append(LINE_BREAK);
+        body.lineBreak();
     }
 
     @Override
     public void visit(HardLineBreak hardLineBreak) {
 
-        body.append(LINE_BREAK);
+        body.lineBreak();
     }
 
     /**
@@ -276,9 +267,9 @@ final class ContentRenderer extends AbstractVisitor {
             return;
         }
 
-        body.append("<text:a xlink:type=\"simple\" xlink:href=\"%s\">".formatted(OdtText.escape(destination)));
+        body.openLink(destination);
         visitChildren(link);
-        body.append("</text:a>");
+        body.closeLink();
     }
 
     /**

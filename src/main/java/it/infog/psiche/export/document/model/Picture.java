@@ -1,4 +1,4 @@
-package it.infog.psiche.export.odt.model;
+package it.infog.psiche.export.document.model;
 
 import java.nio.file.Path;
 

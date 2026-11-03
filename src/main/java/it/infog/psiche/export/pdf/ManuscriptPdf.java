@@ -16,7 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
 
-import static it.infog.psiche.export.XhtmlRenderer.escape;
+import static it.infog.psiche.export.XmlText.escape;
 
 /**
  * Lays out XHTML as a manuscript PDF through OpenHTMLtoPDF: A4, double-spaced, with the authors, the book's title and

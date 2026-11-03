@@ -1,8 +1,8 @@
-package it.infog.psiche.export.odt.model.enums;
+package it.infog.psiche.export.document.model.enums;
 
 /**
- * The named styles the chapter's text refers to, all defined in {@code styles.xml}. A word processor lists them by
- * their display names (Text Body, First Paragraph…), and changing one restyles every paragraph or span that uses it.
+ * The named styles a manuscript's text refers to, all defined in each format's stylesheet. A word processor lists them
+ * by their display names (Text Body, First Paragraph…), and changing one restyles every paragraph or span that uses it.
  */
 public enum Style {
 
@@ -51,11 +51,11 @@ public enum Style {
     BULLETS("Bullets"),
     NUMBERING("Numbering");
 
-    private final String xmlName;
+    private final String odtName;
 
-    Style(String xmlName) {
+    Style(String odtName) {
 
-        this.xmlName = xmlName;
+        this.odtName = odtName;
     }
 
     /** The heading style for a Markdown heading of {@code level} 1 to 6; levels below 4 share the level 4 style. */
@@ -69,9 +69,9 @@ public enum Style {
         };
     }
 
-    /** The name the XML refers to the style by; spaces in the display name are written as {@code _20_}. */
-    public String xmlName() {
+    /** The name an ODT's XML refers to the style by; spaces in the display name are written as {@code _20_}. */
+    public String odtName() {
 
-        return xmlName;
+        return odtName;
     }
 }

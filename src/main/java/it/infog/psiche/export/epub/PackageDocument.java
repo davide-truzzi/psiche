@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static it.infog.psiche.export.XhtmlRenderer.escape;
+import static it.infog.psiche.export.XmlText.escape;
 
 /**
  * The package document, {@code package.opf}: what the book is (its metadata), what the EPUB holds (the manifest) and

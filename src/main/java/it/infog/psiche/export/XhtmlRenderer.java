@@ -108,7 +108,7 @@ public final class XhtmlRenderer {
         StringBuilder xhtml = new StringBuilder("<section class=\"title-page\"%s>\n".formatted(attributes));
 
         page.cover().ifPresent(cover -> xhtml.append("<div class=\"cover\"><img src=\"%s\" alt=\"%s\" /></div>\n"
-                .formatted(escape(cover.toUri().toString()), escape(page.title()))));
+                .formatted(XmlText.escape(cover.toUri().toString()), XmlText.escape(page.title()))));
 
         for (TitlePage.Line line : page.lines()) {
             String style = switch (line.role()) {
@@ -116,7 +116,7 @@ public final class XhtmlRenderer {
                 case SUBTITLE -> "book-subtitle";
                 case AUTHORS -> "book-authors";
             };
-            xhtml.append("<p class=\"%s\">%s</p>\n".formatted(style, escape(line.text())));
+            xhtml.append("<p class=\"%s\">%s</p>\n".formatted(style, XmlText.escape(line.text())));
         }
 
         return xhtml.append("</section>\n").toString();
@@ -132,18 +132,12 @@ public final class XhtmlRenderer {
     public static String contents(Contents contents, UnaryOperator<String> linkTo, String attributes) {
 
         StringBuilder xhtml = new StringBuilder("<nav class=\"toc\"%s>\n<h1 id=\"toc-heading\">%s</h1>\n<ol>\n"
-                .formatted(attributes, escape(contents.heading())));
+                .formatted(attributes, XmlText.escape(contents.heading())));
         for (Contents.Entry entry : contents.entries())
             xhtml.append("<li><a href=\"%s\">%s</a></li>\n"
-                    .formatted(escape(linkTo.apply(entry.id())), escape(entry.title())));
+                    .formatted(XmlText.escape(linkTo.apply(entry.id())), XmlText.escape(entry.title())));
 
         return xhtml.append("</ol>\n</nav>\n").toString();
-    }
-
-    /** {@code text} escaped for an XHTML element or a double-quoted attribute. */
-    public static String escape(String text) {
-
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     /** The plain text inside {@code node}, emphasis and code included, as a reader sees it. */
