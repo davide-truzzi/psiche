@@ -1,6 +1,8 @@
 package it.infog.psiche.ui.common;
 
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -39,12 +41,12 @@ public final class LanguageChoice extends StackPane {
     private final TextField field = new TextField();
     private final ListView<Locale> list = new ListView<>();
     private final Popup popup = new Popup();
-    private Locale value;
+    private final ReadOnlyObjectWrapper<Locale> value = new ReadOnlyObjectWrapper<>();
 
     /** @param tag the language chosen at first, as a BCP 47 tag such as {@code en-US} */
     public LanguageChoice(String tag) {
 
-        value = Locale.forLanguageTag(tag);
+        value.set(Locale.forLanguageTag(tag));
         languages = new ArrayList<>(Locale.availableLocales()
                 .filter(locale -> !locale.getLanguage().isEmpty())
                 .filter(locale -> locale.getScript().isEmpty() && locale.getVariant().isEmpty())
@@ -53,8 +55,8 @@ public final class LanguageChoice extends StackPane {
                 .distinct()
                 .sorted(Comparator.comparing(locale -> locale.getDisplayName().toLowerCase(Locale.ROOT)))
                 .toList());
-        if (!languages.contains(value))
-            languages.addFirst(value);
+        if (!languages.contains(value.get()))
+            languages.addFirst(value.get());
 
         //the list, under the field; it never takes the focus, so typing goes on in the field
         list.setFocusTraversable(false);
@@ -85,7 +87,7 @@ public final class LanguageChoice extends StackPane {
         field.setPromptText("Type to search");
         // The chosen language's name is no search.
         field.textProperty().addListener((obs, old, text) -> {
-            if (!text.equals(value.getDisplayName()))
+            if (!text.equals(value.get().getDisplayName()))
                 narrow(text);
         });
         field.setOnMouseClicked(event -> {
@@ -121,7 +123,13 @@ public final class LanguageChoice extends StackPane {
     /** The language chosen. */
     public Locale getValue() {
 
-        return value;
+        return value.get();
+    }
+
+    /** The language chosen, which changes as the author picks another. */
+    public ReadOnlyObjectProperty<Locale> valueProperty() {
+
+        return value.getReadOnlyProperty();
     }
 
     /** Chooses {@code language}, as if the author had picked it, and closes the list if it is open. */
@@ -129,7 +137,7 @@ public final class LanguageChoice extends StackPane {
 
         if (!languages.contains(language))
             languages.addFirst(language);
-        value = language;
+        value.set(language);
         popup.hide();
         showValue();
     }
@@ -154,7 +162,7 @@ public final class LanguageChoice extends StackPane {
         list.getItems().setAll(matching);
         list.setPrefSize(field.getWidth(), Math.clamp(matching.size(), 1, VISIBLE_ROWS) * ROW_HEIGHT + 2);
         if (!matching.isEmpty()) {
-            int chosen = Math.max(matching.indexOf(value), 0);
+            int chosen = Math.max(matching.indexOf(value.get()), 0);
             list.getSelectionModel().select(chosen);
             list.scrollTo(Math.max(chosen - VISIBLE_ROWS / 2, 0));
         }
@@ -203,7 +211,7 @@ public final class LanguageChoice extends StackPane {
     private void pick(Locale language) {
 
         if (language != null)
-            value = language;
+            value.set(language);
         popup.hide();
         showValue();
 
@@ -214,7 +222,7 @@ public final class LanguageChoice extends StackPane {
     /** Puts the chosen language's name in the field. */
     private void showValue() {
 
-        field.setText(value.getDisplayName());
+        field.setText(value.get().getDisplayName());
     }
 
     /**

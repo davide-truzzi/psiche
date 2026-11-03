@@ -4,6 +4,7 @@ import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.common.DictionaryMark;
 import it.infog.psiche.ui.common.LanguageChoice;
 
 import javafx.event.ActionEvent;
@@ -76,6 +77,7 @@ public final class PreferencesDialog {
 
         //fields
         CheckBox reopen = new CheckBox("Reopen the last book when Psiche Writer starts");
+        CheckBox checkSpelling = new CheckBox("Check spelling");
         LanguageChoice language = new LanguageChoice(preferences.newBookLanguage());
         TextField author = new TextField();
         author.setPromptText("Your name, as it goes on the cover");
@@ -90,11 +92,12 @@ public final class PreferencesDialog {
             theme.setValue(shown.previewTheme());
             editorFontSize.setValue(shown.editorFontSize());
             previewFontSize.setValue(shown.previewFontSize());
+            checkSpelling.setSelected(shown.checkSpelling());
         };
         fill.accept(preferences);
 
-        Label newBooksHint = new Label("A book's own language and authors are in Book properties.");
-        newBooksHint.getStyleClass().add("form-hint");
+        Label spellingHint = hint("In the languages Psiche has a dictionary for.");
+        Label newBooksHint = hint("A book's own language and authors are in Book properties.");
 
         //groups
         GridPane general = new GridPane();
@@ -102,9 +105,11 @@ public final class PreferencesDialog {
         general.addRow(1, new Label("Editor font size"), editorFontSize);
         general.addRow(2, new Label("Preview theme"), theme);
         general.addRow(3, new Label("Preview font size"), previewFontSize);
+        general.addRow(4, new Label("Spelling"), checkSpelling);
+        general.add(spellingHint, 1, 5);
 
         GridPane newBooks = new GridPane();
-        newBooks.addRow(0, new Label("Language"), language);
+        newBooks.addRow(0, new Label("Language"), DictionaryMark.after(language));
         newBooks.addRow(1, new Label("Author"), author);
         newBooks.add(newBooksHint, 1, 2);
 
@@ -115,7 +120,7 @@ public final class PreferencesDialog {
 
         Supplier<Preferences> chosen = () -> new Preferences(reopen.isSelected(),
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
-                editorFontSize.getValue(), previewFontSize.getValue());
+                editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected());
 
         // Apply and Revert, unlike the dialog's other buttons, leave it open.
         AtomicReference<Preferences> applied = new AtomicReference<>(preferences);
@@ -139,6 +144,14 @@ public final class PreferencesDialog {
             apply.accept(chosen.get());
         else
             undoApplied.run();
+    }
+
+    /** A line of help under a field, in the form's quieter text. */
+    private static Label hint(String text) {
+
+        Label hint = new Label(text);
+        hint.getStyleClass().add("form-hint");
+        return hint;
     }
 
     /** A box to pick one of {@code items} by {@code label}, as wide as the form. */

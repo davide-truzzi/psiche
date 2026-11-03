@@ -3,6 +3,7 @@ package it.infog.psiche.ui.book;
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.common.DictionaryMark;
 import it.infog.psiche.ui.common.LanguageChoice;
 
 import javafx.beans.binding.Bindings;
@@ -82,7 +83,7 @@ public final class BookPropertiesDialog {
         form.addRow(0, new Label("Title"), title);
         form.addRow(1, new Label("Subtitle"), subtitle);
         form.addRow(2, new Label("Authors"), authors);
-        form.addRow(3, new Label("Language"), language);
+        form.addRow(3, new Label("Language"), DictionaryMark.after(language));
         form.addRow(4, new Label("Copyright"), rights);
 
         HBox content = new HBox(form, coverPicker.node());

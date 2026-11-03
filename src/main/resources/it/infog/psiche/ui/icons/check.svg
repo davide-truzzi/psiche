@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="10" viewBox="0 0 12 10" fill="#8fae6b">
+  <!-- A tick, after a language field when Psiche has a spelling dictionary for it.
+       The app reads only the paths; .dictionary-mark in writer.css gives the colour and size. -->
+  <path d="M 0 5.6 L 1.4 4.2 L 4.3 7.1 L 10.6 0.8 L 12 2.2 L 4.3 9.9 Z"/>
+</svg>

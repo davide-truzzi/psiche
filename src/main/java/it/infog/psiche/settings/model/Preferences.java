@@ -14,13 +14,15 @@ import java.util.List;
  * @param editorFontSize  the size of the editor's text, in pixels, one of {@link #FONT_SIZES}
  * @param previewFontSize the size of the preview's text, in pixels, one of {@link #FONT_SIZES}; headings and the
  *                        rest of the page grow and shrink with it
+ * @param checkSpelling   true to mark the words spelt wrong, in the languages Psiche has a dictionary for
  */
 public record Preferences(boolean reopenLastBook,
                           String newBookLanguage,
                           String newBookAuthor,
                           PreviewTheme previewTheme,
                           int editorFontSize,
-                          int previewFontSize) {
+                          int previewFontSize,
+                          boolean checkSpelling) {
 
     /** The sizes the editor's and the preview's text can take, in pixels. */
     public static final List<Integer> FONT_SIZES = List.of(12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32);
@@ -30,6 +32,6 @@ public record Preferences(boolean reopenLastBook,
     /** The preferences of an author who has not changed any. */
     public static Preferences defaults() {
 
-        return new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE);
+        return new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE, true);
     }
 }

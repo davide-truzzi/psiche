@@ -128,7 +128,7 @@ class SettingsTest {
     @Test
     void anAuthorWhoChoseNothingHasTheDefaultPreferences() {
         assertThat(settings().preferences())
-                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16))
+                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16, true))
                 .isEqualTo(Preferences.defaults());
     }
 
@@ -138,14 +138,15 @@ class SettingsTest {
         Settings settings = settings();
         settings.bookOpened(alba);
 
-        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14);
+        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false);
         settings.savePreferences(chosen);
 
         assertThat(settings().preferences()).isEqualTo(chosen);
         assertThat(settings().recentBooks().books()).containsExactly(alba);
         assertThat(Files.readString(folder().path().resolve(Settings.FILE)))
                 .contains("book.language=it-IT", "book.author=Anna Bianchi", "preview.theme=dark",
-                        "startup.reopen-last-book=true", "editor.font-size=20", "preview.font-size=14");
+                        "startup.reopen-last-book=true", "editor.font-size=20", "preview.font-size=14",
+                        "spelling.enabled=false");
     }
 
     @Test
@@ -153,7 +154,7 @@ class SettingsTest {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE),
                 "book.language=\npreview.theme=sepia\nstartup.reopen-last-book=sometimes\neditor.font-size=big\n"
-                        + "preview.font-size=19\n");
+                        + "preview.font-size=19\nspelling.enabled=no\n");
 
         assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
     }

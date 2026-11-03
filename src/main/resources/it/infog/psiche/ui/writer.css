@@ -661,6 +661,27 @@
     -fx-max-height: 5;
 }
 
+/* A language field with its tick after it, green while Psiche has a spelling dictionary for the language. The field
+   gives up the tick's room, so the row keeps the field's width. */
+.language-row {
+    -fx-spacing: 8;
+    -fx-alignment: center-left;
+}
+
+.book-form .language-row > .language-choice {
+    -fx-pref-width: 340;
+}
+
+.dictionary-mark {
+    -fx-background-color: -sage;
+    -fx-min-width: 12;
+    -fx-pref-width: 12;
+    -fx-max-width: 12;
+    -fx-min-height: 10;
+    -fx-pref-height: 10;
+    -fx-max-height: 10;
+}
+
 .combo-box-popup > .list-view {
     -fx-background-color: -desk-raised;
     -fx-border-color: -desk-edge;

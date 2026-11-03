@@ -55,6 +55,7 @@ public final class Settings {
     private static final String PREVIEW_THEME = "preview.theme";
     private static final String EDITOR_FONT_SIZE = "editor.font-size";
     private static final String PREVIEW_FONT_SIZE = "preview.font-size";
+    private static final String CHECK_SPELLING = "spelling.enabled";
     private static final String WINDOW = "window.";
     private static final String WEB_VIEW_FOLDER = "webview";
     private static final String OWN_WORDS_FILE = "words.txt";
@@ -134,17 +135,13 @@ public final class Settings {
         Properties settings = read();
         Preferences defaults = Preferences.defaults();
 
-        String reopen = settings.getProperty(REOPEN_LAST_BOOK, "");
-        boolean reopenLastBook = reopen.equals("true") || reopen.equals("false")
-                ? Boolean.parseBoolean(reopen)
-                : defaults.reopenLastBook();
-
-        return new Preferences(reopenLastBook,
+        return new Preferences(flag(settings.getProperty(REOPEN_LAST_BOOK), defaults.reopenLastBook()),
                 language(settings.getProperty(NEW_BOOK_LANGUAGE)).orElse(defaults.newBookLanguage()),
                 settings.getProperty(NEW_BOOK_AUTHOR, defaults.newBookAuthor()).strip(),
                 theme(settings.getProperty(PREVIEW_THEME)).orElse(defaults.previewTheme()),
                 fontSize(settings.getProperty(EDITOR_FONT_SIZE)).orElse(defaults.editorFontSize()),
-                fontSize(settings.getProperty(PREVIEW_FONT_SIZE)).orElse(defaults.previewFontSize()));
+                fontSize(settings.getProperty(PREVIEW_FONT_SIZE)).orElse(defaults.previewFontSize()),
+                flag(settings.getProperty(CHECK_SPELLING), defaults.checkSpelling()));
     }
 
     /** Remembers what the author chose in Preferences. */
@@ -157,6 +154,7 @@ public final class Settings {
             settings.setProperty(PREVIEW_THEME, preferences.previewTheme().name().toLowerCase(Locale.ROOT));
             settings.setProperty(EDITOR_FONT_SIZE, String.valueOf(preferences.editorFontSize()));
             settings.setProperty(PREVIEW_FONT_SIZE, String.valueOf(preferences.previewFontSize()));
+            settings.setProperty(CHECK_SPELLING, String.valueOf(preferences.checkSpelling()));
         });
     }
 
@@ -199,6 +197,15 @@ public final class Settings {
     private static Optional<PreviewTheme> theme(String name) {
 
         return Arrays.stream(PreviewTheme.values()).filter(theme -> theme.name().equalsIgnoreCase(name)).findFirst();
+    }
+
+    /** {@code value} as true or false, as written in the file; {@code fallback} for anything else or nothing. */
+    private static boolean flag(String value, boolean fallback) {
+
+        if ("true".equals(value) || "false".equals(value))
+            return Boolean.parseBoolean(value);
+
+        return fallback;
     }
 
     /** {@code value} as a font size, if it is one of those Preferences offers. */
