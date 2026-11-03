@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.TreeSet;
 
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 
@@ -52,6 +51,8 @@ final class MarginMarks {
     private boolean lowering;
     // Where the first line in view was when the dots were last placed: the text can move without telling.
     private Bounds shownFrom;
+    // True from placing the dots after a change until they are placed once more, on the next pulse.
+    private boolean settling;
 
     /**
      * @param markStyle the style class of the dots, which gives them their colour
@@ -121,9 +122,13 @@ final class MarginMarks {
         }
 
         Bounds firstLine = firstLine();
-        if (!outdated && Objects.equals(firstLine, shownFrom))
+        if (!outdated && !settling && Objects.equals(firstLine, shownFrom))
             return;
 
+        // RichTextFX may still move a paragraph in this pulse, after the dots are placed: they are placed once more.
+        settling = !settling;
+        if (settling)
+            Platform.requestNextPulse();
         outdated = false;
         shownFrom = firstLine;
 
@@ -132,27 +137,35 @@ final class MarginMarks {
         double bottom = area.getHeight() - padding.getBottom();
         if (parts.isEmpty() || bottom <= top) {
             showLines(List.of());
-            showEdges(List.of(), List.of());
+            showEdges(0, 0);
             return;
         }
 
-        //each part above, below, or in view on the line it first shows on
+        //each part above, below, or in view on the line it first shows on; a line is looked up once, however many
+        //parts it holds, as the parts come in order
         TextRange shown = shown();
-        List<TextRange> above = new ArrayList<>();
-        List<TextRange> below = new ArrayList<>();
-        TreeSet<Double> lines = new TreeSet<>();
+        int above = 0;
+        int below = 0;
+        List<Double> lines = new ArrayList<>();
+        int lineEnd = -1;
         for (TextRange part : parts) {
+            int first = Math.max(part.start(), shown.start());
             if (part.end() <= shown.start())
-                above.add(part);
+                above++;
             else if (part.start() > shown.end())
-                below.add(part);
-            else
-                lineCentre(Math.max(part.start(), shown.start()))
-                        .filter(y -> y >= top && y <= bottom)
-                        .ifPresent(lines::add);
+                below++;
+            else if (first >= lineEnd) {
+                Optional<Bounds> line = lineBounds(first);
+                if (line.isEmpty())
+                    continue;
+                double centre = layer.screenToLocal(line.get()).getCenterY();
+                if (centre >= top && centre <= bottom)
+                    lines.add(centre);
+                lineEnd = lineEnd(line.get());
+            }
         }
 
-        showLines(new ArrayList<>(lines));
+        showLines(lines);
         showEdges(above, below);
     }
 
@@ -176,13 +189,21 @@ final class MarginMarks {
         return area.getCharacterBoundsOnScreen(first, Math.min(first + 1, area.getLength())).orElse(null);
     }
 
-    /** The middle of the line character {@code index} is on, in the layer's coordinates; empty if not laid out. */
-    private Optional<Double> lineCentre(int index) {
+    /** Where character {@code index} is on the screen, which gives its line's height; empty if not laid out. */
+    private Optional<Bounds> lineBounds(int index) {
 
         int end = Math.min(index + 1, area.getLength());
-        return area.getCharacterBoundsOnScreen(index, end)
-                .map(layer::screenToLocal)
-                .map(bounds -> (bounds.getMinY() + bounds.getMaxY()) / 2);
+        return area.getCharacterBoundsOnScreen(index, end);
+    }
+
+    /**
+     * Where the line of {@code character}, a character's bounds on the screen, ends in the text: no word that starts
+     * there or after is on it.
+     */
+    private int lineEnd(Bounds character) {
+
+        double y = area.screenToLocal(character).getCenterY();
+        return area.hit(area.getWidth() - area.getPadding().getRight() - 1, y).getInsertionIndex();
     }
 
     /** One dot in the left margin at each of {@code centres}, reusing the dots already there. */
@@ -205,18 +226,18 @@ final class MarginMarks {
     }
 
     /** The edge dots, each shown while parts lie beyond the view its way, and saying how many. */
-    private void showEdges(List<TextRange> above, List<TextRange> below) {
+    private void showEdges(int above, int below) {
 
         Insets padding = area.getPadding();
         Bounds text = layer.sceneToLocal(area.localToScene(area.getLayoutBounds()));
         double x = marginCentre();
 
-        up.setVisible(!above.isEmpty());
-        upTip.setText(ABOVE.formatted(count(above.size())));
+        up.setVisible(above > 0);
+        upTip.setText(ABOVE.formatted(count(above)));
         centreAt(up, x, text.getMinY() + padding.getTop() / 2);
 
-        down.setVisible(!below.isEmpty());
-        downTip.setText(BELOW.formatted(count(below.size())));
+        down.setVisible(below > 0);
+        downTip.setText(BELOW.formatted(count(below)));
         centreAt(down, x, text.getMaxY() - padding.getBottom() / 2);
     }
 

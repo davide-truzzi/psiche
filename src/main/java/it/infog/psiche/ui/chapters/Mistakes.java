@@ -93,18 +93,16 @@ final class Mistakes {
         int at = change.getPosition();
         int removedEnd = at + change.getRemoved().length();
         int shift = change.getNetLength();
+        int inserted = change.getInserted().length();
 
         // A mistake the change touches, or joins to other letters, is let go until the check: it is another word now.
+        // Only one right against the change can be joined, so only those are looked at in the text.
         List<TextRange> moved = new ArrayList<>();
         for (TextRange range : ranges) {
-            if (range.end() <= at) {
-                if (!isWordCharacter(range.end()))
-                    moved.add(range);
-            } else if (range.start() >= removedEnd) {
-                TextRange shifted = new TextRange(range.start() + shift, range.end() + shift);
-                if (!isWordCharacter(shifted.start() - 1))
-                    moved.add(shifted);
-            }
+            if (range.end() < at || range.end() == at && !isWordCharacter(at))
+                moved.add(range);
+            else if (range.start() > removedEnd || range.start() == removedEnd && !isWordCharacter(at + inserted - 1))
+                moved.add(new TextRange(range.start() + shift, range.end() + shift));
         }
         if (!moved.equals(ranges))
             place(moved);
