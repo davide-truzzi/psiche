@@ -26,6 +26,8 @@
 - When **New book** cannot create a book, it says why, for example that Psiche has no permission to write in that
   folder, and suggests one of your own, such as Documents. Its folder chooser starts in your home folder rather than
   the folder Psiche is installed in.
+- Pin the tab that shows when a book opens: right-click **Preview**, **Notes** or **History** and tick **Show when a
+  book opens**. The preview stays the default.
 
 ### For testers
 

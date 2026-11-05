@@ -80,6 +80,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     private final ChapterContext chapters;
     private final BookContext books;
     private final TabPane chapterTabs;
+    private final OpeningTab openingTab;
 
     /**
      * @param renderers render the preview's pages in a theme
@@ -113,9 +114,9 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapters = new ChapterContext(chapterEditor, preview, history, notes, gitControls, statusBar,
                 exports, this::reportError, this::window, settings.bookCountsShown(), settings::saveBookCountsShown);
         chapterTabs = chapterTabs();
+        openingTab = new OpeningTab(chapterTabs, settings, statusBar);
         books = new BookContext(chapters, gitControls, statusBar, unsavedChanges, exports, notesTransfer,
-                projectTransfer, this::reportError, this::window,
-                () -> Animations.reveal(chapters.sidebar(), chapterEditor.node(), chapterTabs), settings);
+                projectTransfer, this::reportError, this::window, this::bookOpened, settings);
 
         // Back in the window, the author may have added chapters elsewhere; only matters while they are not watched.
         sceneProperty().flatMap(Scene::windowProperty).flatMap(Window::focusedProperty)
@@ -258,7 +259,10 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         return book;
     }
 
-    /** The preview of the open chapter, its notes, and its commit history. */
+    /**
+     * The preview of the open chapter, its notes, and its commit history, in the order {@link OpeningTab} expects;
+     * which shows as a book opens is pinned from their right-click menus.
+     */
     private TabPane chapterTabs() {
 
         Tab previewTab = new Tab("Preview", preview);
@@ -314,6 +318,13 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     // Shared by the parts
+
+    /** Shows the tab pinned for an opening book, and reveals the book's parts. */
+    private void bookOpened() {
+
+        openingTab.show();
+        Animations.reveal(chapters.sidebar(), chapterEditor.node(), chapterTabs);
+    }
 
     /** After a commit: the history has a revision more, and the chapters it recorded are as it left them. */
     private void committed() {

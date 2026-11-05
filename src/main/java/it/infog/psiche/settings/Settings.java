@@ -4,6 +4,7 @@ import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.RecentBooks;
 import it.infog.psiche.settings.model.SettingsFolder;
 import it.infog.psiche.settings.model.WindowBounds;
+import it.infog.psiche.settings.model.enums.ChapterTab;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +61,7 @@ public final class Settings {
     private static final String HIGHLIGHT_REPETITIONS = "editor.highlight-repetitions";
     private static final String WINDOW = "window.";
     private static final String BOOK_COUNTS_SHOWN = "sidebar.book-counts";
+    private static final String OPENING_TAB = "tabs.opening";
     private static final String WEB_VIEW_FOLDER = "webview";
     private static final String OWN_WORDS_FILE = "words.txt";
 
@@ -201,6 +203,22 @@ public final class Settings {
     public void saveBookCountsShown(boolean shown) {
 
         update(settings -> settings.setProperty(BOOK_COUNTS_SHOWN, String.valueOf(shown)));
+    }
+
+    /** The tab shown beside the chapter each time a book opens; the preview until the author pins another. */
+    public ChapterTab openingTab() {
+
+        String name = read().getProperty(OPENING_TAB, "");
+        return Arrays.stream(ChapterTab.values())
+                .filter(tab -> tab.name().equalsIgnoreCase(name))
+                .findFirst()
+                .orElse(ChapterTab.PREVIEW);
+    }
+
+    /** Remembers {@code tab} as the one to show each time a book opens. */
+    public void saveOpeningTab(ChapterTab tab) {
+
+        update(settings -> settings.setProperty(OPENING_TAB, tab.name().toLowerCase(Locale.ROOT)));
     }
 
     /** {@code tag} as a language tag, if it names a language. */
