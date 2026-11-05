@@ -1,7 +1,9 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
+import it.infog.psiche.book.BookState;
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.book.model.ChapterPlace;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
@@ -39,6 +41,8 @@ public final class ChapterEditor {
     private boolean strictSpelling;
 
     private BookFolder book;
+    // Where the open book's chapters were left; read as the book's first chapter opens.
+    private BookState state;
     private Chapter chapter;
     private String savedText = "";
 
@@ -200,6 +204,9 @@ public final class ChapterEditor {
             return false;
         }
 
+        rememberPlace();
+        if (book != this.book)
+            state = BookState.of(book);
         this.book = book;
         this.chapter = chapter;
         savedText = text;
@@ -207,9 +214,26 @@ public final class ChapterEditor {
         manuscript.setText(drafts.text(chapter).orElse(text));
         // setText does not fire a change when the new text equals the old, so recompute the state explicitly.
         trackDraft();
-        manuscript.startEditing();
+        manuscript.startEditing(state.place(chapter).orElse(ChapterPlace.START));
 
         return true;
+    }
+
+    /**
+     * Remembers where the author is in the open chapter, in the book's {@value BookState#FILE}, to show it there when
+     * it opens again; nothing if no chapter is open, or it is gone.
+     */
+    void rememberPlace() {
+
+        if (chapter != null)
+            state.savePlace(chapter, manuscript.place());
+    }
+
+    /** Moves where {@code from} was left to {@code to}, the name it was just renamed to. */
+    void placeRenamed(Chapter from, Chapter to) {
+
+        if (state != null)
+            state.rename(from, to);
     }
 
     /**
@@ -236,8 +260,10 @@ public final class ChapterEditor {
     /** Empties the editor and makes it read-only, discarding every draft. */
     void close() {
 
+        rememberPlace();
         drafts.clear();
         book = null;
+        state = null;
         chapter = null;
         savedText = "";
         manuscript.clear();

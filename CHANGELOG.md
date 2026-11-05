@@ -28,6 +28,9 @@
   the folder Psiche is installed in.
 - Pin the tab that shows when a book opens: right-click **Preview**, **Notes** or **History** and tick **Show when a
   book opens**. The preview stays the default.
+- A chapter reopens where you left it: with the caret where it was and the same paragraph at the top, after switching
+  to another chapter, closing the book or restarting Psiche. Psiche keeps this in `psiche.properties` in the book's
+  folder, which every book gets as it opens, and keeps that file out of Git with a commit of its own.
 
 ### For testers
 

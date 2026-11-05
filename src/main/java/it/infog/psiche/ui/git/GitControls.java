@@ -99,11 +99,26 @@ public final class GitControls extends HBox {
      */
     public void ignore(String pattern, String message) {
 
+        ignore(pattern, message, "Notes are kept out of Git");
+    }
+
+    /**
+     * Keeps {@code pattern} out of Git as {@link #ignore(String, String)} does, but does nothing, not even a word in
+     * the status bar, if it already is, as the author did not ask for it.
+     */
+    public void ignoreQuietly(String pattern, String message) {
+
+        if (repository != null && !repository.ignores(pattern))
+            ignore(pattern, message, "");
+    }
+
+    private void ignore(String pattern, String message, String alreadyKept) {
+
         if (repository == null)
             return;
 
         run("Commit", repo -> repo.ignore(pattern, message), changed -> {
-            statusBar.info(changed ? "Committed " + message : "Notes are kept out of Git");
+            statusBar.info(changed ? "Committed " + message : alreadyKept);
             if (changed)
                 afterCommit.run();
         });

@@ -307,7 +307,10 @@ public final class ChapterContext {
     private void renameChapter(Chapter chapter) {
 
         boolean wasOpen = chapterEditor.isOpen(chapter);
+        if (wasOpen)
+            chapterEditor.rememberPlace();
         changes.rename(book, repository, notes, chapter).ifPresent(renamed -> {
+            chapterEditor.placeRenamed(chapter, renamed);
             if (wasOpen)
                 showChapter(renamed);
             else

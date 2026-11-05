@@ -153,7 +153,7 @@ public final class BookRepository implements AutoCloseable {
      */
     public boolean ignore(String pattern, String message) {
 
-        Path file = git.getRepository().getWorkTree().toPath().resolve(GITIGNORE);
+        Path file = gitignore();
         try {
             String text = Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "";
             if (text.lines().map(String::strip).anyMatch(pattern::equals))
@@ -168,6 +168,19 @@ public final class BookRepository implements AutoCloseable {
 
         commitOnly(message, List.of(file));
         return true;
+    }
+
+    /** True if the book's {@code .gitignore} has {@code pattern} as one of its lines; false if it cannot be read. */
+    public boolean ignores(String pattern) {
+
+        try {
+            Path file = gitignore();
+            return Files.exists(file) && Files.readAllLines(file, StandardCharsets.UTF_8).stream()
+                    .map(String::strip)
+                    .anyMatch(pattern::equals);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /**
@@ -333,5 +346,10 @@ public final class BookRepository implements AutoCloseable {
     public void close() {
 
         git.close();
+    }
+
+    private Path gitignore() {
+
+        return git.getRepository().getWorkTree().toPath().resolve(GITIGNORE);
     }
 }

@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.book.model.ChapterPlace;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
 import it.infog.psiche.ui.common.Logo;
@@ -169,14 +170,24 @@ final class Manuscript {
 
         // Typing at the top would otherwise merge into the same undo change.
         area.getUndoManager().preventMerge();
-        showStart();
+        show(ChapterPlace.START);
     }
 
-    /** Lets the author edit the text, from its start. */
-    void startEditing() {
+    /**
+     * Lets the author edit the text from {@code place}, where they left it: the caret there and that paragraph at the
+     * top of the view, as far as the text still has them.
+     */
+    void startEditing(ChapterPlace place) {
 
         area.setEditable(true);
-        showStart();
+        show(place);
+    }
+
+    /** Where the author is in the text: the caret, and the paragraph at the top of the view. */
+    ChapterPlace place() {
+
+        int top = area.getVisibleParagraphs().isEmpty() ? 0 : area.firstVisibleParToAllParIndex();
+        return new ChapterPlace(positionAtCaret(), top);
     }
 
     /** Lets the author edit the text, or only read it, as while the book is being exported. */
@@ -375,12 +386,12 @@ final class Manuscript {
         return welcome;
     }
 
-    /** Puts the caret at the start, with the first line at the top of the view, and the focus. */
-    private void showStart() {
+    /** Puts the caret at {@code place}, with its paragraph at the top of the view, and the focus. */
+    private void show(ChapterPlace place) {
 
-        area.moveTo(0);
+        area.moveTo(Math.clamp(place.caret(), 0, area.getLength()));
         // Following the caret would scroll by a fraction of a line, blurring the text and moving it each time.
-        area.showParagraphAtTop(0);
+        area.showParagraphAtTop(Math.clamp(place.topParagraph(), 0, area.getParagraphs().size() - 1));
         area.requestFocus();
     }
 

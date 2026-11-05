@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.book;
 
 import it.infog.psiche.book.BookFolder;
+import it.infog.psiche.book.BookState;
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.book.model.enums.PageMeasure;
 import it.infog.psiche.export.model.enums.ExportFormat;
@@ -272,6 +273,8 @@ public final class BookContext implements AutoCloseable {
             // Not fatal: the book can be edited without Git, so flag it in the status bar instead of an alert.
             statusBar.error(e.getMessage());
         }
+        // Where the author left each chapter is theirs, not the book's.
+        gitControls.ignoreQuietly(BookState.FILE, "Keep Psiche's own file out of Git");
         chapterWatch.start(book);
         chapters.show(book, repository);
         settings.bookOpened(book.root());
