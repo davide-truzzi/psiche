@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.preferences;
 
 import it.infog.psiche.spelling.Dictionaries;
+import it.infog.psiche.ui.common.AppInfo;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.Logo;
@@ -22,11 +23,9 @@ import javafx.stage.Window;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.lang.module.ModuleDescriptor;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -102,7 +101,7 @@ final class AboutDialog {
         //the app
         Node logo = Logo.lockup(LOGO_HEIGHT);
         logo.getStyleClass().add("about-logo");
-        Label version = new Label("Version " + version());
+        Label version = new Label("Version " + AppInfo.version().orElse("unknown"));
         Label copyright = new Label("© 2026 Davide Truzzi");
         Label licence = new Label("Free software under the GNU General Public License, version 3 or later");
         Hyperlink gpl = link("Read the licence",
@@ -129,23 +128,6 @@ final class AboutDialog {
         content.getStyleClass().add("about-content");
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
-    }
-
-    /**
-     * The app's version, as the build wrote it into the module, its stage named as people read it: "0.1.0-alpha"
-     * shows as "0.1.0 Alpha". None in a run straight from the sources.
-     */
-    private static String version() {
-
-        String version = Optional.ofNullable(AboutDialog.class.getModule().getDescriptor())
-                .flatMap(ModuleDescriptor::rawVersion)
-                .orElse("unknown");
-        int dash = version.indexOf('-');
-        if (dash < 0 || dash == version.length() - 1)
-            return version;
-
-        return version.substring(0, dash) + " " + Character.toUpperCase(version.charAt(dash + 1))
-                + version.substring(dash + 2);
     }
 
     /** Buy Me a Coffee's logo on their yellow, as a button. */

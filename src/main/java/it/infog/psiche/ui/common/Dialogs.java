@@ -22,8 +22,6 @@ import java.util.Optional;
 /** Dialogs owned by the main window and styled like it. */
 public final class Dialogs {
 
-    private static final String APP_TITLE = "Psiche Writer";
-
     private Dialogs() {
     }
 
@@ -148,7 +146,7 @@ public final class Dialogs {
     public static void ownAndStyle(Dialog<?> dialog, Window owner) {
 
         dialog.initOwner(owner);
-        dialog.setTitle(APP_TITLE);
+        dialog.setTitle(AppInfo.NAME);
         dialog.getDialogPane().getStylesheets().setAll(owner.getScene().getStylesheets());
     }
 

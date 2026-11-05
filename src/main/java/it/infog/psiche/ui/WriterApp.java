@@ -5,6 +5,7 @@ import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.SettingsFolders;
 import it.infog.psiche.settings.model.WindowBounds;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
+import it.infog.psiche.ui.common.AppInfo;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -87,7 +88,8 @@ public final class WriterApp extends Application {
                 KeyCombination.SHIFT_DOWN), workspace::saveAll);
 
         //complete and show stage
-        stage.setTitle("Psiche Writer");
+        // TODO: remove the version when production ready, at the first stable release: About keeps it.
+        stage.setTitle(AppInfo.version().map(version -> AppInfo.NAME + " " + version).orElse(AppInfo.NAME));
         ICON_SIZES.forEach(size -> stage.getIcons().add(
                 new Image(WriterApp.class.getResource("icons/psiche-%d.png".formatted(size)).toExternalForm())));
         stage.setScene(scene);

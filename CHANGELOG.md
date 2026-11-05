@@ -16,6 +16,7 @@
 - The words you add to the dictionary are suggested too: a name of your own typed wrong now gets the right spelling
   first in its right-click menu.
 - The status bar's counts are no longer cut short by a long message beside them.
+- The window's title shows Psiche's version, as "Psiche Writer 0.3.0 Alpha", until the first stable release.
 
 ### For testers
 
