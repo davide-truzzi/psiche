@@ -23,6 +23,9 @@
   keep a copy of it, as one `.psiche` file: chapters, media, notes with their files, and the Git history. The book is
   frozen while it is exported, with a bar of blocks in the status bar showing how far it has come. An import over a
   folder of the same name asks whether to back it up first, and opens the book when it is done.
+- When **New book** cannot create a book, it says why, for example that Psiche has no permission to write in that
+  folder, and suggests one of your own, such as Documents. Its folder chooser starts in your home folder rather than
+  the folder Psiche is installed in.
 
 ### For testers
 

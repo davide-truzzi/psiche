@@ -10,8 +10,10 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -270,9 +272,27 @@ class BookFolderTest {
 
         assertThatThrownBy(() -> BookFolder.create(tempDir, "novel", "en-US", ""))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(existing + " already exists");
+                .hasMessage("There is already a folder named \"novel\" in " + tempDir
+                        + ": choose another title or another place.");
         assertThat(existing).isDirectoryContaining(path -> path.endsWith("notes.md"));
         assertThat(existing.resolve("chapters")).doesNotExist();
+    }
+
+    @Test
+    void saysWhyABookCannotBeCreatedWherePsicheMayNotWrite() throws IOException {
+        Path locked = Files.createDirectory(tempDir.resolve("Program Files"));
+        Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("r-xr-xr-x"));
+
+        try {
+            assertThatThrownBy(() -> BookFolder.create(locked, "novel", "en-US", ""))
+                    .isInstanceOf(UncheckedIOException.class)
+                    .hasMessage("Cannot create the book folder " + locked.resolve("novel") + ". Psiche Writer has no"
+                            + " permission to write there: choose a folder of your own, such as Documents or your home"
+                            + " folder.");
+            assertThat(locked).isEmptyDirectory();
+        } finally {
+            Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("rwxr-xr-x"));
+        }
     }
 
     @ParameterizedTest
