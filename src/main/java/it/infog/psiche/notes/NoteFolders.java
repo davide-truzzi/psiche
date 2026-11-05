@@ -8,19 +8,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +23,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static it.infog.psiche.common.SafeFiles.isTemporary;
+import static it.infog.psiche.common.SafeFiles.move;
+import static it.infog.psiche.common.SafeFiles.temporaryBeside;
 
 /**
  * How a note is kept on disk, for {@link NoteStore}, {@link DetachedNoteStore} and {@link NotesArchive}: a folder
@@ -47,10 +46,9 @@ final class NoteFolders {
     static final String DUPLICATE_KEY = "duplicateOnImport";
 
     private static final Logger log = LoggerFactory.getLogger(NoteFolders.class);
-    private static final int COPY_BUFFER = 1 << 20;
     // Written beside the file they replace, and left out when a note's folder is read.
-    private static final String TEMPORARY_PREFIX = ".";
-    private static final String TEMPORARY_SUFFIX = ".tmp";
+    // Folders whose names start with it are Psiche's own work, never notes: temporary files and import folders.
+    private static final String HIDDEN_PREFIX = ".";
     private static final NoteLayout DEFAULT_LAYOUT = new NoteLayout(0, 0, 220, 160, 0, NoteColor.PAPER);
 
     private NoteFolders() {
@@ -143,44 +141,11 @@ final class NoteFolders {
 
         try (Stream<Path> entries = Files.list(folder)) {
             return entries.filter(Files::isDirectory)
-                    .filter(entry -> !entry.getFileName().toString().startsWith(TEMPORARY_PREFIX))
+                    .filter(entry -> !entry.getFileName().toString().startsWith(HIDDEN_PREFIX))
                     .sorted()
                     .toList();
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot list the notes in " + folder, e);
-        }
-    }
-
-    static boolean isTemporary(String name) {
-
-        return name.startsWith(TEMPORARY_PREFIX) && name.endsWith(TEMPORARY_SUFFIX);
-    }
-
-    /**
-     * Moves {@code source} to {@code target} in one step where the file system allows it, so a move that fails leaves
-     * the file or folder whole where it was; elsewhere, as the file system can.
-     */
-    static void move(Path source, Path target, CopyOption... options) throws IOException {
-
-        CopyOption[] atomic = Arrays.copyOf(options, options.length + 1);
-        atomic[options.length] = StandardCopyOption.ATOMIC_MOVE;
-        try {
-            Files.move(source, target, atomic);
-        } catch (AtomicMoveNotSupportedException e) {
-            Files.move(source, target, options);
-        }
-    }
-
-    static void deleteTree(Path folder) {
-
-        if (!Files.exists(folder))
-            return;
-
-        try (Stream<Path> paths = Files.walk(folder)) {
-            for (Path path : paths.sorted(Comparator.reverseOrder()).toList())
-                Files.delete(path);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot delete " + folder, e);
         }
     }
 
@@ -229,36 +194,7 @@ final class NoteFolders {
         }
     }
 
-    // Files
-
-    /**
-     * Copies {@code in}, of {@code total} bytes, to a temporary file beside {@code target}, which then takes its place;
-     * {@code progress} hears how far the copy has come.
-     */
-    static void copy(InputStream in, long total, Path target, NoteStore.CopyProgress progress) throws IOException {
-
-        Path temporary = temporaryBeside(target);
-        try {
-            try (OutputStream out = Files.newOutputStream(temporary)) {
-                byte[] buffer = new byte[COPY_BUFFER];
-                long copied = 0;
-                for (int read = in.read(buffer); read >= 0; read = in.read(buffer)) {
-                    out.write(buffer, 0, read);
-                    copied += read;
-                    progress.copied(copied, total);
-                }
-            }
-            move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
-        } finally {
-            Files.deleteIfExists(temporary);
-        }
-    }
-
-    /** A new temporary file beside {@code file}, which a listing of the notes never reads. */
-    static Path temporaryBeside(Path file) throws IOException {
-
-        return Files.createTempFile(file.getParent(), TEMPORARY_PREFIX + file.getFileName(), TEMPORARY_SUFFIX);
-    }
+    // Properties and text files
 
     static double number(Properties properties, String key, double fallback) {
 

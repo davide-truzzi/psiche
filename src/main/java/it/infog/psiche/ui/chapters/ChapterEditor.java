@@ -212,6 +212,15 @@ public final class ChapterEditor {
         return true;
     }
 
+    /**
+     * Keeps the open chapter from changing while {@code frozen}, as while the book is being exported: it can be read,
+     * but not edited.
+     */
+    public void setFrozen(boolean frozen) {
+
+        manuscript.setEditable(!frozen && chapter != null);
+    }
+
     /** Shows the welcome and its logo again, as the book closes; see {@link Manuscript#showWelcome}. */
     void showWelcome() {
 

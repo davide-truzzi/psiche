@@ -1,7 +1,6 @@
 package it.infog.psiche.ui.book;
 
 import it.infog.psiche.book.BookFolder;
-import it.infog.psiche.book.ChapterWatcher;
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.book.model.enums.PageMeasure;
 import it.infog.psiche.export.model.enums.ExportFormat;
@@ -17,15 +16,10 @@ import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.notes.NotesTransfer;
-import javafx.animation.Animation;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.scene.control.Label;
 import javafx.stage.Window;
-import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +38,6 @@ import java.util.function.Supplier;
 public final class BookContext implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(BookContext.class);
-    private static final Duration WATCH_RETRY = Duration.minutes(1);
     private static final String NO_BOOK = "No book open";
 
     private final Label bookTitle = new Label(NO_BOOK);
@@ -55,23 +48,22 @@ public final class BookContext implements AutoCloseable {
     private final UnsavedChanges unsavedChanges;
     private final Exports exports;
     private final NotesTransfer notesTransfer;
+    private final ProjectTransfer projectTransfer;
     private final ErrorReporter errors;
     private final Supplier<Window> window;
     private final Runnable onOpened;
     private final Settings settings;
-    // Runs while the chapters folder cannot be watched; see watch().
-    private final Timeline watchRetry = new Timeline(new KeyFrame(WATCH_RETRY, event -> retryWatch()));
+    private final ChapterFolderWatch chapterWatch;
 
     private BookFolder book;
     private BookRepository repository;
-    private ChapterWatcher watcher;
-    private String watchFailure;
 
     /** @param onOpened runs each time a book has opened, to reveal its parts */
     /** @param settings where the books opened lately are remembered */
     public BookContext(ChapterContext chapters, GitControls gitControls, StatusBar statusBar,
                        UnsavedChanges unsavedChanges, Exports exports, NotesTransfer notesTransfer,
-                       ErrorReporter errors, Supplier<Window> window, Runnable onOpened, Settings settings) {
+                       ProjectTransfer projectTransfer, ErrorReporter errors, Supplier<Window> window,
+                       Runnable onOpened, Settings settings) {
 
         this.chapters = chapters;
         this.gitControls = gitControls;
@@ -79,14 +71,16 @@ public final class BookContext implements AutoCloseable {
         this.unsavedChanges = unsavedChanges;
         this.exports = exports;
         this.notesTransfer = notesTransfer;
+        this.projectTransfer = projectTransfer;
         this.errors = errors;
         this.window = window;
         this.onOpened = onOpened;
         this.settings = settings;
 
+        chapterWatch = new ChapterFolderWatch(chapters, statusBar);
+
         bookTitle.getStyleClass().add("book-title");
         statusBar.setOnPageMeasureChosen(this::choosePageMeasure);
-        watchRetry.setCycleCount(Animation.INDEFINITE);
     }
 
     /** The open book's title, for the toolbar. */
@@ -219,6 +213,27 @@ public final class BookContext implements AutoCloseable {
         notesTransfer.importNotes(book, chapters::refresh);
     }
 
+    /**
+     * Writes the open book, as it is saved, to a Psiche project file; refused while a chapter has unsaved changes, as
+     * the file takes the book from disk.
+     */
+    public void exportProject() {
+
+        if (book == null || unsavedChanges.refuse("export the book"))
+            return;
+
+        projectTransfer.export(book);
+    }
+
+    /**
+     * Unpacks a Psiche project file into a folder the author picks, then opens the book; if it replaces the open book,
+     * that closes first.
+     */
+    public void importProject() {
+
+        projectTransfer.importProject(booksDirectory(), this::isOpen, this::makeWayFor, this::openBook);
+    }
+
     /** Closes the open book, once unsaved changes are settled, and shows the welcome as when the app starts. */
     public void closeOpenBook() {
 
@@ -257,7 +272,7 @@ public final class BookContext implements AutoCloseable {
             // Not fatal: the book can be edited without Git, so flag it in the status bar instead of an alert.
             statusBar.error(e.getMessage());
         }
-        watch();
+        chapterWatch.start(book);
         chapters.show(book, repository);
         settings.bookOpened(book.root());
         onOpened.run();
@@ -269,57 +284,36 @@ public final class BookContext implements AutoCloseable {
      */
     public void refreshUnwatched() {
 
-        if (book != null && watcher == null)
+        if (chapterWatch.isMissingChanges())
             chapters.refresh();
     }
 
+    /** True if {@code folder} is the open book's. */
+    private boolean isOpen(Path folder) {
+
+        return book != null && realPath(book.root()).equals(realPath(folder));
+    }
+
     /**
-     * Watches the open book's chapters folder, so chapters added or removed by other programs appear at once. The
-     * system may have no watch to spare, as it gives each user only so many: then the author is told, and the watch
-     * is tried again every minute until it starts or the book closes.
+     * Readies the open book for an imported one: closes it if the import replaces it, or else settles its unsaved
+     * changes, as the imported book opens in its place; false if the author cancels.
      */
-    private void watch() {
+    private boolean makeWayFor(Path imported) {
 
-        if (startWatcher())
-            return;
-
-        statusBar.error("Cannot watch the chapters folder for changes by other programs: " + watchFailure
-                + ". Trying again every minute");
-        watchRetry.playFromStart();
-    }
-
-    /** One more try at watching, while the first has failed; once it works, catches up on what was missed. */
-    private void retryWatch() {
-
-        if (book == null || !startWatcher())
-            return;
-
-        watchRetry.stop();
-        chapters.refresh();
-        statusBar.info("Watching the chapters folder again");
-    }
-
-    private boolean startWatcher() {
-
-        try {
-            watcher = new ChapterWatcher(book, () -> Platform.runLater(chapters::refresh));
+        if (book == null)
             return true;
-        } catch (UncheckedIOException e) {
-            log.warn("Cannot watch the chapters of {}", book.root(), e);
-            watchFailure = Optional.ofNullable(e.getCause().getMessage()).orElse("the system refused");
-            return false;
-        }
+
+        if (!isOpen(imported))
+            return unsavedChanges.settle("Save them before opening the imported book?");
+
+        closeOpenBook();
+        return book == null;
     }
 
     /** Releases the open book, if any, discarding unsaved changes; callers save first if they need to. */
     private void closeBook() {
 
-        watchRetry.stop();
-        if (watcher != null) {
-            watcher.close();
-            watcher = null;
-        }
-
+        chapterWatch.close();
         chapters.clear();
 
         if (repository != null) {

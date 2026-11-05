@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
@@ -24,16 +25,16 @@ import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import static it.infog.psiche.common.SafeFiles.copy;
+import static it.infog.psiche.common.SafeFiles.deleteTree;
+import static it.infog.psiche.common.SafeFiles.move;
 import static it.infog.psiche.notes.NoteFolders.DUPLICATE_KEY;
 import static it.infog.psiche.notes.NoteFolders.FILE_KEY;
 import static it.infog.psiche.notes.NoteFolders.PROPERTIES_FILE;
 import static it.infog.psiche.notes.NoteFolders.TEXT_FILE;
 import static it.infog.psiche.notes.NoteFolders.attachmentName;
-import static it.infog.psiche.notes.NoteFolders.copy;
-import static it.infog.psiche.notes.NoteFolders.deleteTree;
 import static it.infog.psiche.notes.NoteFolders.layout;
 import static it.infog.psiche.notes.NoteFolders.loadProperties;
-import static it.infog.psiche.notes.NoteFolders.move;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
@@ -67,7 +68,7 @@ final class ArchiveImport {
     private final NoteStore store;
     private final Path root;
     private final ZipFile zip;
-    private final NoteStore.CopyProgress progress;
+    private final CopyProgress progress;
     private final long total;
     private long done;
     private int added;
@@ -87,7 +88,7 @@ final class ArchiveImport {
                           long fileSize) {
     }
 
-    ArchiveImport(NoteStore store, ZipFile zip, NoteStore.CopyProgress progress) {
+    ArchiveImport(NoteStore store, ZipFile zip, CopyProgress progress) {
 
         this.store = store;
         this.root = store.root();

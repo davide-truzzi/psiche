@@ -179,6 +179,12 @@ final class Manuscript {
         showStart();
     }
 
+    /** Lets the author edit the text, or only read it, as while the book is being exported. */
+    void setEditable(boolean editable) {
+
+        area.setEditable(editable);
+    }
+
     /** Empties the page and makes it read-only. */
     void clear() {
 

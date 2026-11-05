@@ -1,7 +1,8 @@
 package it.infog.psiche.ui.notes;
 
-import it.infog.psiche.notes.NoteStore;
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.common.Progress;
 
 import javafx.application.Platform;
 import javafx.scene.Node;
@@ -56,13 +57,13 @@ final class ImportProgressDialog {
      * Shows {@code text} as what the import is doing now, with the bar back at the start, and returns what hears how
      * far it has come. Both may be called from any thread.
      */
-    NoteStore.CopyProgress step(String text) {
+    CopyProgress step(String text) {
 
         Platform.runLater(() -> {
             step.setText(text);
             bar.setProgress(0);
         });
-        return NotesTransfer.percent(percent -> bar.setProgress(percent / 100.0));
+        return Progress.percent(percent -> bar.setProgress(percent / 100.0));
     }
 
     void close() {

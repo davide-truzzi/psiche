@@ -8,6 +8,7 @@ import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.book.BookContext;
+import it.infog.psiche.ui.book.ProjectTransfer;
 import it.infog.psiche.ui.book.RecentBooksMenu;
 import it.infog.psiche.ui.chapters.ChapterContext;
 import it.infog.psiche.ui.chapters.ChapterEditor;
@@ -24,6 +25,7 @@ import it.infog.psiche.ui.notes.NotesTransfer;
 import it.infog.psiche.ui.preferences.PreferencesDialog;
 import it.infog.psiche.ui.preview.PreviewPane;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -45,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -72,6 +75,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     private final GitControls gitControls;
     private final NotesPane notes;
     private final NotesTransfer notesTransfer;
+    private final ProjectTransfer projectTransfer;
     private final Exports exports;
     private final ChapterContext chapters;
     private final BookContext books;
@@ -103,13 +107,14 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         Runnable keepNotesOutOfGit = () -> gitControls.ignore("notes/", "Keep chapter notes out of Git");
         notes = new NotesPane(statusBar, this::reportError, keepNotesOutOfGit::run, browser);
         notesTransfer = new NotesTransfer(notes, statusBar, this::reportError, this::window, keepNotesOutOfGit);
+        projectTransfer = new ProjectTransfer(statusBar, this::reportError, this::window, notes::settle);
         exports = new Exports(chapter -> chapterEditor.unsavedChapters().contains(chapter), unsavedChanges::settle,
                 statusBar, this::reportError, this::window);
         chapters = new ChapterContext(chapterEditor, preview, history, notes, gitControls, statusBar,
                 exports, this::reportError, this::window, settings.bookCountsShown(), settings::saveBookCountsShown);
         chapterTabs = chapterTabs();
         books = new BookContext(chapters, gitControls, statusBar, unsavedChanges, exports, notesTransfer,
-                this::reportError, this::window,
+                projectTransfer, this::reportError, this::window,
                 () -> Animations.reveal(chapters.sidebar(), chapterEditor.node(), chapterTabs), settings);
 
         // Back in the window, the author may have added chapters elsewhere; only matters while they are not watched.
@@ -130,6 +135,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         setLeft(chapters.sidebar());
         setCenter(pages());
         setBottom(statusBar);
+        freezeWhileTransferring();
     }
 
     /** Opens the book in {@code directory}, discarding any unsaved changes; callers settle them first. */
@@ -150,10 +156,29 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         return chapterEditor.saveAll();
     }
 
-    /** Lets the author save or discard unsaved chapters before the window closes; false means stay open. */
+    /**
+     * Lets the author save or discard unsaved chapters before the window closes, and keep a transfer that runs going;
+     * false means stay open.
+     */
     boolean confirmClose() {
 
-        return unsavedChanges.settle("Save them before closing Psiche Writer?");
+        return projectTransfer.confirmStop() && unsavedChanges.settle("Save them before closing Psiche Writer?");
+    }
+
+    /**
+     * Keeps the book from changing while a Psiche project is exported or imported: the chapter list, the notes, and
+     * Commit and Push are disabled, and the open chapter can be read but not edited. The Book menu waits too; see
+     * {@link #bookMenuButton}.
+     */
+    private void freezeWhileTransferring() {
+
+        ReadOnlyBooleanProperty transferring = projectTransfer.busyProperty();
+        for (Node part : List.of(chapters.sidebar(), gitControls))
+            part.disableProperty().bind(transferring);
+        transferring.addListener((obs, was, frozen) -> {
+            chapterEditor.setFrozen(frozen);
+            notes.setFrozen(frozen);
+        });
     }
 
     // Layout
@@ -212,12 +237,23 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         MenuItem importNotes = menuItem("Import notes", books::importNotes);
         importNotes.disableProperty().bind(exportNotes.disableProperty());
 
+        // The whole book folder, notes and history included, to one file.
+        MenuItem exportProject = menuItem("Export Psiche project", books::exportProject);
+        exportProject.disableProperty().bind(exportNotes.disableProperty().or(gitControls.busyProperty()));
+
+        // It may replace the open book, which then closes: as Close book, it waits for Git and the notes.
+        MenuItem importProject = menuItem("Import Psiche project", books::importProject);
+        importProject.disableProperty().bind(gitControls.busyProperty().or(notesTransfer.busyProperty()));
+
         ContextMenu menu = new ContextMenu(create, open, recent.menu(), close, new SeparatorMenuItem(), saveAll,
-                new SeparatorMenuItem(), properties, export, new SeparatorMenuItem(), exportNotes, importNotes);
+                new SeparatorMenuItem(), properties, export, new SeparatorMenuItem(), exportNotes, importNotes,
+                new SeparatorMenuItem(), exportProject, importProject);
         menu.setOnShowing(event -> recent.refresh(gitControls.busyProperty().get()));
 
         Button book = new Button("Book");
         book.setOnAction(event -> menu.show(book, Side.BOTTOM, 0, 4));
+        // Nothing in it may change the book while a Psiche project is exported or imported.
+        book.disableProperty().bind(projectTransfer.busyProperty());
 
         return book;
     }
@@ -313,6 +349,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         books.close();
         notes.shutdown();
         notesTransfer.shutdown();
+        projectTransfer.shutdown();
         gitControls.shutdown();
         history.shutdown();
         exports.shutdown();

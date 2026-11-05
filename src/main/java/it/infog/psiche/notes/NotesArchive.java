@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NotesManifest;
@@ -27,11 +28,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import static it.infog.psiche.common.SafeFiles.move;
+import static it.infog.psiche.common.SafeFiles.temporaryBeside;
 import static it.infog.psiche.notes.NoteFolders.loadProperties;
-import static it.infog.psiche.notes.NoteFolders.move;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.subfolders;
-import static it.infog.psiche.notes.NoteFolders.temporaryBeside;
 
 /**
  * A book's notes as a zip, to move them to another computer or keep a copy: {@value #MANIFEST} saying whose notes they
@@ -77,14 +78,14 @@ public final class NotesArchive {
      * Writes every note of the book to {@code zip}, and remembers each note's fingerprints as exported.
      * {@code progress} hears how many bytes are written, of how many.
      */
-    public void export(Path zip, NotesManifest manifest, NoteStore.CopyProgress progress) {
+    public void export(Path zip, NotesManifest manifest, CopyProgress progress) {
 
         notes().forEach(this::rememberPrints);
         write(zip, manifest, progress);
     }
 
     /** Writes every note of the book to {@code zip} as {@link #export} does, but leaves their fingerprints alone. */
-    public void backup(Path zip, NotesManifest manifest, NoteStore.CopyProgress progress) {
+    public void backup(Path zip, NotesManifest manifest, CopyProgress progress) {
 
         write(zip, manifest, progress);
     }
@@ -96,7 +97,7 @@ public final class NotesArchive {
      *
      * @throws UncheckedIOException if {@code zip} cannot be read or the notes written; the notes merged until then stay
      */
-    public ImportReport importFrom(Path zip, NoteStore.CopyProgress progress) {
+    public ImportReport importFrom(Path zip, CopyProgress progress) {
 
         try (ZipFile file = new ZipFile(zip.toFile(), StandardCharsets.UTF_8)) {
             manifest(file, zip);
@@ -108,7 +109,7 @@ public final class NotesArchive {
 
     // Export
 
-    private void write(Path zip, NotesManifest manifest, NoteStore.CopyProgress progress) {
+    private void write(Path zip, NotesManifest manifest, CopyProgress progress) {
 
         Path root = store.root();
         List<Path> files = files(root);
@@ -200,7 +201,7 @@ public final class NotesArchive {
      * @return the bytes written; none for a file deleted while the export ran
      */
     private static long put(ZipOutputStream out, Path root, Path file, long before, long total,
-                            NoteStore.CopyProgress progress) throws IOException {
+                            CopyProgress progress) throws IOException {
 
         String name = NOTES_FOLDER + root.relativize(file).toString().replace(file.getFileSystem().getSeparator(), "/");
         boolean text = TEXT_EXTENSIONS.stream().anyMatch(name::endsWith);
