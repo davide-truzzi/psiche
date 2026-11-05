@@ -145,10 +145,14 @@ public final class ChapterContext {
         chapterList.getSelectionModel().selectFirst();
     }
 
-    /** Empties the list and the editor, discarding unsaved changes; callers save first if they need to. */
+    /**
+     * Empties the list and the editor, which shows the welcome again, discarding unsaved changes; callers save first
+     * if they need to.
+     */
     public void clear() {
 
         chapterEditor.close();
+        chapterEditor.showWelcome();
         history.show(null, null);
         notesPane.show(null, null);
 

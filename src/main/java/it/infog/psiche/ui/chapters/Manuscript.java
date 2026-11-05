@@ -54,6 +54,7 @@ final class Manuscript {
     // The logo behind the welcome, and the page that stacks the text over it, and the marks' dots over the text.
     private final StackPane welcomeLogo = new StackPane();
     private final StackPane page = new StackPane(welcomeLogo, scrolled);
+    private final Label welcome;
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     // Where the right-click menu was last asked for, in the text: under the pointer, or at the caret from the keyboard.
@@ -62,7 +63,7 @@ final class Manuscript {
     private boolean reading;
 
     /**
-     * @param welcome            shown on the empty page from the start until a book opens; see {@link #hideWelcome}
+     * @param welcome            shown on the empty page while no book is open; see {@link #hideWelcome}
      * @param repetitionsCounted told the word the author is at and how many times it is in the text, while it comes
      *                           back; an empty word and 0 when it does not
      */
@@ -88,10 +89,8 @@ final class Manuscript {
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> menuIndex = event.isKeyboardTrigger()
                 ? area.getCaretPosition()
                 : area.hit(event.getX(), event.getY()).getInsertionIndex());
-        area.setPlaceholder(welcome(welcome), Pos.TOP_LEFT);
-        // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
-        area.setMouseTransparent(true);
-        area.setFocusTraversable(false);
+        this.welcome = welcome(welcome);
+        showWelcome();
 
         //the welcome's logo, sized to the page and never in the way of the page's own size or the mouse
         welcomeLogo.getChildren().add(Logo.lockup(welcomeLogo, 0.6));
@@ -187,10 +186,24 @@ final class Manuscript {
         area.setEditable(false);
     }
 
+    /** Shows the welcome and its logo on the empty page, as when the app starts, once the book closes. */
+    void showWelcome() {
+
+        area.setPlaceholder(welcome, Pos.TOP_LEFT);
+        // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
+        area.setMouseTransparent(true);
+        area.setFocusTraversable(false);
+        // The text kept the focus it had while a chapter was open, which would hide the welcome.
+        if (area.isFocused())
+            page.requestFocus();
+        if (!page.getChildren().contains(welcomeLogo))
+            page.getChildren().addFirst(welcomeLogo);
+    }
+
     /**
-     * Removes the welcome and its logo for good, once a book is open. The welcome is the text's placeholder, which
-     * shows whenever the text is empty, so it would otherwise fill every empty or new chapter as if it were the
-     * chapter's text.
+     * Removes the welcome and its logo while a book is open. The welcome is the text's placeholder, which shows
+     * whenever the text is empty, so it would otherwise fill every empty or new chapter as if it were the chapter's
+     * text.
      */
     void hideWelcome() {
 
