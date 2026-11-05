@@ -62,7 +62,7 @@ public final class DetachedNotes {
 
         opening = true;
         thread.run(() -> store.detached().orphans(chapters), groups -> {
-            DetachedNotesDialog dialog = new DetachedNotesDialog(window.get(), chapters);
+            DetachedNotesDialog dialog = new DetachedNotesDialog(window.get(), chapters, notesPane.bookTitle());
             dialog.setOnRestore((group, chapter) -> {
                 restore(store, group, chapter);
                 refill(dialog, store, chapters);
@@ -128,16 +128,22 @@ public final class DetachedNotes {
 
         thread.change(() -> store.detached().restoreTo(group, chapter), () -> {
             notesPane.reload(chapter);
-            statusBar.info("Restored %s to %s".formatted(DetachedNotesDialog.count(group), chapter));
+            statusBar.info("Restored %s to %s".formatted(DetachedNotesDialog.count(group), name(chapter)));
             check();
-        }, failure -> errors.report("Cannot restore the notes of " + group.chapter(), failure));
+        }, failure -> errors.report("Cannot restore the notes of " + name(group.chapter()), failure));
     }
 
     private void delete(NoteStore store, OrphanGroup group) {
 
         thread.change(() -> store.detached().deletePermanently(group), () -> {
-            statusBar.info("Deleted the notes of %s for good".formatted(group.chapter()));
+            statusBar.info("Deleted the notes of %s for good".formatted(name(group.chapter())));
             check();
-        }, failure -> errors.report("Cannot delete the notes of " + group.chapter(), failure));
+        }, failure -> errors.report("Cannot delete the notes of " + name(group.chapter()), failure));
+    }
+
+    /** The name the author knows the board kept in {@code folder} by. */
+    private String name(String folder) {
+
+        return DetachedNotesDialog.boardName(folder, notesPane.bookTitle());
     }
 }

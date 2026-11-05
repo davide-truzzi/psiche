@@ -206,11 +206,21 @@ public final class NotesPane extends StackPane {
         showBoard(store);
     }
 
-    /** Reads the notes of {@code chapter} again if its board is shown, as notes were put back on it. */
+    /**
+     * Reads the notes of {@code chapter}, a chapter's or the book's board, again if it is shown, as notes were put back
+     * on it, and counts the board not shown again.
+     */
     public void reload(String chapter) {
 
         if (chapter.equals(notes.chapter()))
             open(notes.store(), chapter);
+        countHidden(notes.store());
+    }
+
+    /** The open book's title, which its own notes are named after; null with no book open. */
+    String bookTitle() {
+
+        return bookTitle;
     }
 
     /**
