@@ -192,6 +192,11 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
                 KeyCombination.SHIFT_DOWN));
         saveAll.disableProperty().bind(Bindings.isEmpty(chapterEditor.unsavedChapters()));
 
+        // A Git command, or notes on their way in or out, still need the book.
+        MenuItem close = menuItem("Close book", books::closeOpenBook);
+        close.disableProperty().bind(books.bookOpenProperty().not().or(gitControls.busyProperty())
+                .or(notesTransfer.busyProperty()));
+
         MenuItem properties = menuItem("Book properties", books::editProperties);
         properties.disableProperty().bind(books.bookOpenProperty().not().or(gitControls.busyProperty()));
 
@@ -207,11 +212,11 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         MenuItem importNotes = menuItem("Import notes", books::importNotes);
         importNotes.disableProperty().bind(exportNotes.disableProperty());
 
-        ContextMenu menu = new ContextMenu(create, open, recent.menu(), new SeparatorMenuItem(), saveAll,
+        ContextMenu menu = new ContextMenu(create, open, recent.menu(), close, new SeparatorMenuItem(), saveAll,
                 new SeparatorMenuItem(), properties, export, new SeparatorMenuItem(), exportNotes, importNotes);
         menu.setOnShowing(event -> recent.refresh(gitControls.busyProperty().get()));
 
-        Button book = new Button("Book counts…");
+        Button book = new Button("Book");
         book.setOnAction(event -> menu.show(book, Side.BOTTOM, 0, 4));
 
         return book;

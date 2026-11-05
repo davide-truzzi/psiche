@@ -43,7 +43,7 @@ public final class ChapterEditor {
     private String savedText = "";
 
     /**
-     * @param welcome  shown in the empty editor from the start until a book opens; see {@link #hideWelcome}
+     * @param welcome  shown in the empty editor while no book is open; see {@link #hideWelcome}
      * @param ownWords   the words the author made right for the spell checker, read when it starts checking
      * @param addOwnWord adds a word to them, for every book
      */
@@ -212,7 +212,13 @@ public final class ChapterEditor {
         return true;
     }
 
-    /** Removes the welcome and its logo for good, once a book is open; see {@link Manuscript#hideWelcome}. */
+    /** Shows the welcome and its logo again, as the book closes; see {@link Manuscript#showWelcome}. */
+    void showWelcome() {
+
+        manuscript.showWelcome();
+    }
+
+    /** Removes the welcome and its logo while a book is open; see {@link Manuscript#hideWelcome}. */
     void hideWelcome() {
 
         manuscript.hideWelcome();

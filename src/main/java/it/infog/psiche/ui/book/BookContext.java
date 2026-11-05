@@ -45,8 +45,9 @@ public final class BookContext implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(BookContext.class);
     private static final Duration WATCH_RETRY = Duration.minutes(1);
+    private static final String NO_BOOK = "No book open";
 
-    private final Label bookTitle = new Label("No book open");
+    private final Label bookTitle = new Label(NO_BOOK);
     private final ReadOnlyBooleanWrapper bookOpen = new ReadOnlyBooleanWrapper();
     private final ChapterContext chapters;
     private final GitControls gitControls;
@@ -216,6 +217,19 @@ public final class BookContext implements AutoCloseable {
     public void importNotes() {
 
         notesTransfer.importNotes(book, chapters::refresh);
+    }
+
+    /** Closes the open book, once unsaved changes are settled, and shows the welcome as when the app starts. */
+    public void closeOpenBook() {
+
+        if (book == null || !unsavedChanges.settle("Save them before closing the book?"))
+            return;
+
+        String closed = book.title();
+        closeBook();
+        book = null;
+        bookTitle.setText(NO_BOOK);
+        statusBar.info("Closed " + closed);
     }
 
     /** Opens the book in {@code directory}, discarding any unsaved changes; callers settle them first. */

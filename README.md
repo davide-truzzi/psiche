@@ -50,9 +50,11 @@ my-book/              ← the folder; the book's title is set in its properties
 ## Features
 
 ### Books
-- The **Book counts…** button in the toolbar opens a menu of what acts on the whole book: **New book**, **Open book**,
-  **Open recent**, **Save chapters**, **Book properties**, **Export**, **Export notes** and **Import notes**. What acts
-  on one chapter is in that chapter's right-click menu.
+- The **Book** button in the toolbar opens a menu of what acts on the whole book: **New book**, **Open book**,
+  **Open recent**, **Close book**, **Save chapters**, **Book properties**, **Export**, **Export notes** and **Import
+  notes**. What acts on one chapter is in that chapter's right-click menu.
+- **Close book** closes the open book, asking first about unsaved changes as opening another book does, and shows the
+  welcome page again, as when Psiche starts. It waits while a commit, a push or a notes export or import is running.
 - **New book** asks for a title and a location. It creates `<title>/chapters/` and `<title>/media/` with the book's
   properties, in the language and with the author chosen for new books in **Preferences**, and the default ebook
   stylesheet, initialises a Git repository on branch `main`, and opens the book. It refuses titles that aren't a single
@@ -63,10 +65,10 @@ my-book/              ← the folder; the book's title is set in its properties
   show the folder they are in. A book whose folder is gone shows greyed out as *(not found)*, since it may be on a
   drive that is not plugged in, until **Clear list**. With no book open, the folder dialogs start next to the latest
   book.
-- **Preferences**, next to **Book counts…** in the toolbar, holds what applies to the app rather than to one book, in
-  two groups. Nothing changes until you click **Apply**, which keeps Preferences open so you can try a size or a theme
-  and see it at once, or **Save**, which closes it. **Revert** puts every field back as it was when Preferences opened,
-  and undoes what you applied since; **Cancel**, or closing Preferences, does the same and closes it:
+- **Preferences**, next to **Book** in the toolbar, holds what applies to the app rather than to one book, in two
+  groups. Nothing changes until you click **Apply**, which keeps Preferences open so you can try a size or a theme and
+  see it at once, or **Save**, which closes it. **Revert** puts every field back as it was when Preferences opened, and
+  undoes what you applied since; **Cancel**, or closing Preferences, does the same and closes it:
   - **General**
     - **Startup**: reopen the last book when Psiche Writer starts; off until you turn it on. A book given on the
       command line opens instead, and a last book that is gone is skipped.
@@ -145,8 +147,8 @@ my-book/              ← the folder; the book's title is set in its properties
     list starts at its own number, as in the chapter.
   - **Markdown**: the chapter's file as it is. Image links still point to `../media/`, so images show only next
     to the book's media folder.
-- **Export** in the Book counts… menu writes the whole book, as it is saved, to one file you pick (by default named
-  after the book and next to its folder):
+- **Export** in the Book menu writes the whole book, as it is saved, to one file you pick (by default named after the
+  book and next to its folder):
   - **PDF**: the chapter manuscript for the whole book. A title page with the cover, title, subtitle and authors,
     then the contents (*Indice*, *Contents*… in the book's language), both without the page header, then every
     chapter in the order of the chapter list, each starting on a new page however short it is. Pages are numbered
@@ -251,9 +253,9 @@ my-book/              ← the folder; the book's title is set in its properties
   "meraviglioso" and "Meravigliosa". Short words such as "il", "la" or "the" are left alone. The places show a moment
   after you stop typing, clicking or scrolling, and never move the text; the status bar adds how many times the word
   is in the whole chapter, as `“meraviglios” 4 times`. **Highlight repetitions** in Preferences turns it off.
-- **Save chapters** in the Book counts… menu, or `Ctrl+Shift+S` / `Cmd+Shift+S`, saves every chapter with unsaved
-  changes. To save one chapter, open or not, use **Save** in its right-click menu, or `Ctrl+S` / `Cmd+S` for the open
-  one. Nothing is written to disk otherwise.
+- **Save chapters** in the Book menu, or `Ctrl+Shift+S` / `Cmd+Shift+S`, saves every chapter with unsaved changes. To
+  save one chapter, open or not, use **Save** in its right-click menu, or `Ctrl+S` / `Cmd+S` for the open one. Nothing
+  is written to disk otherwise.
 - Switching chapter keeps unsaved changes in memory: the chapter is tagged *unsaved* in the list, and its text is
   restored when you go back to it. The status bar shows whether the open chapter has unsaved changes.
 - In a book with Git, a dot before each chapter's name tells whether it changed since the last revision (the last
@@ -307,7 +309,7 @@ my-book/              ← the folder; the book's title is set in its properties
 - Restoring a chapter from Deleted chapters asks **Restore its notes too?**: **Restore notes** puts back the notes it
   had when it was deleted; **Chapter only** leaves them in Detached notes.
 - Notes stay out of Git: a book's first note, made or imported, adds `notes/` to its `.gitignore`, in a commit of its
-  own. To move them to another computer, or keep a copy, use the Book counts… menu:
+  own. To move them to another computer, or keep a copy, use the Book menu:
   - **Export notes** writes every note, Detached notes included, to a zip you pick, by default next to the book's
     folder as `<title> - notes <date>.zip`. Text is compressed and every other file stored as it is, so even
     gigabytes of video copy at the speed of the disk; the status bar shows how far it has come.
@@ -434,7 +436,7 @@ and they have unit tests; `export` reads the book's properties from `book.model`
 ### UI components
 
 ```
-WriterApp ── BookWorkspace ─┬─ toolbar:   Book counts… menu (New book · Open book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
+WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open book · Close book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
                             ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Detached notes)
                             ├─ pages:     ChapterEditor (Manuscript · MarginMarks · Mistakes · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
                             └─ StatusBar
@@ -445,7 +447,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book counts… menu (New boo
 | `WriterApp` | Entry point: titles the window with the app's name and, until the first stable release, its version; loads the fonts and stylesheet, binds `Ctrl+S` / `Cmd+S` (save the open chapter) and `Ctrl+Shift+S` / `Cmd+Shift+S` (save all), asks about unsaved chapters before the window closes, finds the settings, puts the window where it was last time and remembers it on closing, makes the preview's renderer for each theme, opens the book given on the command line, or else the last book if Preferences asks for it |
 | `BookWorkspace` | Lays out the window, creates the shared parts and wires them together; reports errors in the status bar and an alert |
 | `book.BookContext` | The open book: opens, creates and closes books (folder, Git repository, chapter watcher), edits the book's properties and cover and how its pages are counted, and hands the book to `ChapterContext`, and remembers each book opened, for **Open recent** |
-| `book.RecentBooksMenu` | **Open recent** in the Book counts… menu, filled from the settings each time the menu opens: the books by title, a missing one greyed out, and Clear list |
+| `book.RecentBooksMenu` | **Open recent** in the Book menu, filled from the settings each time the menu opens: the books by title, a missing one greyed out, and Clear list |
 | `book.BookPropertiesDialog` | The *Book properties* form: title, subtitle, authors, language and copyright, plus the cover's thumbnail with *Choose image…* and *Remove*. It returns the edit, and the workspace writes it |
 | `chapters.ChapterContext` | The open book's chapters: the chapter list, drawn by `ChapterCell`, and its right-click menu (`ChapterMenu`), opening a chapter in the editor, restoring a past version into it, and keeping the preview, notes, history, counts and status bar in step with the editor (what the status bar and the book's counts tell is `ChapterStatus`'); creating, renaming and deleting a chapter are left to `ChapterChanges`, exporting one to `Exports`, restoring a deleted one to `DeletedChapters`, and the notes left without a chapter to `DetachedNotes`, whose button it shows only while there are any |
 | `chapters.ChapterChanges` | Creates, renames and deletes chapters after asking the author; a renamed or deleted chapter's notes move with it, through `NoteStore`, and the rename or deletion is committed alone, once everything else is saved and committed |
