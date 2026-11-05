@@ -103,6 +103,36 @@ public final class BookFolder {
         return book;
     }
 
+    // Directories
+
+    public Path root() {
+
+        return root;
+    }
+
+    public Path chaptersDir() {
+
+        return root.resolve(CHAPTERS_DIR);
+    }
+
+    public Path mediaDir() {
+
+        return root.resolve(MEDIA_DIR);
+    }
+
+    /** {@code notes/}, the chapters' notes; it may not exist, as a book has it only once a chapter has notes. */
+    public Path notesDir() {
+
+        return root.resolve(NOTES_DIR);
+    }
+
+    public String title() {
+
+        return root.getFileName().toString();
+    }
+
+    // Chapters
+
     /**
      * Creates an empty chapter file named {@code title} in {@code chapters/}. The {@code .md} extension is added
      * unless {@code title} already ends with it.
@@ -167,20 +197,6 @@ public final class BookFolder {
         }
     }
 
-    private Chapter newChapter(String title, String markdown) {
-
-        Path file = chapterFile(title);
-        try {
-            Files.writeString(file, markdown, StandardOpenOption.CREATE_NEW);
-        } catch (FileAlreadyExistsException e) {
-            throw new IllegalArgumentException("Chapter " + file.getFileName() + " already exists", e);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot create chapter " + file, e);
-        }
-
-        return new Chapter(file);
-    }
-
     /**
      * The file in {@code chapters/} for a chapter titled {@code title}, with or without its extension, whether or not
      * it exists.
@@ -194,49 +210,6 @@ public final class BookFolder {
             name = name.substring(0, name.length() - CHAPTER_EXTENSION.length());
 
         return resolveName(chaptersDir(), name, CHAPTER_EXTENSION, "Chapter title", "file");
-    }
-
-    /** Resolves {@code name + suffix} against {@code parent}, accepting only a single, non-blank path element. */
-    private static Path resolveName(Path parent, String name, String suffix, String subject, String kind) {
-
-        String stripped = name == null ? "" : name.strip();
-        if (stripped.isEmpty())
-            throw new IllegalArgumentException(subject + " must not be blank");
-
-        if (stripped.equals(".") || stripped.equals("..") || stripped.contains("/") || stripped.contains("\\"))
-            throw new IllegalArgumentException("'%s' cannot be used as a %s name".formatted(stripped, kind));
-
-        try {
-            return parent.resolve(stripped + suffix);
-        } catch (InvalidPathException e) {
-            throw new IllegalArgumentException("'%s' cannot be used as a %s name".formatted(stripped, kind), e);
-        }
-    }
-
-    public Path root() {
-
-        return root;
-    }
-
-    public Path chaptersDir() {
-
-        return root.resolve(CHAPTERS_DIR);
-    }
-
-    public Path mediaDir() {
-
-        return root.resolve(MEDIA_DIR);
-    }
-
-    /** {@code notes/}, the chapters' notes; it may not exist, as a book has it only once a chapter has notes. */
-    public Path notesDir() {
-
-        return root.resolve(NOTES_DIR);
-    }
-
-    public String title() {
-
-        return root.getFileName().toString();
     }
 
     /** Chapters ordered by file name, so authors control the order with prefixes like {@code 01-}. */
@@ -271,7 +244,80 @@ public final class BookFolder {
         }
     }
 
-    // Properties, cover and style
+    // Style and Cover
+
+    /** The ebook's stylesheet, {@code media/style.css}, if the book has one. */
+    public Optional<Path> stylesheet() {
+
+        Path style = mediaDir().resolve(STYLE_FILE);
+        return Files.isRegularFile(style) ? Optional.of(style) : Optional.empty();
+    }
+
+    /** The cover image, {@code media/cover.jpg} or {@code media/cover.png}; empty if the book has none. */
+    public Optional<Path> cover() {
+
+        return COVER_FILES.stream().map(mediaDir()::resolve).filter(Files::isRegularFile).findFirst();
+    }
+
+    /**
+     * Copies {@code image} into {@code media/} as the cover, named {@code cover.jpg} or {@code cover.png} after its
+     * type, and removes a cover of the other type.
+     *
+     * @throws IllegalArgumentException if {@code image} is not a JPEG or PNG file
+     */
+    public void setCover(Path image) {
+
+        String name = image.getFileName().toString().toLowerCase(Locale.ROOT);
+        String coverName;
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg"))
+            coverName = "cover.jpg";
+        else if (name.endsWith(".png"))
+            coverName = "cover.png";
+        else
+            throw new IllegalArgumentException(image.getFileName() + " is not a JPEG or PNG image");
+
+        Path cover = mediaDir().resolve(coverName);
+        try {
+            Files.copy(image, cover, StandardCopyOption.REPLACE_EXISTING);
+            for (String other : COVER_FILES)
+                if (!other.equals(coverName))
+                    Files.deleteIfExists(mediaDir().resolve(other));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot use " + image + " as the cover", e);
+        }
+    }
+
+    public void removeCover() {
+
+        try {
+            for (String cover : COVER_FILES)
+                Files.deleteIfExists(mediaDir().resolve(cover));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot remove the cover from " + mediaDir(), e);
+        }
+    }
+
+    // Measure
+
+    /**
+     * How the book's chapters are counted in pages, as last chosen; until then, the measure publishers use for the
+     * book's language.
+     */
+    public PageMeasure pageMeasure() {
+
+        return PageMeasure.fromKey(loadProperties().getProperty(PAGE_COUNT, ""))
+                .orElseGet(() -> PageMeasure.forLanguage(properties().language()));
+    }
+
+    /** Keeps {@code measure} in {@code media/book.properties} with the book's other properties. */
+    public void savePageMeasure(PageMeasure measure) {
+
+        Properties saved = loadProperties();
+        saved.setProperty(PAGE_COUNT, measure.key());
+        storeProperties(saved);
+    }
+
+    // Properties
 
     /**
      * The book's properties as last saved. Anything not saved yet has a default: the title is the folder's name, the
@@ -314,22 +360,35 @@ public final class BookFolder {
         ensureStyle();
     }
 
-    /**
-     * How the book's chapters are counted in pages, as last chosen; until then, the measure publishers use for the
-     * book's language.
-     */
-    public PageMeasure pageMeasure() {
+    private Chapter newChapter(String title, String markdown) {
 
-        return PageMeasure.fromKey(loadProperties().getProperty(PAGE_COUNT, ""))
-                .orElseGet(() -> PageMeasure.forLanguage(properties().language()));
+        Path file = chapterFile(title);
+        try {
+            Files.writeString(file, markdown, StandardOpenOption.CREATE_NEW);
+        } catch (FileAlreadyExistsException e) {
+            throw new IllegalArgumentException("Chapter " + file.getFileName() + " already exists", e);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot create chapter " + file, e);
+        }
+
+        return new Chapter(file);
     }
 
-    /** Keeps {@code measure} in {@code media/book.properties} with the book's other properties. */
-    public void savePageMeasure(PageMeasure measure) {
+    /** Resolves {@code name + suffix} against {@code parent}, accepting only a single, non-blank path element. */
+    private static Path resolveName(Path parent, String name, String suffix, String subject, String kind) {
 
-        Properties saved = loadProperties();
-        saved.setProperty(PAGE_COUNT, measure.key());
-        storeProperties(saved);
+        String stripped = name == null ? "" : name.strip();
+        if (stripped.isEmpty())
+            throw new IllegalArgumentException(subject + " must not be blank");
+
+        if (stripped.equals(".") || stripped.equals("..") || stripped.contains("/") || stripped.contains("\\"))
+            throw new IllegalArgumentException("'%s' cannot be used as a %s name".formatted(stripped, kind));
+
+        try {
+            return parent.resolve(stripped + suffix);
+        } catch (InvalidPathException e) {
+            throw new IllegalArgumentException("'%s' cannot be used as a %s name".formatted(stripped, kind), e);
+        }
     }
 
     /** Writes {@code saved} to {@code media/book.properties}. */
@@ -342,6 +401,7 @@ public final class BookFolder {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+
         String entries = text.toString().lines().filter(line -> !line.startsWith("#"))
                 .collect(Collectors.joining("\n", "#" + PROPERTIES_COMMENT + "\n", "\n"));
 
@@ -350,57 +410,6 @@ public final class BookFolder {
             writer.write(entries);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot save " + file, e);
-        }
-    }
-
-    /** The cover image, {@code media/cover.jpg} or {@code media/cover.png}; empty if the book has none. */
-    public Optional<Path> cover() {
-
-        return COVER_FILES.stream().map(mediaDir()::resolve).filter(Files::isRegularFile).findFirst();
-    }
-
-    /** The ebook's stylesheet, {@code media/style.css}, if the book has one. */
-    public Optional<Path> stylesheet() {
-
-        Path style = mediaDir().resolve(STYLE_FILE);
-        return Files.isRegularFile(style) ? Optional.of(style) : Optional.empty();
-    }
-
-    /**
-     * Copies {@code image} into {@code media/} as the cover, named {@code cover.jpg} or {@code cover.png} after its
-     * type, and removes a cover of the other type.
-     *
-     * @throws IllegalArgumentException if {@code image} is not a JPEG or PNG file
-     */
-    public void setCover(Path image) {
-
-        String name = image.getFileName().toString().toLowerCase(Locale.ROOT);
-        String coverName;
-        if (name.endsWith(".jpg") || name.endsWith(".jpeg"))
-            coverName = "cover.jpg";
-        else if (name.endsWith(".png"))
-            coverName = "cover.png";
-        else
-            throw new IllegalArgumentException(image.getFileName() + " is not a JPEG or PNG image");
-
-        Path cover = mediaDir().resolve(coverName);
-        try {
-            Files.copy(image, cover, StandardCopyOption.REPLACE_EXISTING);
-            for (String other : COVER_FILES)
-                if (!other.equals(coverName))
-                    Files.deleteIfExists(mediaDir().resolve(other));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot use " + image + " as the cover", e);
-        }
-    }
-
-    public void removeCover() {
-
-        try {
-            for (String cover : COVER_FILES)
-                Files.deleteIfExists(mediaDir().resolve(cover));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot remove the cover from " + mediaDir(), e);
         }
     }
 

@@ -1,5 +1,6 @@
 package it.infog.psiche.git;
 
+import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.DeletedChapter;
 import it.infog.psiche.git.model.FileRevision;
 import org.eclipse.jgit.diff.DiffConfig;
@@ -59,6 +60,7 @@ public final class BookHistory {
      * @throws IllegalArgumentException if {@code file} is outside the book folder
      */
     public List<FileRevision> revisions(Path file) {
+
         String path = BookRepository.repositoryPath(repo, file);
         try (RevWalk walk = new RevWalk(repo);
              DiffFormatter pathDiff = diffFormatter(repo);
@@ -195,6 +197,7 @@ public final class BookHistory {
     }
 
     private Optional<String> contentAt(String commitId, String path) {
+
         try (RevWalk walk = new RevWalk(repo)) {
             RevCommit commit = walk.parseCommit(ObjectId.fromString(commitId));
             try (TreeWalk entry = TreeWalk.forPath(repo, path, commit.getTree())) {
@@ -212,6 +215,7 @@ public final class BookHistory {
     }
 
     private static DiffFormatter diffFormatter(Repository repo) {
+
         DiffFormatter diff = new DiffFormatter(DisabledOutputStream.INSTANCE);
         diff.setRepository(repo);
         diff.setDiffComparator(RawTextComparator.DEFAULT);
@@ -226,6 +230,7 @@ public final class BookHistory {
      */
     private static Optional<DiffEntry> change(DiffFormatter pathDiff, DiffFormatter renameDiff, RevCommit parent,
                                               RevCommit commit, String path) throws IOException {
+
         pathDiff.setPathFilter(PathFilter.create(path));
         List<DiffEntry> entries = pathDiff.scan(parent, commit);
         boolean added = entries.size() == 1 && entries.getFirst().getChangeType() == ChangeType.ADD;
@@ -241,6 +246,7 @@ public final class BookHistory {
     }
 
     private static boolean isRename(DiffEntry entry) {
+
         return entry.getChangeType() == ChangeType.RENAME || entry.getChangeType() == ChangeType.COPY;
     }
 

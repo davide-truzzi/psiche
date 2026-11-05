@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.Commit;
 import it.infog.psiche.git.model.DeletedChapter;
 import it.infog.psiche.git.model.FileRevision;

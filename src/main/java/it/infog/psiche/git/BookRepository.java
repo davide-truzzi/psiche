@@ -19,6 +19,7 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
+import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.Commit;
 
 import java.io.File;
@@ -54,6 +55,7 @@ public final class BookRepository implements AutoCloseable {
     private final BookHistory history;
 
     public BookRepository(Git git, CredentialsProvider credentials) {
+
         this.git = git;
         this.credentials = credentials;
         history = new BookHistory(git.getRepository());
@@ -66,6 +68,7 @@ public final class BookRepository implements AutoCloseable {
      * @throws GitCommandException if {@code bookRoot} has no Git repository
      */
     public static BookRepository open(Path bookRoot) {
+
         try {
             return new BookRepository(Git.open(bookRoot.toFile()), new NetRCCredentialsProvider());
         } catch (RepositoryNotFoundException e) {
@@ -87,16 +90,6 @@ public final class BookRepository implements AutoCloseable {
             Git.init().setDirectory(bookRoot.toFile()).setInitialBranch(DEFAULT_BRANCH).call().close();
         } catch (GitAPIException e) {
             throw new GitCommandException("git init failed: " + e.getMessage(), e);
-        }
-    }
-
-    /** Equivalent of {@code git add --all}: stages new, modified and deleted files. */
-    private void stageAll() {
-        try {
-            git.add().addFilepattern(".").call();
-            git.add().addFilepattern(".").setUpdate(true).call();
-        } catch (GitAPIException e) {
-            throw new GitCommandException("git add failed: " + e.getMessage(), e);
         }
     }
 
@@ -203,16 +196,6 @@ public final class BookRepository implements AutoCloseable {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    /** @throws GitCommandException if the status cannot be read */
-    private Status status() {
-
-        try {
-            return git.status().call();
-        } catch (GitAPIException e) {
-            throw new GitCommandException("git status failed: " + e.getMessage(), e);
-        }
-    }
-
     /**
      * True if the last commit has {@code file}.
      *
@@ -276,11 +259,6 @@ public final class BookRepository implements AutoCloseable {
         return Repository.shortenRefName(fullBranch);
     }
 
-    /** {@code file} relative to the working tree, with '/' separators as Git paths use. */
-    private String repositoryPath(Path file) {
-        return repositoryPath(git.getRepository(), file);
-    }
-
     /**
      * {@code file} relative to the working tree of {@code repo}, with '/' separators as Git paths use.
      *
@@ -295,14 +273,40 @@ public final class BookRepository implements AutoCloseable {
         return workTree.relativize(absolute).toString().replace(File.separatorChar, '/');
     }
 
+    /** The short id of {@code commit}, as Git shows it in a log. */
+    static String shortId(RevCommit commit) {
+        return commit.abbreviate(SHORT_ID_LENGTH).name();
+    }
+
+    /** @throws GitCommandException if the status cannot be read */
+    private Status status() {
+
+        try {
+            return git.status().call();
+        } catch (GitAPIException e) {
+            throw new GitCommandException("git status failed: " + e.getMessage(), e);
+        }
+    }
+
+    /** {@code file} relative to the working tree, with '/' separators as Git paths use. */
+    private String repositoryPath(Path file) {
+        return repositoryPath(git.getRepository(), file);
+    }
+
     /** The commit as the author sees it: its short id and the first line of its message. */
     private static Commit commitOf(RevCommit commit) {
         return new Commit(shortId(commit), commit.getShortMessage());
     }
 
-    /** The short id of {@code commit}, as Git shows it in a log. */
-    static String shortId(RevCommit commit) {
-        return commit.abbreviate(SHORT_ID_LENGTH).name();
+    /** Equivalent of {@code git add --all}: stages new, modified and deleted files. */
+    private void stageAll() {
+
+        try {
+            git.add().addFilepattern(".").call();
+            git.add().addFilepattern(".").setUpdate(true).call();
+        } catch (GitAPIException e) {
+            throw new GitCommandException("git add failed: " + e.getMessage(), e);
+        }
     }
 
     private String currentBranch() {

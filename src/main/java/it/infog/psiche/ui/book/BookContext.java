@@ -6,7 +6,7 @@ import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.book.model.enums.PageMeasure;
 import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.BookRepository;
-import it.infog.psiche.git.GitCommandException;
+import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.ui.chapters.ChapterContext;

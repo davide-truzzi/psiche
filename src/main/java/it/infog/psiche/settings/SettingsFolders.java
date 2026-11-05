@@ -31,8 +31,7 @@ public final class SettingsFolders {
     static final String FOLDER_PROPERTY = "psiche.settings.dir";
     static final String PORTABLE_FOLDER = "settings";
 
-    private SettingsFolders() {
-    }
+    private SettingsFolders() {}
 
     /** The settings folder for this run of the app, from its system properties and environment. */
     public static SettingsFolder resolve() {

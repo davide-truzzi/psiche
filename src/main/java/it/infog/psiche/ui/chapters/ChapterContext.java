@@ -64,7 +64,6 @@ public final class ChapterContext {
     private final NotesPane notesPane;
     private final GitControls gitControls;
     private final StatusBar statusBar;
-    private final UnsavedChanges unsavedChanges;
     private final ErrorReporter errors;
     private final Supplier<Window> window;
     private final VBox sidebar;
@@ -88,7 +87,7 @@ public final class ChapterContext {
     private NoteStore notes;
 
     public ChapterContext(ChapterEditor chapterEditor, PreviewPane preview, HistoryPane history, NotesPane notesPane,
-                          GitControls gitControls, StatusBar statusBar, UnsavedChanges unsavedChanges, Exports exports,
+                          GitControls gitControls, StatusBar statusBar, Exports exports,
                           ErrorReporter errors, Supplier<Window> window) {
 
         this.chapterEditor = chapterEditor;
@@ -97,7 +96,6 @@ public final class ChapterContext {
         this.notesPane = notesPane;
         this.gitControls = gitControls;
         this.statusBar = statusBar;
-        this.unsavedChanges = unsavedChanges;
         this.exports = exports;
         this.errors = errors;
         this.window = window;

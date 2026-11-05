@@ -29,8 +29,7 @@ public final class Dictionaries {
     // Between a dictionary's tag, its source and its licence.
     private static final String FIELDS = " | ";
 
-    private Dictionaries() {
-    }
+    private Dictionaries() {}
 
     /** Every dictionary the app brings, in the order {@value #INDEX} lists them. */
     public static List<SpellingLanguage> bundled() {

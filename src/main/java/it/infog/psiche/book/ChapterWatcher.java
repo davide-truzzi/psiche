@@ -36,6 +36,16 @@ public final class ChapterWatcher implements AutoCloseable {
         Thread.ofVirtual().name("chapter-watcher").start(() -> watch(onChaptersChanged));
     }
 
+    @Override
+    public void close() {
+
+        try {
+            watchService.close();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private void watch(Runnable onChaptersChanged) {
 
         try {
@@ -68,15 +78,5 @@ public final class ChapterWatcher implements AutoCloseable {
 
         return event.kind() == OVERFLOW
                 || event.context() instanceof Path file && file.toString().endsWith(BookFolder.CHAPTER_EXTENSION);
-    }
-
-    @Override
-    public void close() {
-
-        try {
-            watchService.close();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 }

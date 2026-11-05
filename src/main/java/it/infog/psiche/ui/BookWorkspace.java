@@ -104,7 +104,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         notesTransfer = new NotesTransfer(notes, statusBar, this::reportError, this::window, keepNotesOutOfGit);
         exports = new Exports(chapter -> chapterEditor.unsavedChapters().contains(chapter), unsavedChanges::settle,
                 statusBar, this::reportError, this::window);
-        chapters = new ChapterContext(chapterEditor, preview, history, notes, gitControls, statusBar, unsavedChanges,
+        chapters = new ChapterContext(chapterEditor, preview, history, notes, gitControls, statusBar,
                 exports, this::reportError, this::window);
         chapterTabs = chapterTabs();
         books = new BookContext(chapters, gitControls, statusBar, unsavedChanges, exports, notesTransfer,

@@ -12,7 +12,6 @@ import it.infog.psiche.export.model.enums.EpubVariant;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Image;
-import org.commonmark.node.Node;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;

@@ -3,7 +3,7 @@ package it.infog.psiche.ui.chapters;
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.git.BookRepository;
-import it.infog.psiche.git.GitCommandException;
+import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.DeletedChapter;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.git.GitControls;
