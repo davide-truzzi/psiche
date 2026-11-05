@@ -3,6 +3,8 @@ package it.infog.psiche.ui.common;
 import it.infog.psiche.book.model.enums.PageMeasure;
 import it.infog.psiche.markdown.model.TextCount;
 import javafx.animation.FadeTransition;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableDoubleValue;
 import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
@@ -39,10 +41,9 @@ public final class StatusBar extends HBox {
     private final Label pages = new Label();
     private final Label repetitions = new Label();
     private final Label chapterState = new Label();
-    private final ToggleGroup measures = new ToggleGroup();
+    private final ReadOnlyObjectWrapper<PageMeasure> pageMeasure = new ReadOnlyObjectWrapper<>(PageMeasure.STANDARD);
 
     private Consumer<PageMeasure> onPageMeasureChosen = measure -> {};
-    private PageMeasure pageMeasure = PageMeasure.STANDARD;
     private TextCount count;
 
     public StatusBar() {
@@ -102,7 +103,7 @@ public final class StatusBar extends HBox {
             return;
 
         counts.setText(String.format(Locale.ENGLISH, "%,d characters  ·  %,d words", count.characters(), count.words()));
-        pages.setText(pageMeasure.describe(count.characters(), count.words()));
+        pages.setText(pageMeasure.get().describe(count.characters(), count.words()));
     }
 
     /**
@@ -121,15 +122,17 @@ public final class StatusBar extends HBox {
         repetitions.setText(String.format(Locale.ENGLISH, "“%s” %,d times", shownWord, times));
     }
 
-    /** Counts pages by {@code measure} from now on, and marks it in the menu. */
+    /** Counts pages by {@code measure} from now on, which the menus mark. */
     public void setPageMeasure(PageMeasure measure) {
 
-        pageMeasure = measure;
-        measures.getToggles().stream()
-                .filter(toggle -> toggle.getUserData() == measure)
-                .findFirst()
-                .ifPresent(measures::selectToggle);
+        pageMeasure.set(measure);
         showCount(count);
+    }
+
+    /** How pages are counted, for other counts to count them alike. */
+    public ReadOnlyObjectProperty<PageMeasure> pageMeasureProperty() {
+
+        return pageMeasure.getReadOnlyProperty();
     }
 
     /** Keeps the counts starting at {@code margin}, a position in scene coordinates such as the editor's text margin. */
@@ -149,16 +152,21 @@ public final class StatusBar extends HBox {
         onPageMeasureChosen = action;
     }
 
-    private ContextMenu pageMeasureMenu() {
+    /**
+     * A new menu to choose how pages are counted, as right-clicking the pages shows, for other counts to offer too;
+     * the measure in use is marked each time it opens.
+     */
+    public ContextMenu pageMeasureMenu() {
 
         ContextMenu menu = new ContextMenu();
+        ToggleGroup measures = new ToggleGroup();
         for (PageMeasure measure : PageMeasure.values()) {
             RadioMenuItem item = new RadioMenuItem(measure.label());
-            item.setUserData(measure);
             item.setToggleGroup(measures);
             item.setOnAction(event -> onPageMeasureChosen.accept(measure));
             menu.getItems().add(item);
         }
+        menu.setOnShowing(event -> measures.selectToggle(measures.getToggles().get(pageMeasure.get().ordinal())));
 
         return menu;
     }

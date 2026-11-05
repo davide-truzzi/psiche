@@ -106,7 +106,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         exports = new Exports(chapter -> chapterEditor.unsavedChapters().contains(chapter), unsavedChanges::settle,
                 statusBar, this::reportError, this::window);
         chapters = new ChapterContext(chapterEditor, preview, history, notes, gitControls, statusBar,
-                exports, this::reportError, this::window);
+                exports, this::reportError, this::window, settings.bookCountsShown(), settings::saveBookCountsShown);
         chapterTabs = chapterTabs();
         books = new BookContext(chapters, gitControls, statusBar, unsavedChanges, exports, notesTransfer,
                 this::reportError, this::window,
@@ -211,7 +211,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
                 new SeparatorMenuItem(), properties, export, new SeparatorMenuItem(), exportNotes, importNotes);
         menu.setOnShowing(event -> recent.refresh(gitControls.busyProperty().get()));
 
-        Button book = new Button("Book");
+        Button book = new Button("Book counts");
         book.setOnAction(event -> menu.show(book, Side.BOTTOM, 0, 4));
 
         return book;

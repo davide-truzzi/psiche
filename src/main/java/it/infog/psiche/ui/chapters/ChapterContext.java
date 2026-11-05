@@ -40,6 +40,7 @@ import javafx.util.Duration;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static it.infog.psiche.ui.common.Controls.button;
@@ -73,6 +74,7 @@ public final class ChapterContext {
     private final DeletedChapters deletedChapters;
     private final DetachedNotes detachedNotes;
     private final ChapterRevisions revisions;
+    private final BookCounts bookCounts;
 
     // Counting parses the whole chapter, so wait for a pause in typing as the preview does, but less long.
     private final PauseTransition countDelay = new PauseTransition(Duration.millis(300));
@@ -86,9 +88,14 @@ public final class ChapterContext {
     private BookRepository repository;
     private NoteStore notes;
 
+    /**
+     * @param bookCountsShown    true to show the book's counts under the chapter list open, false collapsed
+     * @param rememberBookCounts told when the author opens or collapses them, to keep it for the next start
+     */
     public ChapterContext(ChapterEditor chapterEditor, PreviewPane preview, HistoryPane history, NotesPane notesPane,
                           GitControls gitControls, StatusBar statusBar, Exports exports,
-                          ErrorReporter errors, Supplier<Window> window) {
+                          ErrorReporter errors, Supplier<Window> window, boolean bookCountsShown,
+                          Consumer<Boolean> rememberBookCounts) {
 
         this.chapterEditor = chapterEditor;
         this.preview = preview;
@@ -106,6 +113,8 @@ public final class ChapterContext {
         deletedChapters = new DeletedChapters(gitControls, errors, window,
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
                 title -> detachedNotes.offerRestore(notes, title), this::showChapter);
+        bookCounts = new BookCounts(statusBar.pageMeasureProperty(), statusBar.pageMeasureMenu(), bookCountsShown,
+                rememberBookCounts);
         sidebar = buildSidebar();
 
         countDelay.setOnFinished(event -> countChapter());
@@ -119,14 +128,19 @@ public final class ChapterContext {
         chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> updateChapterState());
         // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft; a
         // chapter loses it when saved, which can bring it back to its last revision.
+        // A chapter loses its draft when it is saved, which the book's counts follow.
         chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> {
             chapterList.refresh();
             revisions.check();
+            if (change.wasRemoved())
+                countBook();
         });
         notesPane.setOnBinned(this::checkOrphans);
     }
 
-    /** The chapter list with New chapter above it, and Deleted chapters and Detached notes below. */
+    /**
+     * The chapter list with New chapter above it, and the book's counts, Deleted chapters and Detached notes below.
+     */
     public VBox sidebar() {
 
         return sidebar;
@@ -167,6 +181,7 @@ public final class ChapterContext {
         bookOpen.set(false);
         hasRepository.set(false);
         hasOrphans.set(false);
+        bookCounts.clear();
         revisions.show(null);
         chapterEditor.setBookLanguage(null);
     }
@@ -195,6 +210,7 @@ public final class ChapterContext {
         chapterEditor.chapter().filter(chapters::contains).ifPresent(chapterList.getSelectionModel()::select);
         checkOrphans();
         revisions.check();
+        countBook();
     }
 
     /** Reads again which chapters changed since the last revision, after a commit, in the app or outside it. */
@@ -275,7 +291,7 @@ public final class ChapterContext {
         deleted.setMaxWidth(Double.MAX_VALUE);
         detachedNotesButton.setMaxWidth(Double.MAX_VALUE);
 
-        VBox footer = new VBox(deleted, detachedNotesButton);
+        VBox footer = new VBox(bookCounts.node(), deleted, detachedNotesButton);
         footer.getStyleClass().add("sidebar-footer");
 
         VBox box = new VBox(header, chapterList, footer);
@@ -425,6 +441,13 @@ public final class ChapterContext {
         countDelay.stop();
         if (chapterEditor.chapter().isPresent())
             statusBar.showCount(TextCounter.count(chapterEditor.text()));
+    }
+
+    /** Counts the book's chapters again, as they are saved. */
+    private void countBook() {
+
+        if (book != null)
+            bookCounts.count(book, List.copyOf(chapterList.getItems()));
     }
 
     private void updateChapterState() {

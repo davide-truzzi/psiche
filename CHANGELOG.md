@@ -9,6 +9,8 @@
   the chapter again. It finds exactly what you select, capitals or not, inside longer words too ("meraviglios" finds
   "Meravigliosa"); short words such as "il" or "the" are left alone. The status bar says how many times the word is
   in the chapter. **Highlight repetitions** in Preferences turns it off.
+- **Book counts…**, under the chapter list: the whole book's characters, words and pages, counted as the status bar
+  counts a chapter, from the chapters as saved. Click it to fold the numbers away; Psiche remembers.
 - The status bar's counts are no longer cut short by a long message beside them.
 
 ### For testers
