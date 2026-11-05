@@ -259,6 +259,34 @@ public final class NoteStore {
         writeProperties(folder.resolve(BOARD_FILE), properties);
     }
 
+    /**
+     * Moves the note, with its file, from {@code from}'s board to {@code to}'s, in the same place, over the notes
+     * there; a chapter with no notes left keeps no folder. A note already there under its id keeps it, and this one
+     * takes a new one.
+     */
+    public void moveNote(String from, String id, String to) {
+
+        Path note = noteFolder(from, id);
+        Path target = chapterFolder(to).resolve(id);
+        try {
+            Files.createDirectories(target.getParent());
+            if (Files.exists(target)) {
+                target = newNoteFolder(chapterFolder(to));
+                Files.delete(target);
+            }
+            int top = readNotes(chapterFolder(to)).stream().mapToInt(each -> each.layout().order()).max().orElse(0);
+            move(note, target);
+            updateProperties(target, properties -> {
+                NoteLayout layout = NoteFolders.layout(properties);
+                putLayout(properties, new NoteLayout(layout.x(), layout.y(), layout.width(), layout.height(), top + 1,
+                        layout.color()));
+            });
+            removeIfEmpty(chapterFolder(from));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot move the note " + note + " to " + to, e);
+        }
+    }
+
     // Chapters renamed and deleted
 
     /** Moves {@code from}'s notes to {@code to}, as its chapter was renamed; notes {@code to} already has stay. */

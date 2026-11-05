@@ -211,7 +211,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
                 new SeparatorMenuItem(), properties, export, new SeparatorMenuItem(), exportNotes, importNotes);
         menu.setOnShowing(event -> recent.refresh(gitControls.busyProperty().get()));
 
-        Button book = new Button("Book counts");
+        Button book = new Button("Book counts…");
         book.setOnAction(event -> menu.show(book, Side.BOTTOM, 0, 4));
 
         return book;

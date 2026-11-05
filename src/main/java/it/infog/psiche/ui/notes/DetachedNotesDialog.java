@@ -10,7 +10,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -216,14 +215,8 @@ final class DetachedNotesDialog {
         }
 
         String suggested = chapters.contains(group.chapter()) ? group.chapter() : chapters.getFirst();
-        ChoiceDialog<String> choice = new ChoiceDialog<>(suggested, chapters);
-        Dialogs.ownAndStyle(choice, window());
-        choice.setHeaderText("Restore %s to a chapter".formatted(count(group)));
-        choice.setContentText("Chapter");
-        choice.getDialogPane().getButtonTypes().setAll(ButtonType.CANCEL,
-                new ButtonType("Restore", ButtonData.OK_DONE));
-
-        Optional<String> chapter = choice.showAndWait();
+        Optional<String> chapter = Dialogs.chooseChapter(window(),
+                "Restore %s to a chapter".formatted(count(group)), chapters, suggested, "Restore");
         if (chapter.isEmpty())
             return;
 

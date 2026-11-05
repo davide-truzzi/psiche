@@ -136,6 +136,7 @@ public final class ChapterContext {
                 countBook();
         });
         notesPane.setOnBinned(this::checkOrphans);
+        notesPane.setChapters(this::chapterTitles);
     }
 
     /**
