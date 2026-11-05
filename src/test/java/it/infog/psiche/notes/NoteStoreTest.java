@@ -281,6 +281,38 @@ class NoteStoreTest extends BookNotesTest {
     }
 
     @Test
+    void aNoteMovesWithItsTextAndFileToTheTopOfAnotherChaptersBoard() throws IOException {
+        NoteStore store = store(MORNING);
+        Note there = store.create("02-mezzogiorno", layout(4));
+        Note note = store.create("01-alba", new NoteLayout(300, 420, 260, 200, 1, NoteColor.SAGE));
+        store.saveText("01-alba", note.id(), "Marco lies.");
+        store.attach("01-alba", note.id(), Files.writeString(tempDir.resolve("map.png"), "map"), (bytes, total) -> {});
+
+        store.moveNote("01-alba", note.id(), "02-mezzogiorno");
+
+        assertThat(notesDir().resolve("01-alba")).doesNotExist();
+        assertThat(store.notes("02-mezzogiorno")).extracting(Note::id).containsExactly(there.id(), note.id());
+        Note moved = store.notes("02-mezzogiorno").getLast();
+        assertThat(moved.text()).isEqualTo("Marco lies.");
+        assertThat(moved.layout()).isEqualTo(new NoteLayout(300, 420, 260, 200, 5, NoteColor.SAGE));
+        assertThat(moved.attachment()).hasValueSatisfying(file -> assertThat(file).hasContent("map"));
+    }
+
+    @Test
+    void aNoteMovedToABoardWithItsIdTakesANewOne() throws IOException {
+        NoteStore store = store(MORNING);
+        Note note = store.create("01-alba", LAYOUT);
+        Note other = store.create("01-alba", LAYOUT);
+        Files.createDirectories(notesDir().resolve("03-sera").resolve(note.id()));
+
+        store.moveNote("01-alba", note.id(), "03-sera");
+
+        assertThat(store.notes("01-alba")).extracting(Note::id).containsExactly(other.id());
+        // The folder already there reads as a note of its own, which keeps the id.
+        assertThat(store.notes("03-sera")).extracting(Note::id).hasSize(2).containsOnlyOnce(note.id());
+    }
+
+    @Test
     void aFileTheAuthorPutInAChaptersFolderKeepsTheFolder() throws IOException {
         NoteStore store = store(MORNING);
         Note note = store.create("01-alba", LAYOUT);

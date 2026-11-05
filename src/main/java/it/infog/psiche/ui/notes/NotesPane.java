@@ -22,6 +22,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.function.Consumer;
 
 /**
@@ -112,6 +113,12 @@ public final class NotesPane extends StackPane {
     public ReadOnlyBooleanProperty availableProperty() {
 
         return available.getReadOnlyProperty();
+    }
+
+    /** @param chapters gives the book's chapters, by name, in their order, which a note can be moved to */
+    public void setChapters(Supplier<List<String>> chapters) {
+
+        board.setChapters(chapters);
     }
 
     /** Runs {@code binned} each time a note, or a file a note no longer carries, has gone to Detached notes. */

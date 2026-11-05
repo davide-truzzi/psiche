@@ -4,7 +4,9 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.TextInputDialog;
 import javafx.stage.DirectoryChooser;
@@ -14,6 +16,7 @@ import javafx.stage.Window;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 /** Dialogs owned by the main window and styled like it. */
@@ -47,6 +50,21 @@ public final class Dialogs {
     public static Optional<ButtonType> choose(Window owner, String header, String content, ButtonType... choices) {
 
         return confirmationAlert(owner, header, content, choices).showAndWait();
+    }
+
+    /**
+     * Asks which of {@code chapters}, by name, something goes to, with {@code suggested} picked at first; the button
+     * that accepts is labelled {@code action}. Empty if the author cancels.
+     */
+    public static Optional<String> chooseChapter(Window owner, String header, List<String> chapters, String suggested,
+                                                 String action) {
+
+        ChoiceDialog<String> choice = new ChoiceDialog<>(suggested, chapters);
+        ownAndStyle(choice, owner);
+        choice.setHeaderText(header);
+        choice.setContentText("Chapter");
+        choice.getDialogPane().getButtonTypes().setAll(ButtonType.CANCEL, new ButtonType(action, ButtonData.OK_DONE));
+        return choice.showAndWait();
     }
 
     /** Tells the author something and waits until they close the alert. */

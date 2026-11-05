@@ -42,8 +42,9 @@ import static it.infog.psiche.ui.common.Controls.menuItem;
  * it by, with a paperclip that opens the file menu; the text typed in place; and a corner to resize it from. Pressing
  * anywhere on it brings it to the front, so the note dragged last lies over the others. Its colour dot opens a row of
  * swatches. Under the text, the file it carries; a file dropped on it takes the place of the one it had. A right-click
- * offers what fits: the file's actions, the colours, Delete. It tells its {@link Board} what changed: the text a moment
- * after the author stops typing, or on leaving it, and its place, size, colour and stacking order once they settle.
+ * offers what fits: the file's actions, the colours, Move to chapter and Detach. It tells its {@link Board} what
+ * changed: the text a moment after the author stops typing, or on leaving it, and its place, size, colour and stacking
+ * order once they settle.
  */
 public final class NoteCard extends VBox {
 
@@ -60,6 +61,12 @@ public final class NoteCard extends VBox {
 
         /** Moves the note to Detached notes. */
         void delete(NoteCard card);
+
+        /** True if the book has a chapter besides the board's, which a note can move to. */
+        boolean hasOtherChapters();
+
+        /** Asks the author for another chapter, and moves the note to its board. */
+        void moveToChapter(NoteCard card);
 
         /** Clears the Duplicate on Import tag: the author keeps both versions. */
         void clearDuplicateTag(NoteCard card);
@@ -323,7 +330,7 @@ public final class NoteCard extends VBox {
         return strip;
     }
 
-    /** The note's menu, on a right-click: the file menu, then the colours and Delete. */
+    /** The note's menu, on a right-click: the file menu, then the colours, Move to chapter and Detach. */
     private List<MenuItem> menuItems() {
 
         List<MenuItem> items = new ArrayList<>(fileMenuItems());
@@ -331,7 +338,9 @@ public final class NoteCard extends VBox {
         for (NoteColor each : NoteColor.values())
             colors.getItems().add(menuItem(each.label(), () -> recolor(each)));
 
-        items.addAll(List.of(new SeparatorMenuItem(), colors, menuItem("Detach", () -> board.delete(this))));
+        items.addAll(List.of(new SeparatorMenuItem(), colors,
+                menuItem("Move to chapter…", () -> board.moveToChapter(this), board.hasOtherChapters()),
+                menuItem("Detach", () -> board.delete(this))));
         return items;
     }
 

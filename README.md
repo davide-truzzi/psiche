@@ -290,6 +290,9 @@ my-book/              ← the folder; the book's title is set in its properties
   pinch zooms around the pointer, from the whole board in view up to 200 %; so do the corner's **−**, **+** and
   **Fit**, and Ctrl/⌘ with **+**, **−** and **0** once the board has the focus. Each chapter's board opens again where
   you left it.
+- **Move to chapter…** in a note's menu moves it, with its file, to another chapter's board, the next chapter
+  suggested: it keeps its place and size there and lies over the notes it finds. It is greyed out while the book has
+  no other chapter.
 - **×**, **Detach** in the menu, or the Delete key on a selected note moves it out of the chapter, to a folder named
   after the chapter and the time (see [Book layout](#book-layout)); nothing is asked, as nothing is lost.
 - **Detached notes**, below Deleted chapters, shows while notes are kept for no chapter: notes deleted on their own,
