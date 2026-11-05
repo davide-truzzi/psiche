@@ -93,6 +93,16 @@ class SettingsTest {
     }
 
     @Test
+    void theBookCountsAreOpenUntilCollapsedAndStaySo() {
+        assertThat(settings().bookCountsShown()).isTrue();
+
+        settings().saveBookCountsShown(false);
+
+        assertThat(settings().bookCountsShown()).isFalse();
+        assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
+    }
+
+    @Test
     void aDamagedFileReadsAsNoSettings() throws IOException {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE), "recent.1=\\u00zz broken escape\n");

@@ -136,6 +136,48 @@
     -fx-border-color: -desk-edge transparent transparent transparent;
 }
 
+/* The whole book's counts, above Deleted chapters, one to a line: quiet, as the chapter's in the status bar. Clicking
+   "Book counts…" collapses them, its arrow then pointing at them sideways. */
+.book-counts {
+    -fx-spacing: 2;
+    -fx-padding: 0 0 6 0;
+}
+
+.book-counts .label {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 11px;
+}
+
+.book-counts-heading {
+    -fx-alignment: center-left;
+    -fx-spacing: 6;
+    -fx-cursor: hand;
+}
+
+.book-counts-heading:hover .label,
+.book-counts-numbers:hover .label {
+    -fx-text-fill: -paper-dim;
+}
+
+.book-counts-arrow {
+    -fx-background-color: -graphite;
+    -fx-min-width: 7;
+    -fx-pref-width: 7;
+    -fx-max-width: 7;
+    -fx-min-height: 4;
+    -fx-pref-height: 4;
+    -fx-max-height: 4;
+}
+
+.book-counts:collapsed .book-counts-arrow {
+    -fx-rotate: -90;
+}
+
+/* Under "Book counts…", past its arrow. */
+.book-counts-numbers {
+    -fx-padding: 0 0 0 13;
+}
+
 .sidebar-header .button,
 .sidebar-footer .button {
     -fx-font-size: 11px;

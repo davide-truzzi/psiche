@@ -59,6 +59,7 @@ public final class Settings {
     private static final String STRICT_SPELLING = "spelling.strict";
     private static final String HIGHLIGHT_REPETITIONS = "editor.highlight-repetitions";
     private static final String WINDOW = "window.";
+    private static final String BOOK_COUNTS_SHOWN = "sidebar.book-counts";
     private static final String WEB_VIEW_FOLDER = "webview";
     private static final String OWN_WORDS_FILE = "words.txt";
 
@@ -188,6 +189,18 @@ public final class Settings {
             settings.setProperty(WINDOW + "height", String.valueOf(bounds.height()));
             settings.setProperty(WINDOW + "maximized", String.valueOf(bounds.maximized()));
         });
+    }
+
+    /** True if the book's counts under the chapter list were open when last left, as they are the first time. */
+    public boolean bookCountsShown() {
+
+        return flag(read().getProperty(BOOK_COUNTS_SHOWN), true);
+    }
+
+    /** Remembers whether the book's counts under the chapter list are open or collapsed. */
+    public void saveBookCountsShown(boolean shown) {
+
+        update(settings -> settings.setProperty(BOOK_COUNTS_SHOWN, String.valueOf(shown)));
     }
 
     /** {@code tag} as a language tag, if it names a language. */
