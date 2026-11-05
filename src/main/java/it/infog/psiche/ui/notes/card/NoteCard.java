@@ -36,6 +36,7 @@ import java.util.Optional;
 import static it.infog.psiche.ui.common.Controls.editingItems;
 import static it.infog.psiche.ui.common.Controls.hSpacer;
 import static it.infog.psiche.ui.common.Controls.menuItem;
+import static it.infog.psiche.ui.common.Controls.setShown;
 
 /**
  * A note on its chapter's board, drawn as a post-it: a toolbar at the top, a darker tone of the note's colour, to drag
@@ -226,8 +227,7 @@ public final class NoteCard extends VBox {
         getStyleClass().remove(DUPLICATE_STYLE);
         if (duplicate)
             getStyleClass().add(DUPLICATE_STYLE);
-        band.setVisible(duplicate);
-        band.setManaged(duplicate);
+        setShown(band, duplicate);
     }
 
     public boolean isDuplicateOnImport() {

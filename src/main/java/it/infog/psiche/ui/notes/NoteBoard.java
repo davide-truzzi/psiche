@@ -47,6 +47,8 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     private final NotesThread notes;
     private final StatusBar statusBar;
     private final NotesPane.FirstNoteListener firstNote;
+    // Reads the board's notes again, as a change to them failed half-way.
+    private final Runnable reload;
     private final CardFiles files;
     private final ReadOnlyIntegerWrapper count = new ReadOnlyIntegerWrapper();
     private final ReadOnlyBooleanWrapper duplicates = new ReadOnlyBooleanWrapper();
@@ -65,13 +67,17 @@ final class NoteBoard extends Pane implements NoteCard.Board {
                            boolean first) {
     }
 
-    /** @param showing whether the tab is on screen: pictures are made only while it is */
+    /**
+     * @param showing whether the tab is on screen: pictures are made only while it is
+     * @param reload  reads the board's notes again, for a note that could not leave the board
+     */
     NoteBoard(NotesThread notes, NoteFiles noteFiles, StatusBar statusBar, ErrorReporter errors,
-              ObservableBooleanValue showing, NotesPane.FirstNoteListener firstNote) {
+              ObservableBooleanValue showing, NotesPane.FirstNoteListener firstNote, Runnable reload) {
 
         this.notes = notes;
         this.statusBar = statusBar;
         this.firstNote = firstNote;
+        this.reload = reload;
         this.files = new CardFiles(this, noteFiles, notes, statusBar, errors, showing);
 
         getStyleClass().add("notes-board");
@@ -217,12 +223,9 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     @Override
     public void delete(NoteCard card) {
 
-        getChildren().remove(card);
-        if (card == selected)
-            selected = null;
-        updateCounts();
-
-        notes.write("Cannot delete the note", (store, chapter) -> store.binNote(chapter, card.id()), this::binned);
+        removeCard(card);
+        notes.write("Cannot delete the note", (store, chapter) -> store.binNote(chapter, card.id()), this::binned,
+                reload);
         statusBar.info("Note deleted: it's in Detached notes until you remove it for good");
     }
 
@@ -250,13 +253,9 @@ final class NoteBoard extends Pane implements NoteCard.Board {
 
         // Text typed a moment ago is saved first: the thread does one thing at a time, in order.
         card.flushText();
-        getChildren().remove(card);
-        if (card == selected)
-            selected = null;
-        updateCounts();
-
+        removeCard(card);
         notes.write("Cannot move the note", (store, chapter) -> store.moveNote(chapter, card.id(), to.get()),
-                () -> statusBar.info("Note moved to " + to.get()));
+                () -> statusBar.info("Note moved to " + to.get()), reload);
     }
 
     @Override
@@ -312,6 +311,17 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     }
 
     // New notes
+
+    /**
+     * Takes {@code card} off the board, as its note leaves it; if the note cannot leave, {@link #reload} puts it back.
+     */
+    private void removeCard(NoteCard card) {
+
+        getChildren().remove(card);
+        if (card == selected)
+            selected = null;
+        updateCounts();
+    }
 
     /** The book's chapters but the board's, in their order. */
     private List<String> otherChapters() {

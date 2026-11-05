@@ -86,6 +86,7 @@ public final class BookRepository implements AutoCloseable {
      * @throws GitCommandException if the repository cannot be created
      */
     public static void init(Path bookRoot) {
+
         try {
             Git.init().setDirectory(bookRoot.toFile()).setInitialBranch(DEFAULT_BRANCH).call().close();
         } catch (GitAPIException e) {
@@ -101,6 +102,7 @@ public final class BookRepository implements AutoCloseable {
      * @throws GitCommandException if nothing changed since the last commit
      */
     public Commit commit(String message) {
+
         if (message == null || message.isBlank()) {
             throw new IllegalArgumentException("Commit message must not be blank");
         }
@@ -232,6 +234,7 @@ public final class BookRepository implements AutoCloseable {
      * @throws GitCommandException if there is no {@code origin}, HEAD is detached, or the remote rejects the push
      */
     public String push() {
+
         String fullBranch = currentBranch();
         if (!git.getRepository().getRemoteNames().contains(REMOTE)) {
             throw new GitCommandException("No '%s' remote is configured for this book".formatted(REMOTE));
@@ -265,6 +268,7 @@ public final class BookRepository implements AutoCloseable {
      * @throws IllegalArgumentException if {@code file} is outside the book folder
      */
     static String repositoryPath(Repository repo, Path file) {
+
         Path workTree = repo.getWorkTree().toPath().toAbsolutePath().normalize();
         Path absolute = file.toAbsolutePath().normalize();
         if (!absolute.startsWith(workTree) || absolute.equals(workTree)) {
@@ -275,6 +279,7 @@ public final class BookRepository implements AutoCloseable {
 
     /** The short id of {@code commit}, as Git shows it in a log. */
     static String shortId(RevCommit commit) {
+
         return commit.abbreviate(SHORT_ID_LENGTH).name();
     }
 
@@ -290,11 +295,13 @@ public final class BookRepository implements AutoCloseable {
 
     /** {@code file} relative to the working tree, with '/' separators as Git paths use. */
     private String repositoryPath(Path file) {
+
         return repositoryPath(git.getRepository(), file);
     }
 
     /** The commit as the author sees it: its short id and the first line of its message. */
     private static Commit commitOf(RevCommit commit) {
+
         return new Commit(shortId(commit), commit.getShortMessage());
     }
 
@@ -310,6 +317,7 @@ public final class BookRepository implements AutoCloseable {
     }
 
     private String currentBranch() {
+
         try {
             String fullBranch = git.getRepository().getFullBranch();
             if (fullBranch == null || !fullBranch.startsWith(Constants.R_HEADS)) {
@@ -323,6 +331,7 @@ public final class BookRepository implements AutoCloseable {
 
     @Override
     public void close() {
+
         git.close();
     }
 }

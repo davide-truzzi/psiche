@@ -2,10 +2,8 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
-import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.model.FileRevision;
-import it.infog.psiche.markdown.TextCounter;
 import it.infog.psiche.notes.NoteStore;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
@@ -16,18 +14,12 @@ import it.infog.psiche.ui.git.RevisionDialog;
 import it.infog.psiche.ui.notes.DetachedNotes;
 import it.infog.psiche.ui.notes.NotesPane;
 import it.infog.psiche.ui.preview.PreviewPane;
-import javafx.animation.PauseTransition;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.SetChangeListener;
 import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -35,7 +27,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
-import javafx.util.Duration;
 
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -45,12 +36,12 @@ import java.util.function.Supplier;
 
 import static it.infog.psiche.ui.common.Controls.button;
 import static it.infog.psiche.ui.common.Controls.hSpacer;
-import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
  * The open book's chapters: the chapter list with its menus, opening a chapter in the editor, and keeping the preview,
- * notes, history and status bar in step with it. Creating, renaming and deleting a chapter are left to
- * {@link ChapterChanges}, exporting one to {@link Exports}, restoring a deleted one to {@link DeletedChapters}, and
+ * notes, history and status bar in step with it. A chapter's right-click menu is {@link ChapterMenu}'s, and what the
+ * status bar and the book's counts tell is {@link ChapterStatus}'. Creating, renaming and deleting a chapter are left
+ * to {@link ChapterChanges}, exporting one to {@link Exports}, restoring a deleted one to {@link DeletedChapters}, and
  * the notes left without a chapter to {@link DetachedNotes}.
  */
 public final class ChapterContext {
@@ -74,15 +65,10 @@ public final class ChapterContext {
     private final DeletedChapters deletedChapters;
     private final DetachedNotes detachedNotes;
     private final ChapterRevisions revisions;
-    private final BookCounts bookCounts;
-
-    // Counting parses the whole chapter, so wait for a pause in typing as the preview does, but less long.
-    private final PauseTransition countDelay = new PauseTransition(Duration.millis(300));
+    private final ChapterStatus status;
 
     private final BooleanProperty bookOpen = new SimpleBooleanProperty();
     private final BooleanProperty hasRepository = new SimpleBooleanProperty();
-    // True while notes are kept for no chapter of the book, which shows Detached notes.
-    private final BooleanProperty hasOrphans = new SimpleBooleanProperty();
 
     private BookFolder book;
     private BookRepository repository;
@@ -113,22 +99,16 @@ public final class ChapterContext {
         deletedChapters = new DeletedChapters(gitControls, errors, window,
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
                 title -> detachedNotes.offerRestore(notes, title), this::showChapter);
-        bookCounts = new BookCounts(statusBar.pageMeasureProperty(), statusBar.pageMeasureMenu(), bookCountsShown,
-                rememberBookCounts);
+        status = new ChapterStatus(chapterEditor, statusBar, bookCountsShown, rememberBookCounts);
         sidebar = buildSidebar();
-
-        countDelay.setOnFinished(event -> countChapter());
-
-        statusBar.alignCountsTo(chapterEditor.textMarginProperty());
 
         // listeners
         chapterEditor.textProperty().addListener((obs, old, text) -> followEditor(text));
         chapterEditor.currentPositionProperty().addListener(
                 (obs, old, position) -> preview.followPosition(position.intValue(), chapterEditor.isReading()));
-        chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> updateChapterState());
+        chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> status.showChapter());
         // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft; a
-        // chapter loses it when saved, which can bring it back to its last revision.
-        // A chapter loses its draft when it is saved, which the book's counts follow.
+        // chapter loses it when saved, which can bring it back to its last revision and changes the book's counts.
         chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> {
             chapterList.refresh();
             revisions.check();
@@ -173,7 +153,7 @@ public final class ChapterContext {
         notesPane.show(null, null);
 
         // Closing a saved chapter leaves the dirty flag unchanged, so its listener would not clear the status bar.
-        updateChapterState();
+        status.clear();
         chapterList.getItems().clear();
 
         book = null;
@@ -181,8 +161,7 @@ public final class ChapterContext {
         notes = null;
         bookOpen.set(false);
         hasRepository.set(false);
-        hasOrphans.set(false);
-        bookCounts.clear();
+        detachedNotes.check(null, List.of());
         revisions.show(null);
         chapterEditor.setBookLanguage(null);
     }
@@ -256,8 +235,9 @@ public final class ChapterContext {
     private VBox buildSidebar() {
 
         //chapter list
-        chapterList.setCellFactory(list -> new ChapterCell(chapterEditor.unsavedChapters(), revisions,
-                this::chapterMenu));
+        ChapterMenu menu = new ChapterMenu(chapterEditor, exports, gitControls, hasRepository, () -> book,
+                this::renameChapter, this::deleteChapter);
+        chapterList.setCellFactory(list -> new ChapterCell(chapterEditor.unsavedChapters(), revisions, menu::of));
 
         //placeholder for empty list
         chapterList.setPlaceholder(new Label("No chapters yet."));
@@ -285,50 +265,20 @@ public final class ChapterContext {
 
         // Notes are not in Git, so their bin works without it; it is there only while it holds something.
         Button detachedNotesButton = button("Detached notes", this::showDetachedNotes);
-        detachedNotesButton.visibleProperty().bind(hasOrphans);
-        detachedNotesButton.managedProperty().bind(hasOrphans);
+        detachedNotesButton.visibleProperty().bind(detachedNotes.anyProperty());
+        detachedNotesButton.managedProperty().bind(detachedNotes.anyProperty());
 
         // The buttons span the column, inside the footer's padding.
         deleted.setMaxWidth(Double.MAX_VALUE);
         detachedNotesButton.setMaxWidth(Double.MAX_VALUE);
 
-        VBox footer = new VBox(bookCounts.node(), deleted, detachedNotesButton);
+        VBox footer = new VBox(status.bookCounts(), deleted, detachedNotesButton);
         footer.getStyleClass().add("sidebar-footer");
 
         VBox box = new VBox(header, chapterList, footer);
         box.getStyleClass().add("sidebar");
         VBox.setVgrow(chapterList, Priority.ALWAYS);
         return box;
-    }
-
-    /**
-     * Save, Rename, Delete and Export for the chapter in {@code cell}. Save writes the chapter's unsaved changes,
-     * whether it is open or not. Rename and Delete make a commit of their own, so they need the book's repository and
-     * wait while another Git command runs; Save and Export need neither.
-     */
-    private ContextMenu chapterMenu(ListCell<Chapter> cell) {
-
-        MenuItem save = menuItem("Save", () -> chapterEditor.save(cell.getItem()));
-        MenuItem rename = menuItem("Rename", () -> renameChapter(cell.getItem()));
-        MenuItem delete = menuItem("Delete", () -> deleteChapter(cell.getItem()));
-        MenuItem needsGit = new MenuItem("Needs a Git repository");
-        needsGit.setDisable(true);
-
-        Menu export = new Menu("Export");
-        for (ExportFormat format : Exports.CHAPTER_FORMATS)
-            export.getItems().add(menuItem(format.label(),
-                    () -> exports.exportChapter(book, cell.getItem(), format)));
-
-        ContextMenu menu = new ContextMenu(save, new SeparatorMenuItem(), rename, delete, needsGit,
-                new SeparatorMenuItem(), export);
-        menu.setOnShowing(event -> {
-            save.setDisable(!chapterEditor.unsavedChapters().contains(cell.getItem()));
-            rename.setDisable(!hasRepository.get() || gitControls.busyProperty().get());
-            delete.setDisable(rename.isDisable());
-            needsGit.setVisible(!hasRepository.get());
-        });
-
-        return menu;
     }
 
     // Chapters
@@ -344,8 +294,8 @@ public final class ChapterContext {
             preview.render(chapterEditor.text(), book.chaptersDir());
             history.show(repository, chapter);
             notesPane.show(notes, chapter.title());
-            updateChapterState();
-            countChapter();
+            status.showChapter();
+            status.countChapter();
         }
     }
 
@@ -376,7 +326,7 @@ public final class ChapterContext {
         chapterEditor.close();
         history.show(repository, null);
         notesPane.show(notes, null);
-        updateChapterState();
+        status.showChapter();
         refresh();
         if (!chapterList.getItems().isEmpty())
             chapterList.getSelectionModel().select(Math.min(index, chapterList.getItems().size() - 1));
@@ -396,22 +346,10 @@ public final class ChapterContext {
         detachedNotes.show(notes, chapterTitles());
     }
 
-    /**
-     * Shows Detached notes while notes are kept for no chapter of the book; the answer, read on the notes thread, is
-     * dropped if another book has opened meanwhile.
-     */
+    /** Shows Detached notes while notes are kept for no chapter of the book. */
     private void checkOrphans() {
 
-        if (notes == null) {
-            hasOrphans.set(false);
-            return;
-        }
-
-        NoteStore checked = notes;
-        detachedNotes.hasAny(notes, chapterTitles(), has -> {
-            if (notes == checked)
-                hasOrphans.set(has);
-        });
+        detachedNotes.check(notes, chapterTitles());
     }
 
     private List<String> chapterTitles() {
@@ -427,34 +365,17 @@ public final class ChapterContext {
      */
     private void followEditor(String text) {
 
-        if (chapterEditor.chapter().isPresent()) {
-            preview.renderLater(text, book.chaptersDir());
-            countDelay.playFromStart();
-        } else {
-            preview.clearLater();
-            countDelay.stop();
-        }
-    }
-
-    /** Shows the open chapter's characters, words and pages in the status bar. */
-    private void countChapter() {
-
-        countDelay.stop();
         if (chapterEditor.chapter().isPresent())
-            statusBar.showCount(TextCounter.count(chapterEditor.text()));
+            preview.renderLater(text, book.chaptersDir());
+        else
+            preview.clearLater();
+        status.countLater();
     }
 
     /** Counts the book's chapters again, as they are saved. */
     private void countBook() {
 
         if (book != null)
-            bookCounts.count(book, List.copyOf(chapterList.getItems()));
-    }
-
-    private void updateChapterState() {
-
-        chapterEditor.chapter().ifPresentOrElse(
-                chapter -> statusBar.showChapter(chapter.title(), chapterEditor.isDirty()),
-                statusBar::clearChapter);
+            status.countBook(book, chapterList.getItems());
     }
 }

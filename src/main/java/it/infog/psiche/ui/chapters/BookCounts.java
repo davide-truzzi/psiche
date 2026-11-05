@@ -26,6 +26,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+import static it.infog.psiche.ui.common.Controls.setShown;
+
 /**
  * The whole book's characters, words and pages, under the chapter list, one to a line, counted as the status bar
  * counts the open chapter. They count the chapters as saved, on a thread of their own, when the book opens, when a
@@ -68,7 +70,7 @@ final class BookCounts {
         arrow.getStyleClass().add("book-counts-arrow");
         HBox heading = new HBox(arrow, new Label("Book counts…"));
         heading.getStyleClass().add("book-counts-heading");
-        heading.setOnMouseClicked(event -> setShown(!numbers.isVisible()));
+        heading.setOnMouseClicked(event -> chooseShown(!numbers.isVisible()));
         Tooltip.install(heading, new Tooltip("The chapters as saved. Click to show or hide"));
 
         numbers.getStyleClass().add("book-counts-numbers");
@@ -122,7 +124,7 @@ final class BookCounts {
         show();
     }
 
-    private void setShown(boolean shown) {
+    private void chooseShown(boolean shown) {
 
         showNumbers(shown);
         remember.accept(shown);
@@ -130,16 +132,14 @@ final class BookCounts {
 
     private void showNumbers(boolean shown) {
 
-        numbers.setVisible(shown);
-        numbers.setManaged(shown);
+        setShown(numbers, shown);
         box.pseudoClassStateChanged(COLLAPSED, !shown);
     }
 
     private void show() {
 
         boolean shown = count != null;
-        box.setVisible(shown);
-        box.setManaged(shown);
+        setShown(box, shown);
         if (!shown)
             return;
 

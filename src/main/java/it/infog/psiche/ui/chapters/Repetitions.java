@@ -37,9 +37,9 @@ final class Repetitions {
     private final StyleClassedTextArea area;
     private final BiConsumer<String, Integer> counted;
     private final PauseTransition findDelay = new PauseTransition(FIND_DELAY);
+    private final List<Selection<Collection<String>, String, Collection<String>>> marks = new ArrayList<>();
     private boolean on = true;
     private List<TextRange> ranges = List.of();
-    private final List<Selection<Collection<String>, String, Collection<String>>> marks = new ArrayList<>();
 
     /**
      * @param counted told the word and how many times it is in the chapter, its own place included; none as an empty

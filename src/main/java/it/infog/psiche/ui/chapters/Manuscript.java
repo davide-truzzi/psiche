@@ -1,7 +1,5 @@
 package it.infog.psiche.ui.chapters;
 
-import it.infog.psiche.markdown.HtmlComments;
-import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
 import it.infog.psiche.ui.common.Logo;
@@ -18,8 +16,6 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
@@ -28,10 +24,8 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.StyleClassedTextArea;
-import org.fxmisc.richtext.model.StyleSpans;
 import org.fxmisc.richtext.util.UndoUtils;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,29 +37,25 @@ import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 /**
  * The page the author writes on: the open chapter's text, wrapped, in the manuscript's font, over the welcome and its
  * logo until a book opens. It knows where the author is in the text, the caret while writing and the place in view
- * while scrolling to read, and where the text starts, so the status bar can line up with it. It is the only part of
- * the editor that knows the text is a RichTextFX {@link StyleClassedTextArea}.
+ * while scrolling to read, and where the text starts, so the status bar can line up with it. Its text is a RichTextFX
+ * {@link StyleClassedTextArea}, which only it and the parts it is made of know: the {@link PlainTextArea}, the
+ * {@link TextMarks} and the {@link Repetitions}.
  */
 final class Manuscript {
 
     // Over writer.css's size for the manuscript, which is the default one.
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
-    // Right in the middle of the left margin; the spelling mistakes' dots sit beside them.
-    private static final double COMMENT_MARK_OFFSET = 0;
 
     private final StyleClassedTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
-    private final MarginMarks commentMarks =
-            new MarginMarks(area, "comment-mark", COMMENT_MARK_OFFSET, "comment", "comments");
-    private final Mistakes mistakes = new Mistakes(area, this::restyle);
+    private final TextMarks marks = new TextMarks(area);
     private final Repetitions repetitions;
-    // The logo behind the welcome, and the page that stacks the text over it, and the dots over the text.
+    // The logo behind the welcome, and the page that stacks the text over it, and the marks' dots over the text.
     private final StackPane welcomeLogo = new StackPane();
-    private final StackPane page = new StackPane(welcomeLogo, scrolled, commentMarks.node(), mistakes.node());
+    private final StackPane page = new StackPane(welcomeLogo, scrolled);
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
-    private List<TextRange> comments = List.of();
     // Where the right-click menu was last asked for, in the text: under the pointer, or at the caret from the keyboard.
     private int menuIndex;
     // True once the author scrolls the manuscript, until the caret next moves.
@@ -81,6 +71,8 @@ final class Manuscript {
         area.getStyleClass().add("manuscript");
         scrolled.getStyleClass().add("manuscript-scroll");
         page.getStyleClass().add("manuscript-page");
+        // The dots in the margin, over the text.
+        page.getChildren().addAll(marks.layers());
         area.setWrapText(true);
         area.setEditable(false);
         // Undo takes back what the author typed, not the comments' colour and the mistakes' lines that follow it.
@@ -90,10 +82,8 @@ final class Manuscript {
         repetitions = new Repetitions(area, repetitionsCounted);
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
-            findComments();
-            mistakes.follow(change);
+            marks.follow(change);
             repetitions.textChanged();
-            restyle();
         });
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> menuIndex = event.isKeyboardTrigger()
                 ? area.getCaretPosition()
@@ -169,7 +159,7 @@ final class Manuscript {
         reading = false;
         area.replaceText(text);
         area.getUndoManager().forgetHistory();
-        mistakes.checkNow();
+        marks.checkSpellingNow();
     }
 
     /** Replaces the whole text with {@code text}, as one change a single Undo reverts, and starts at the top. */
@@ -218,7 +208,7 @@ final class Manuscript {
      */
     void checkSpelling(SpellChecker checker, Set<String> ownWords, boolean strict) {
 
-        mistakes.check(checker, ownWords, strict);
+        marks.checkSpelling(checker, ownWords, strict);
     }
 
     /** Shows the other places of the word the author is at, as Preferences asks, or none. */
@@ -274,13 +264,13 @@ final class Manuscript {
     /** The spelling mistake the right-click menu was opened on, with the word as it is written; none if it was not. */
     Optional<Word> menuMistake() {
 
-        return mistakes.at(menuIndex).map(range -> new Word(area.getText(range.start(), range.end()), range));
+        return marks.mistakeAt(menuIndex).map(range -> new Word(area.getText(range.start(), range.end()), range));
     }
 
     /** Up to five words the author may have meant by {@code word}, the likeliest first. */
     List<String> suggestions(String word) {
 
-        return mistakes.suggestions(word);
+        return marks.suggestions(word);
     }
 
     boolean isEditable() {
@@ -366,34 +356,6 @@ final class Manuscript {
         return welcome;
     }
 
-    /** Finds the text's comments, and gives each line in view with one a dot in the margin. */
-    private void findComments() {
-
-        String text = area.getText();
-        comments = text.isEmpty() ? List.of() : HtmlComments.ranges(text);
-        commentMarks.setParts(comments);
-    }
-
-    /**
-     * Shows the comments in grey and the spelling mistakes with a dotted line under them. Only the paragraphs whose
-     * styles change are restyled: a restyled paragraph is measured again, which can move the view.
-     */
-    private void restyle() {
-
-        StyleSpans<Collection<String>> styles = TextStyles.of(area.getLength(), comments, mistakes.ranges());
-        int start = 0;
-        for (int paragraph = 0; paragraph < area.getParagraphs().size(); paragraph++) {
-            int end = start + area.getParagraphLength(paragraph);
-            if (end > start) {
-                StyleSpans<Collection<String>> wanted = styles.subView(start, end);
-                if (!TextStyles.same(wanted, area.getParagraph(paragraph).getStyleSpans()))
-                    area.setStyleSpans(paragraph, 0, wanted);
-            }
-            // past the line break
-            start = end + 1;
-        }
-    }
-
     /** Puts the caret at the start, with the first line at the top of the view, and the focus. */
     private void showStart() {
 
@@ -422,39 +384,5 @@ final class Manuscript {
             if (node instanceof ScrollBar)
                 return true;
         return false;
-    }
-
-    /**
-     * The text, cut, copied and pasted as plain text, from the menu and the keys alike. RichTextFX's own copy also
-     * puts its styled text on the clipboard, which JavaFX hands back in a form its paste cannot read; and here the
-     * styles come from the text itself, so plain text is all a copy needs. Pasted line breaks become the editor's.
-     */
-    private static final class PlainTextArea extends StyleClassedTextArea {
-
-        @Override
-        public void cut() {
-
-            copy();
-            replaceSelection("");
-        }
-
-        @Override
-        public void copy() {
-
-            if (getSelection().getLength() == 0)
-                return;
-
-            ClipboardContent content = new ClipboardContent();
-            content.putString(getSelectedText());
-            Clipboard.getSystemClipboard().setContent(content);
-        }
-
-        @Override
-        public void paste() {
-
-            String text = Clipboard.getSystemClipboard().getString();
-            if (text != null)
-                replaceSelection(text.replace("\r\n", "\n").replace('\r', '\n'));
-        }
     }
 }

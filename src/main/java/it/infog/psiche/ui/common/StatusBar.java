@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.function.Consumer;
 
 import static it.infog.psiche.ui.common.Controls.hSpacer;
+import static it.infog.psiche.ui.common.Controls.setShown;
 
 /**
  * The open chapter's characters, words and pages on the left, lined up with the editor's text, then how many times
@@ -96,8 +97,7 @@ public final class StatusBar extends HBox {
         this.count = count;
         boolean shown = count != null;
         for (Label label : new Label[] {counts, pages}) {
-            label.setVisible(shown);
-            label.setManaged(shown);
+            setShown(label, shown);
         }
         if (!shown)
             return;
@@ -113,8 +113,7 @@ public final class StatusBar extends HBox {
     public void showRepetitions(String word, int times) {
 
         boolean shown = times > 1;
-        repetitions.setVisible(shown);
-        repetitions.setManaged(shown);
+        setShown(repetitions, shown);
         if (!shown)
             return;
 
@@ -162,11 +161,15 @@ public final class StatusBar extends HBox {
         ToggleGroup measures = new ToggleGroup();
         for (PageMeasure measure : PageMeasure.values()) {
             RadioMenuItem item = new RadioMenuItem(measure.label());
+            item.setUserData(measure);
             item.setToggleGroup(measures);
             item.setOnAction(event -> onPageMeasureChosen.accept(measure));
             menu.getItems().add(item);
         }
-        menu.setOnShowing(event -> measures.selectToggle(measures.getToggles().get(pageMeasure.get().ordinal())));
+        menu.setOnShowing(event -> measures.getToggles().stream()
+                .filter(toggle -> toggle.getUserData() == pageMeasure.get())
+                .findFirst()
+                .ifPresent(measures::selectToggle));
 
         return menu;
     }
