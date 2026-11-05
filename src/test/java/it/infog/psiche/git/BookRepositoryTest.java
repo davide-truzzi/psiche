@@ -264,7 +264,9 @@ class BookRepositoryTest extends GitBookTest {
         commitAll("First draft");
         write("chapters/01-departure.md", DEPARTURE + "A new line, not committed.\n");
 
+        assertThat(repository.ignores("notes/")).isFalse();
         assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isTrue();
+        assertThat(repository.ignores("notes/")).isTrue();
         assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isFalse();
 
         assertThat(bookRoot.resolve(".gitignore")).hasContent("notes/");

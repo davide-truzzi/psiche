@@ -26,6 +26,7 @@ my-book/              ← the folder; the book's title is set in its properties
 ├── chapters/         ← one Markdown file per chapter, ordered by file name
 │   ├── 01-departure.md
 │   └── 02-the-crossing.md
+├── psiche.properties ← where you left each chapter, kept by Psiche and out of Git
 ├── media/            ← what the book needs besides its text
 │   ├── book.properties   ← title, subtitle, authors, language, copyright, identifier
 │   ├── cover.jpg         ← or cover.png, set from Book properties…
@@ -215,6 +216,11 @@ my-book/              ← the folder; the book's title is set in its properties
 ### Writing
 - Typewriter-style Markdown editor, with a live preview that refreshes 500 ms after you stop typing and keeps its
   scroll position.
+- A chapter reopens where you left it, with the caret where it was and the same paragraph at the top, after switching
+  to another chapter, closing the book or restarting Psiche. A chapter never opened before starts at the top. Psiche
+  keeps the places in `psiche.properties` at the book's root: every book gets it as it is created or first opened, and
+  the same commit that adds it to `.gitignore` keeps it out of Git, once per book, as it is yours rather than the
+  book's. A Psiche project takes it along.
 - The preview keeps to the same part of the chapter as the editor. While you write, it follows the caret, even through
   a long paragraph, moving only when the caret's place would leave the middle of the preview. When you scroll the
   editor to read, it lines up with the text a third of the way down the editor, until you click or type again.
@@ -445,7 +451,7 @@ What each package holds:
 
 | Package | Responsibility |
 |---|---|
-| `it.infog.psiche.book` | `BookFolder` (create, open and validate a book; create, list, read and write chapters; read and save the book's properties, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `ProjectArchive` writes a whole book folder to a Psiche project file, and unpacks one in place of the folder of that name, refusing entries that would leave the book's folder. `book.model.BookProperties` holds the properties, `book.model.ProjectManifest` what a project file says about its book |
+| `it.infog.psiche.book` | `BookFolder` (create, open and validate a book; create, list, read and write chapters; read and save the book's properties, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `BookState` keeps `psiche.properties`, where each chapter was left (`book.model.ChapterPlace`). `ProjectArchive` writes a whole book folder to a Psiche project file, and unpacks one in place of the folder of that name, refusing entries that would leave the book's folder. `book.model.BookProperties` holds the properties, `book.model.ProjectManifest` what a project file says about its book |
 | `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), adding a line to `.gitignore` and committing it alone, push, and the files changed since the last commit, via JGit. `BookHistory`, from `BookRepository.history()`, reads what the commits recorded: a file's history as `FileRevision`s with lines added and removed, whether a name was ever used, the deleted chapters, and a file as a commit recorded it. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
 | `it.infog.psiche.settings` | The app's own settings. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties` and `words.txt`, the author's own words for the spell checker, shared by every book, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was, beside whether the book's counts under the chapter list are open and which tab beside the chapter (`model.enums.ChapterTab`) shows when a book opens. A value missing or unreadable reads as its default |
 | `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports. `Occurrences`: every place a text appears, capitals or not, and the word at a position, for the editor's repetitions |

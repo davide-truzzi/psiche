@@ -109,6 +109,7 @@ public final class BookFolder {
             List<String> authors = author.isBlank() ? List.of() : List.of(author.strip());
             book.saveProperties(new BookProperties(defaults.title(), defaults.subtitle(), authors, language,
                     defaults.rights(), defaults.identifier()));
+            BookState.of(book);
             return book;
         } catch (IOException e) {
             removeHalfMade(root);
