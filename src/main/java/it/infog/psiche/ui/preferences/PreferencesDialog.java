@@ -80,6 +80,7 @@ public final class PreferencesDialog {
         CheckBox checkSpelling = new CheckBox("Check spelling");
         CheckBox strictSpelling = new CheckBox("Strict spell check");
         strictSpelling.disableProperty().bind(checkSpelling.selectedProperty().not());
+        CheckBox highlightRepetitions = new CheckBox("Highlight repetitions");
         LanguageChoice language = new LanguageChoice(preferences.newBookLanguage());
         TextField author = new TextField();
         author.setPromptText("Your name, as it goes on the cover");
@@ -96,11 +97,13 @@ public final class PreferencesDialog {
             previewFontSize.setValue(shown.previewFontSize());
             checkSpelling.setSelected(shown.checkSpelling());
             strictSpelling.setSelected(shown.strictSpelling());
+            highlightRepetitions.setSelected(shown.highlightRepetitions());
         };
         fill.accept(preferences);
 
         Label spellingHint = hint("In the languages Psiche has a dictionary for.");
         Label strictHint = hint("Also checks the words with a capital, as names have.");
+        Label repetitionsHint = hint("Shows where the selected word, or the one being written, comes back.");
         Label newBooksHint = hint("A book's own language and authors are in Book properties.");
 
         //groups
@@ -113,6 +116,8 @@ public final class PreferencesDialog {
         general.add(spellingHint, 1, 5);
         general.add(strictSpelling, 1, 6);
         general.add(strictHint, 1, 7);
+        general.addRow(8, new Label("Repetitions"), highlightRepetitions);
+        general.add(repetitionsHint, 1, 9);
 
         GridPane newBooks = new GridPane();
         newBooks.addRow(0, new Label("Language"), DictionaryMark.after(language));
@@ -127,7 +132,7 @@ public final class PreferencesDialog {
         Supplier<Preferences> chosen = () -> new Preferences(reopen.isSelected(),
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
                 editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected(),
-                strictSpelling.isSelected());
+                strictSpelling.isSelected(), highlightRepetitions.isSelected());
 
         // Apply and Revert, unlike the dialog's other buttons, leave it open.
         AtomicReference<Preferences> applied = new AtomicReference<>(preferences);

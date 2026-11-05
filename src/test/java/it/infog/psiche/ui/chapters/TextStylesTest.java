@@ -48,6 +48,18 @@ class TextStylesTest {
     }
 
     @Test
+    void aPartOfTheSpansIsTheSameAsSpansWithItsStyles() {
+
+        StyleSpans<Collection<String>> styles = TextStyles.of(20, List.of(new TextRange(2, 18)),
+                List.of(new TextRange(6, 10)));
+
+        assertThat(TextStyles.same(styles.subView(6, 10),
+                TextStyles.of(4, List.of(new TextRange(0, 4)), List.of(new TextRange(0, 4))))).isTrue();
+        assertThat(TextStyles.same(styles.subView(6, 10),
+                TextStyles.of(4, List.of(new TextRange(0, 4)), List.of()))).isFalse();
+    }
+
+    @Test
     void aPartPastTheEndIsCutAtIt() {
 
         assertThat(spans(TextStyles.of(8, List.of(new TextRange(5, 20)), List.of())))

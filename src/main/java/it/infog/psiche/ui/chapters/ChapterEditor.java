@@ -55,7 +55,7 @@ public final class ChapterEditor {
         this.ownWords = ownWords;
         this.addOwnWord = addOwnWord;
 
-        manuscript = new Manuscript(welcome);
+        manuscript = new Manuscript(welcome, statusBar::showRepetitions);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
         SpellingMenu.attach(FormattingMenu.attach(manuscript), manuscript, this::makeRight);
     }
@@ -131,6 +131,12 @@ public final class ChapterEditor {
         spelling.setOn(on);
         if (strictChanged)
             checkSpelling(checker);
+    }
+
+    /** Shows, or not, as Preferences asks, the other places of the word the author is at, and how many there are. */
+    public void setHighlightRepetitions(boolean on) {
+
+        manuscript.highlightRepetitions(on);
     }
 
     /** Checks the spelling in the open book's language, a BCP 47 tag; none with {@code null} while no book is open. */

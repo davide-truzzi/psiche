@@ -57,6 +57,7 @@ public final class Settings {
     private static final String PREVIEW_FONT_SIZE = "preview.font-size";
     private static final String CHECK_SPELLING = "spelling.enabled";
     private static final String STRICT_SPELLING = "spelling.strict";
+    private static final String HIGHLIGHT_REPETITIONS = "editor.highlight-repetitions";
     private static final String WINDOW = "window.";
     private static final String WEB_VIEW_FOLDER = "webview";
     private static final String OWN_WORDS_FILE = "words.txt";
@@ -143,7 +144,8 @@ public final class Settings {
                 fontSize(settings.getProperty(EDITOR_FONT_SIZE)).orElse(defaults.editorFontSize()),
                 fontSize(settings.getProperty(PREVIEW_FONT_SIZE)).orElse(defaults.previewFontSize()),
                 flag(settings.getProperty(CHECK_SPELLING), defaults.checkSpelling()),
-                flag(settings.getProperty(STRICT_SPELLING), defaults.strictSpelling()));
+                flag(settings.getProperty(STRICT_SPELLING), defaults.strictSpelling()),
+                flag(settings.getProperty(HIGHLIGHT_REPETITIONS), defaults.highlightRepetitions()));
     }
 
     /** Remembers what the author chose in Preferences. */
@@ -158,6 +160,7 @@ public final class Settings {
             settings.setProperty(PREVIEW_FONT_SIZE, String.valueOf(preferences.previewFontSize()));
             settings.setProperty(CHECK_SPELLING, String.valueOf(preferences.checkSpelling()));
             settings.setProperty(STRICT_SPELLING, String.valueOf(preferences.strictSpelling()));
+            settings.setProperty(HIGHLIGHT_REPETITIONS, String.valueOf(preferences.highlightRepetitions()));
         });
     }
 

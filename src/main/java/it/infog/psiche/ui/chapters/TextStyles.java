@@ -56,6 +56,21 @@ final class TextStyles {
         return spans.create();
     }
 
+    /**
+     * True if {@code a} and {@code b} give the same styles to the same lengths of text, span by span. A part of
+     * spans, as {@link StyleSpans#subView} gives, is never equal to other spans, even with the same styles.
+     */
+    static boolean same(StyleSpans<Collection<String>> a, StyleSpans<Collection<String>> b) {
+
+        if (a.getSpanCount() != b.getSpanCount())
+            return false;
+
+        for (int span = 0; span < a.getSpanCount(); span++)
+            if (!a.getStyleSpan(span).equals(b.getStyleSpan(span)))
+                return false;
+        return true;
+    }
+
     /** Tells which positions, asked in order, lie in one of its parts, walking through them once. */
     private static final class Cover {
 
