@@ -11,10 +11,9 @@ import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.Progress;
 import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.common.WorkThread;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.concurrent.Task;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.stage.Window;
@@ -28,8 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -48,9 +45,7 @@ public final class NotesTransfer {
     private static final String ZIP = "zip";
     private static final ButtonType IMPORT_ANYWAY = new ButtonType("Import anyway", ButtonData.OK_DONE);
 
-    private final ExecutorService thread =
-            Executors.newSingleThreadExecutor(Thread.ofPlatform().name("notes-transfer").daemon().factory());
-    private final ReadOnlyBooleanWrapper busy = new ReadOnlyBooleanWrapper();
+    private final WorkThread thread = new WorkThread("notes-transfer");
     private final NotesPane notesPane;
     private final StatusBar statusBar;
     private final ErrorReporter errors;
@@ -71,7 +66,7 @@ public final class NotesTransfer {
     /** True while an export or an import runs; another waits until it is done. */
     public ReadOnlyBooleanProperty busyProperty() {
 
-        return busy.getReadOnlyProperty();
+        return thread.busyProperty();
     }
 
     /** Writes the notes of {@code book}, the open one, to a zip the author picks. */
@@ -135,7 +130,7 @@ public final class NotesTransfer {
     /** Stops the transfer thread, interrupting an export that runs. */
     public void shutdown() {
 
-        thread.shutdownNow();
+        thread.shutdown();
     }
 
     // Import
@@ -153,7 +148,7 @@ public final class NotesTransfer {
 
         ImportProgressDialog progress = new ImportProgressDialog(window.get());
         progress.show();
-        run(() -> {
+        thread.run(() -> {
             if (backup.isPresent())
                 archive.backup(backup.get(), manifest, progress.step("Saving a backup of this computer's notes"));
             ImportReport report = archive.importFrom(zip, progress.step("Merging the notes of " + zip.getFileName()));
@@ -240,30 +235,6 @@ public final class NotesTransfer {
     /** Runs {@code work} on the transfer thread, then hands its result to {@code done}, or reports its failure. */
     private <T> void run(Callable<T> work, Consumer<T> done, String failure) {
 
-        run(work, done, error -> errors.report(failure, error));
-    }
-
-    /**
-     * Runs {@code work} on the transfer thread, marking the transfer busy meanwhile; then hands its result to
-     * {@code done}, or its failure to {@code failed}, on the FX thread.
-     */
-    private <T> void run(Callable<T> work, Consumer<T> done, Consumer<Throwable> failed) {
-
-        Task<T> task = new Task<>() {
-            @Override
-            protected T call() throws Exception {
-                return work.call();
-            }
-        };
-        task.setOnSucceeded(event -> {
-            busy.set(false);
-            done.accept(task.getValue());
-        });
-        task.setOnFailed(event -> {
-            busy.set(false);
-            failed.accept(task.getException());
-        });
-        busy.set(true);
-        thread.execute(task);
+        thread.run(work, done, error -> errors.report(failure, error));
     }
 }

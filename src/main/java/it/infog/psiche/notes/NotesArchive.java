@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
@@ -30,7 +31,6 @@ import java.util.zip.ZipOutputStream;
 
 import static it.infog.psiche.common.SafeFiles.move;
 import static it.infog.psiche.common.SafeFiles.temporaryBeside;
-import static it.infog.psiche.notes.NoteFolders.loadProperties;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.subfolders;
 
@@ -242,7 +242,7 @@ public final class NotesArchive {
 
         Properties properties;
         try (InputStream in = file.getInputStream(entry)) {
-            properties = loadProperties(new InputStreamReader(in, StandardCharsets.UTF_8), zip + "!" + MANIFEST);
+            properties = PropertiesFiles.load(new InputStreamReader(in, StandardCharsets.UTF_8), zip + "!" + MANIFEST);
         }
 
         int format = (int) NoteFolders.number(properties, "format", 0);

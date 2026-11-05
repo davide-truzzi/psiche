@@ -8,9 +8,8 @@ import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.Progress;
 import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.common.WorkThread;
 import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.concurrent.Task;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.stage.Window;
@@ -24,9 +23,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -52,9 +49,7 @@ public final class ProjectTransfer {
             "Closing now stops the import: the folder it replaces stays as it was, and no backup is written.",
             "Keep importing");
 
-    private final ExecutorService thread =
-            Executors.newSingleThreadExecutor(Thread.ofPlatform().name("project-transfer").daemon().factory());
-    private final ReadOnlyBooleanWrapper busy = new ReadOnlyBooleanWrapper();
+    private final WorkThread thread = new WorkThread("project-transfer");
     private final StatusBar statusBar;
     private final ErrorReporter errors;
     private final Supplier<Window> window;
@@ -74,7 +69,7 @@ public final class ProjectTransfer {
     /** True while an export or an import runs: the book must not change until it is done. */
     public ReadOnlyBooleanProperty busyProperty() {
 
-        return busy.getReadOnlyProperty();
+        return thread.busyProperty();
     }
 
     /**
@@ -96,15 +91,11 @@ public final class ProjectTransfer {
         ProjectManifest manifest = manifest(book.root());
         String task = "Exporting " + manifest.title();
         start(EXPORTING, task);
-        run(new Task<>() {
-            @Override
-            protected Path call() {
-                ProjectArchive.export(book.root(), target, manifest,
-                        Progress.percent(percent -> statusBar.progress(task, percent)));
-                return target;
-            }
-        }, written -> statusBar.info("Exported " + manifest.title() + " to " + written),
-                "Cannot export the book");
+        run(() -> {
+            ProjectArchive.export(book.root(), target, manifest,
+                    Progress.percent(percent -> statusBar.progress(task, percent)));
+            return target;
+        }, written -> statusBar.info("Exported " + manifest.title() + " to " + written), "Cannot export the book");
     }
 
     /**
@@ -177,14 +168,11 @@ public final class ProjectTransfer {
         String task = "Importing " + manifest.title();
         String backingUp = "Backing up " + manifest.folder();
         start(IMPORTING, backup.isPresent() ? backingUp : task);
-        run(new Task<Path>() {
-            @Override
-            protected Path call() {
-                backup.ifPresent(file -> ProjectArchive.export(target, file, manifest(target),
-                        Progress.percent(percent -> statusBar.progress(backingUp, percent))));
-                return ProjectArchive.importTo(archive, parent,
-                        Progress.percent(percent -> statusBar.progress(task, percent)));
-            }
+        run(() -> {
+            backup.ifPresent(file -> ProjectArchive.export(target, file, manifest(target),
+                    Progress.percent(percent -> statusBar.progress(backingUp, percent))));
+            return ProjectArchive.importTo(archive, parent,
+                    Progress.percent(percent -> statusBar.progress(task, percent)));
         }, imported -> {
             open.accept(imported);
             statusBar.info("Imported " + manifest.title() + backup.map(file -> ", the old folder backed up to " + file)
@@ -198,7 +186,7 @@ public final class ProjectTransfer {
      */
     public boolean confirmStop() {
 
-        if (!busy.get())
+        if (!thread.isBusy())
             return true;
 
         ButtonType closeAnyway = new ButtonType("Close anyway", ButtonData.OK_DONE);
@@ -214,9 +202,8 @@ public final class ProjectTransfer {
      */
     public void shutdown() {
 
-        thread.shutdownNow();
         try {
-            if (!thread.awaitTermination(STOP_WAIT_SECONDS, TimeUnit.SECONDS))
+            if (!thread.shutdown(STOP_WAIT_SECONDS))
                 log.warn("The transfer did not stop in time; unfinished hidden files may be left beside its place");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -266,11 +253,10 @@ public final class ProjectTransfer {
         return backup;
     }
 
-    /** Freezes the book and shows {@code task} in the status bar, at nought. */
+    /** Shows {@code task} in the status bar, at nought; the book freezes as the work starts on the thread. */
     private void start(StopWarning warning, String task) {
 
         running = warning;
-        busy.set(true);
         statusBar.progress(task, 0);
     }
 
@@ -302,19 +288,11 @@ public final class ProjectTransfer {
     }
 
     /**
-     * Runs {@code task} on the thread, then {@code done} with its result, or reports its failure as {@code failure}.
+     * Runs {@code work} on the thread, then {@code done} with its result, or reports its failure as {@code failure}.
      */
-    private <T> void run(Task<T> task, Consumer<T> done, String failure) {
+    private <T> void run(Callable<T> work, Consumer<T> done, String failure) {
 
-        task.setOnSucceeded(event -> {
-            busy.set(false);
-            done.accept(task.getValue());
-        });
-        task.setOnFailed(event -> {
-            busy.set(false);
-            errors.report(failure, task.getException());
-        });
-        thread.execute(task);
+        thread.run(work, done, error -> errors.report(failure, error));
     }
 
     /** What closing the window asks while a transfer runs. */

@@ -24,9 +24,7 @@ import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +53,7 @@ public final class BookContext implements AutoCloseable {
     private final Runnable onOpened;
     private final Settings settings;
     private final ChapterFolderWatch chapterWatch;
+    private final BookLocations locations;
 
     private BookFolder book;
     private BookRepository repository;
@@ -79,6 +78,7 @@ public final class BookContext implements AutoCloseable {
         this.settings = settings;
 
         chapterWatch = new ChapterFolderWatch(chapters, statusBar);
+        locations = new BookLocations(settings);
 
         bookTitle.getStyleClass().add("book-title");
         statusBar.setOnPageMeasureChosen(this::choosePageMeasure);
@@ -102,10 +102,7 @@ public final class BookContext implements AutoCloseable {
      */
     List<Path> recentBooks() {
 
-        Optional<Path> open = Optional.ofNullable(book).map(opened -> realPath(opened.root()));
-        return settings.recentBooks().books().stream()
-                .filter(recent -> open.isEmpty() || !realPath(recent).equals(open.get()))
-                .toList();
+        return locations.recentBooks(book);
     }
 
     /** Opens a book from the recent list, once unsaved changes are settled. */
@@ -127,7 +124,8 @@ public final class BookContext implements AutoCloseable {
         if (!unsavedChanges.settle("Save them before opening another book?"))
             return;
 
-        Dialogs.chooseDirectory(window.get(), "Open book folder", booksDirectory()).ifPresent(this::openBook);
+        Dialogs.chooseDirectory(window.get(), "Open book folder", locations.booksDirectory(book))
+                .ifPresent(this::openBook);
     }
 
     public void createBook() {
@@ -140,7 +138,8 @@ public final class BookContext implements AutoCloseable {
             return;
 
         Optional<Path> parent = Dialogs.chooseDirectory(
-                window.get(), "Choose where to create \"%s\"".formatted(title.get().strip()), newBooksDirectory());
+                window.get(), "Choose where to create \"%s\"".formatted(title.get().strip()),
+                locations.newBooksDirectory(book));
         if (parent.isEmpty())
             return;
 
@@ -232,7 +231,8 @@ public final class BookContext implements AutoCloseable {
      */
     public void importProject() {
 
-        projectTransfer.importProject(booksDirectory(), this::isOpen, this::makeWayFor, this::openBook);
+        projectTransfer.importProject(locations.booksDirectory(book), this::isOpen, this::makeWayFor,
+                this::openBook);
     }
 
     /** Closes the open book, once unsaved changes are settled, and shows the welcome as when the app starts. */
@@ -294,7 +294,7 @@ public final class BookContext implements AutoCloseable {
     /** True if {@code folder} is the open book's. */
     private boolean isOpen(Path folder) {
 
-        return book != null && realPath(book.root()).equals(realPath(folder));
+        return BookLocations.isFolderOf(book, folder);
     }
 
     /**
@@ -336,52 +336,6 @@ public final class BookContext implements AutoCloseable {
         } catch (UncheckedIOException e) {
             log.warn("Cannot read the properties of {}", book.root(), e);
             return book.title();
-        }
-    }
-
-    /**
-     * Where to start choosing a book folder: the folder holding the open book, or else the latest book still there,
-     * where the author most likely keeps other books; the home folder if there is none, rather than wherever the
-     * system starts, which may be the folder Psiche is installed in.
-     */
-    private Path booksDirectory() {
-
-        if (book != null)
-            return book.root().getParent();
-
-        // With no book open, start next to the latest book that is still there.
-        return settings.recentBooks().books().stream()
-                .filter(Files::isDirectory)
-                .findFirst()
-                .map(Path::getParent)
-                .orElseGet(BookContext::homeDirectory);
-    }
-
-    /**
-     * Where to start choosing where a new book goes: where the other books are, if Psiche may write there, or else the
-     * home folder.
-     */
-    private Path newBooksDirectory() {
-
-        return Optional.ofNullable(booksDirectory()).filter(Files::isWritable).orElseGet(BookContext::homeDirectory);
-    }
-
-    /** The author's home folder; null, to let the dialog choose, if the system does not say where it is. */
-    private static Path homeDirectory() {
-
-        return Optional.ofNullable(System.getProperty("user.home"))
-                .map(Path::of)
-                .filter(Files::isDirectory)
-                .orElse(null);
-    }
-
-    /** {@code path} as the file system knows it, so a book reached through a link matches; as given if it is gone. */
-    private static Path realPath(Path path) {
-
-        try {
-            return path.toRealPath();
-        } catch (IOException e) {
-            return path.toAbsolutePath().normalize();
         }
     }
 

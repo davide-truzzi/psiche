@@ -7,6 +7,7 @@ import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.notes.card.NoteCard;
+import it.infog.psiche.ui.notes.card.NoteFileActions;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -275,39 +276,9 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     }
 
     @Override
-    public void attach(NoteCard card, Path file) {
+    public NoteFileActions files() {
 
-        files.attach(card, file);
-    }
-
-    @Override
-    public void chooseFile(NoteCard card) {
-
-        files.chooseFile(card);
-    }
-
-    @Override
-    public void paste(NoteCard card) {
-
-        files.paste(card);
-    }
-
-    @Override
-    public void openFile(NoteCard card) {
-
-        files.open(card);
-    }
-
-    @Override
-    public void showInFolder(NoteCard card) {
-
-        files.showInFolder(card);
-    }
-
-    @Override
-    public void removeFile(NoteCard card) {
-
-        files.remove(card);
+        return files;
     }
 
     // New notes

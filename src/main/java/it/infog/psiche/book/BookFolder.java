@@ -9,26 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringWriter;
 import java.io.UncheckedIOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -43,19 +31,16 @@ public final class BookFolder {
     static final String MEDIA_DIR = "media";
     static final String NOTES_DIR = "notes";
     static final String CHAPTER_EXTENSION = ".md";
-    static final String PROPERTIES_FILE = "book.properties";
-    static final String STYLE_FILE = "style.css";
-    static final List<String> COVER_FILES = List.of("cover.jpg", "cover.png");
 
     private static final Logger log = LoggerFactory.getLogger(BookFolder.class);
-    private static final String PAGE_COUNT = "pageCount";
-    private static final String PROPERTIES_COMMENT = " Book properties, edited in Psiche Writer: Book properties…";
 
     private final Path root;
+    private final BookMedia media;
 
     private BookFolder(Path root) {
 
         this.root = root;
+        media = new BookMedia(root.resolve(MEDIA_DIR), root.getFileName().toString());
     }
 
     /**
@@ -261,120 +246,60 @@ public final class BookFolder {
         }
     }
 
-    // Style and Cover
+    // Style, cover and properties, in media/; see BookMedia
 
     /** The ebook's stylesheet, {@code media/style.css}, if the book has one. */
     public Optional<Path> stylesheet() {
 
-        Path style = mediaDir().resolve(STYLE_FILE);
-        return Files.isRegularFile(style) ? Optional.of(style) : Optional.empty();
+        return media.stylesheet();
     }
 
     /** The cover image, {@code media/cover.jpg} or {@code media/cover.png}; empty if the book has none. */
     public Optional<Path> cover() {
 
-        return COVER_FILES.stream().map(mediaDir()::resolve).filter(Files::isRegularFile).findFirst();
+        return media.cover();
     }
 
     /**
-     * Copies {@code image} into {@code media/} as the cover, named {@code cover.jpg} or {@code cover.png} after its
-     * type, and removes a cover of the other type.
+     * Copies {@code image} into {@code media/} as the cover, named after its type, in place of any other.
      *
      * @throws IllegalArgumentException if {@code image} is not a JPEG or PNG file
      */
     public void setCover(Path image) {
 
-        String name = image.getFileName().toString().toLowerCase(Locale.ROOT);
-        String coverName;
-        if (name.endsWith(".jpg") || name.endsWith(".jpeg"))
-            coverName = "cover.jpg";
-        else if (name.endsWith(".png"))
-            coverName = "cover.png";
-        else
-            throw new IllegalArgumentException(image.getFileName() + " is not a JPEG or PNG image");
-
-        Path cover = mediaDir().resolve(coverName);
-        try {
-            Files.copy(image, cover, StandardCopyOption.REPLACE_EXISTING);
-            for (String other : COVER_FILES)
-                if (!other.equals(coverName))
-                    Files.deleteIfExists(mediaDir().resolve(other));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot use " + image + " as the cover", e);
-        }
+        media.setCover(image);
     }
 
     public void removeCover() {
 
-        try {
-            for (String cover : COVER_FILES)
-                Files.deleteIfExists(mediaDir().resolve(cover));
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot remove the cover from " + mediaDir(), e);
-        }
+        media.removeCover();
     }
 
-    // Measure
-
-    /**
-     * How the book's chapters are counted in pages, as last chosen; until then, the measure publishers use for the
-     * book's language.
-     */
+    /** How the book's chapters are counted in pages; see {@link PageMeasure}. */
     public PageMeasure pageMeasure() {
 
-        return PageMeasure.fromKey(loadProperties().getProperty(PAGE_COUNT, ""))
-                .orElseGet(() -> PageMeasure.forLanguage(properties().language()));
+        return media.pageMeasure();
     }
 
-    /** Keeps {@code measure} in {@code media/book.properties} with the book's other properties. */
     public void savePageMeasure(PageMeasure measure) {
 
-        Properties saved = loadProperties();
-        saved.setProperty(PAGE_COUNT, measure.key());
-        storeProperties(saved);
+        media.savePageMeasure(measure);
     }
 
-    // Properties
-
-    /**
-     * The book's properties as last saved. Anything not saved yet has a default: the title is the folder's name, the
-     * language the system's, and the identifier a new one, which is kept once the properties are saved.
-     */
+    /** The book's properties as last saved, with defaults for what is not saved yet. */
     public BookProperties properties() {
 
-        Properties saved = loadProperties();
-        String language = Locale.getDefault().toLanguageTag();
-
-        return new BookProperties(
-                saved.getProperty("title", title()),
-                saved.getProperty("subtitle", ""),
-                Arrays.stream(saved.getProperty("authors", "").split("\n")).filter(name -> !name.isBlank()).toList(),
-                saved.getProperty("language", language.equals("und") ? "en" : language),
-                saved.getProperty("rights", ""),
-                saved.getProperty("identifier", "urn:uuid:" + UUID.randomUUID()));
+        return media.properties();
     }
 
     /**
-     * Writes the properties to {@code media/book.properties}, keeping any other entries the file has, and puts the
-     * default ebook stylesheet in {@code media/} if it has none.
+     * Writes the properties to {@code media/book.properties}, and the default ebook stylesheet if the book has none.
      *
      * @throws IllegalArgumentException if the title is blank
      */
     public void saveProperties(BookProperties properties) {
 
-        if (properties.title().isBlank())
-            throw new IllegalArgumentException("Book title must not be blank");
-
-        Properties saved = loadProperties();
-        saved.setProperty("title", properties.title().strip());
-        saved.setProperty("subtitle", properties.subtitle().strip());
-        saved.setProperty("authors", properties.authors().stream().map(String::strip).collect(Collectors.joining("\n")));
-        saved.setProperty("language", properties.language());
-        saved.setProperty("rights", properties.rights().strip());
-        saved.setProperty("identifier", properties.identifier());
-        storeProperties(saved);
-
-        ensureStyle();
+        media.saveProperties(properties);
     }
 
     private Chapter newChapter(String title, String markdown) {
@@ -423,55 +348,5 @@ public final class BookFolder {
         } catch (InvalidPathException e) {
             throw new IllegalArgumentException("'%s' cannot be used as a %s name".formatted(stripped, kind), e);
         }
-    }
-
-    /** Writes {@code saved} to {@code media/book.properties}. */
-    private void storeProperties(Properties saved) {
-
-        //Properties.store adds a timestamp comment, which would change the file on every save; leave it out
-        StringWriter text = new StringWriter();
-        try {
-            saved.store(text, null);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-
-        String entries = text.toString().lines().filter(line -> !line.startsWith("#"))
-                .collect(Collectors.joining("\n", "#" + PROPERTIES_COMMENT + "\n", "\n"));
-
-        Path file = mediaDir().resolve(PROPERTIES_FILE);
-        try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-            writer.write(entries);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot save " + file, e);
-        }
-    }
-
-    /** Writes the default ebook stylesheet to {@code media/style.css}, unless the book already has one. */
-    private void ensureStyle() {
-
-        Path style = mediaDir().resolve(STYLE_FILE);
-        if (Files.exists(style))
-            return;
-
-        try (InputStream defaultStyle = BookFolder.class.getResourceAsStream("ebook.css")) {
-            Files.copy(defaultStyle, style);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot write " + style, e);
-        }
-    }
-
-    private Properties loadProperties() {
-
-        Properties properties = new Properties();
-        Path file = mediaDir().resolve(PROPERTIES_FILE);
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            properties.load(reader);
-        } catch (NoSuchFileException e) {
-            // A book without saved properties yet; every property has its default.
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read " + file, e);
-        }
-        return properties;
     }
 }

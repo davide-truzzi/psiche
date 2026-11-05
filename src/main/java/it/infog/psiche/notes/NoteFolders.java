@@ -1,5 +1,7 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.PropertiesFiles;
+import it.infog.psiche.common.SafeFiles;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
 import it.infog.psiche.notes.model.enums.NoteColor;
@@ -8,25 +10,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringWriter;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.infog.psiche.common.SafeFiles.isTemporary;
 import static it.infog.psiche.common.SafeFiles.move;
-import static it.infog.psiche.common.SafeFiles.temporaryBeside;
 
 /**
  * How a note is kept on disk, for {@link NoteStore}, {@link DetachedNoteStore} and {@link NotesArchive}: a folder
@@ -62,7 +57,7 @@ final class NoteFolders {
         try {
             Path textFile = folder.resolve(TEXT_FILE);
             String text = Files.exists(textFile) ? Files.readString(textFile) : "";
-            Properties properties = readProperties(folder.resolve(PROPERTIES_FILE));
+            Properties properties = PropertiesFiles.readLeniently(folder.resolve(PROPERTIES_FILE));
 
             boolean duplicate = Boolean.parseBoolean(properties.getProperty(DUPLICATE_KEY));
             return Optional.of(new Note(folder.getFileName().toString(), text, layout(properties), duplicate,
@@ -205,61 +200,11 @@ final class NoteFolders {
         }
     }
 
-    /** The properties in {@code file}; none if it does not exist. */
-    static Properties readProperties(Path file) {
-
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            return loadProperties(reader, file.toString());
-        } catch (NoSuchFileException e) {
-            // Nothing saved yet; every value has its default.
-            return new Properties();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read " + file, e);
-        }
-    }
-
-    /** The properties {@code reader} gives; none, and logged, if they are damaged. */
-    static Properties loadProperties(Reader reader, String source) throws IOException {
-
-        Properties properties = new Properties();
-        try {
-            properties.load(reader);
-        } catch (IllegalArgumentException e) {
-            log.warn("Reading {} as empty: it is damaged", source, e);
-            return new Properties();
-        }
-        return properties;
-    }
-
-    /** Writes {@code properties} whole, with the keys in order and no timestamp, so a file changes only with them. */
-    static void writeProperties(Path file, Properties properties) {
-
-        StringWriter text = new StringWriter();
-        try {
-            properties.store(text, null);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        String entries = text.toString().lines()
-                .filter(line -> !line.startsWith("#"))
-                .sorted()
-                .collect(Collectors.joining("\n", "", "\n"));
-
-        writeAtomically(file, entries);
-    }
-
     /** Writes {@code text} to a temporary file beside {@code file}, which then takes its place. */
     static void writeAtomically(Path file, String text) {
 
         try {
-            Path temporary = temporaryBeside(file);
-            try {
-                Files.writeString(temporary, text, StandardCharsets.UTF_8);
-                move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
-            } finally {
-                // Gone once moved; left only by a write that failed.
-                Files.deleteIfExists(temporary);
-            }
+            SafeFiles.writeString(file, text);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot save " + file, e);
         }

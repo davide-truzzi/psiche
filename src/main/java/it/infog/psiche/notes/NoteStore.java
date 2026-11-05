@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
@@ -34,10 +35,8 @@ import static it.infog.psiche.notes.NoteFolders.number;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
-import static it.infog.psiche.notes.NoteFolders.readProperties;
 import static it.infog.psiche.notes.NoteFolders.removeIfEmpty;
 import static it.infog.psiche.notes.NoteFolders.writeAtomically;
-import static it.infog.psiche.notes.NoteFolders.writeProperties;
 
 /**
  * A book's chapter notes, kept in {@code notes/} at the book's root, outside Git. Each chapter with notes has a folder
@@ -234,7 +233,7 @@ public final class NoteStore {
     /** Where {@code chapter}'s board was last looked at; from the top-left corner at its own size the first time. */
     public BoardView boardView(String chapter) {
 
-        Properties properties = readProperties(chapterFolder(chapter).resolve(BOARD_FILE));
+        Properties properties = PropertiesFiles.readLeniently(chapterFolder(chapter).resolve(BOARD_FILE));
         return new BoardView(number(properties, ZOOM_KEY, 1), number(properties, X_KEY, 0),
                 number(properties, Y_KEY, 0));
     }
@@ -250,7 +249,7 @@ public final class NoteStore {
         properties.setProperty(ZOOM_KEY, String.valueOf(view.zoom()));
         properties.setProperty(X_KEY, String.valueOf(view.x()));
         properties.setProperty(Y_KEY, String.valueOf(view.y()));
-        writeProperties(folder.resolve(BOARD_FILE), properties);
+        PropertiesFiles.write(folder.resolve(BOARD_FILE), properties, "");
     }
 
     /**
@@ -370,9 +369,9 @@ public final class NoteStore {
 
         Path file = folder.resolve(PROPERTIES_FILE);
         synchronized (propertiesLock) {
-            Properties properties = readProperties(file);
+            Properties properties = PropertiesFiles.readLeniently(file);
             change.accept(properties);
-            writeProperties(file, properties);
+            PropertiesFiles.write(file, properties, "");
         }
     }
 }
