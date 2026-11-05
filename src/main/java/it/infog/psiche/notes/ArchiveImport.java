@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
@@ -67,7 +68,7 @@ final class ArchiveImport {
     private final NoteStore store;
     private final Path root;
     private final ZipFile zip;
-    private final NoteStore.CopyProgress progress;
+    private final CopyProgress progress;
     private final long total;
     private long done;
     private int added;
@@ -87,7 +88,7 @@ final class ArchiveImport {
                           long fileSize) {
     }
 
-    ArchiveImport(NoteStore store, ZipFile zip, NoteStore.CopyProgress progress) {
+    ArchiveImport(NoteStore store, ZipFile zip, CopyProgress progress) {
 
         this.store = store;
         this.root = store.root();

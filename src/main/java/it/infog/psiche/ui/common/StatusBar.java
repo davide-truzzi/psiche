@@ -36,6 +36,10 @@ public final class StatusBar extends HBox {
     private static final Duration MESSAGE_FADE_IN = Duration.millis(260);
     // A longer selection is cut, so the count stays beside the pages.
     private static final int REPEATED_WORD_LENGTH = 24;
+    // A long task's progress, as blocks: one for each tenth done.
+    private static final int PROGRESS_BLOCKS = 10;
+    private static final String DONE_BLOCK = "▮";
+    private static final String LEFT_BLOCK = "▯";
 
     private final Label message = new Label();
     private final Label counts = new Label();
@@ -75,6 +79,18 @@ public final class StatusBar extends HBox {
     public void error(String text) {
 
         showMessage(text, true);
+    }
+
+    /**
+     * Shows how far a long task has come, as "Exporting Lorem ▮▮▮▮▯▯▯▯▯▯ 42 %": {@code task} says what it does, and
+     * {@code percent} is done of it. Shown at once, without the fade of a message, as it changes often.
+     */
+    public void progress(String task, int percent) {
+
+        int done = Math.clamp(percent, 0, 100) * PROGRESS_BLOCKS / 100;
+        message.setText("%s  %s%s  %d %%".formatted(task, DONE_BLOCK.repeat(done),
+                LEFT_BLOCK.repeat(PROGRESS_BLOCKS - done), percent));
+        message.pseudoClassStateChanged(ERROR, false);
     }
 
     public void showChapter(String title, boolean dirty) {

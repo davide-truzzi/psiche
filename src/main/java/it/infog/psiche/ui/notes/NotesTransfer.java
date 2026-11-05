@@ -2,15 +2,16 @@ package it.infog.psiche.ui.notes;
 
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.model.BookProperties;
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.NoteStore;
 import it.infog.psiche.notes.NotesArchive;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.NotesManifest;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
+import it.infog.psiche.ui.common.Progress;
 import it.infog.psiche.ui.common.StatusBar;
 
-import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.concurrent.Task;
@@ -29,9 +30,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
 /**
@@ -96,8 +95,8 @@ public final class NotesTransfer {
 
         notesPane.settle();
         NotesManifest manifest = manifest(properties.get());
-        NoteStore.CopyProgress progress =
-                percent(percent -> statusBar.info("Exporting notes… %d %%".formatted(percent)));
+        CopyProgress progress =
+                Progress.percent(percent -> statusBar.info("Exporting notes… %d %%".formatted(percent)));
         statusBar.info("Exporting notes…");
         run(() -> {
             new NotesArchive(store).export(zip.get(), manifest, progress);
@@ -137,20 +136,6 @@ public final class NotesTransfer {
     public void shutdown() {
 
         thread.shutdownNow();
-    }
-
-    /**
-     * What hears how far a copy has come, on any thread, and hands {@code shown} the percentage on the FX thread each
-     * time it changes, so the window is not flooded with updates.
-     */
-    static NoteStore.CopyProgress percent(IntConsumer shown) {
-
-        AtomicInteger last = new AtomicInteger(-1);
-        return (copied, total) -> {
-            int percent = total <= 0 ? 100 : (int) (copied * 100 / total);
-            if (last.getAndSet(percent) != percent)
-                Platform.runLater(() -> shown.accept(percent));
-        };
     }
 
     // Import

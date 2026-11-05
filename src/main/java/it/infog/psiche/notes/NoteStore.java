@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
@@ -56,11 +57,6 @@ public final class NoteStore {
     private static final String ZOOM_KEY = "zoom";
     private static final String X_KEY = "x";
     private static final String Y_KEY = "y";
-
-    /** Hears how far a copy has come, on the thread that copies; the notes' name for the shared one. */
-    @FunctionalInterface
-    public interface CopyProgress extends it.infog.psiche.common.CopyProgress {
-    }
 
     private final Path root;
     private final Clock clock;

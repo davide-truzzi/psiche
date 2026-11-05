@@ -6,7 +6,6 @@ import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.stage.Window;
 
-import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -50,17 +49,37 @@ public final class UnsavedChanges {
         return false;
     }
 
+    /**
+     * Tells the author, if some chapters have unsaved changes, that they must be saved or reverted before {@code what}
+     * can be done, as it takes the book as it is on disk.
+     *
+     * @return true if it was refused, in which case the caller should stop
+     */
+    public boolean refuse(String what) {
+
+        if (!chapterEditor.hasUnsavedChanges())
+            return false;
+
+        Dialogs.inform(window.get(), header(), titles() + "\n\nSave or revert them first, then " + what + ".");
+        return true;
+    }
+
     /** Lists the unsaved chapters under {@code question}; closing the dialog counts as Cancel. */
     private ButtonType ask(String question, ButtonType... choices) {
 
-        List<Chapter> unsaved = chapterEditor.sortedUnsavedChapters();
+        return Dialogs.choose(window.get(), header(), titles() + "\n\n" + question, choices)
+                .orElse(ButtonType.CANCEL);
+    }
 
-        String header = unsaved.size() == 1
-                ? "1 chapter has unsaved changes"
-                : "%d chapters have unsaved changes".formatted(unsaved.size());
+    private String header() {
 
-        String titles = unsaved.stream().map(Chapter::title).collect(Collectors.joining("\n"));
+        int count = chapterEditor.sortedUnsavedChapters().size();
+        return count == 1 ? "1 chapter has unsaved changes" : "%d chapters have unsaved changes".formatted(count);
+    }
 
-        return Dialogs.choose(window.get(), header, titles + "\n\n" + question, choices).orElse(ButtonType.CANCEL);
+    /** The unsaved chapters' titles, one to a line, in book order. */
+    private String titles() {
+
+        return chapterEditor.sortedUnsavedChapters().stream().map(Chapter::title).collect(Collectors.joining("\n"));
     }
 }

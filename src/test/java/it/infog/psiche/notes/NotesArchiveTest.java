@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
@@ -40,7 +41,7 @@ class NotesArchiveTest {
     private static final NotesManifest MANIFEST = new NotesManifest("urn:uuid:5f1c3e9a-7d2b-4c1e-9a3f-2b8d6e4f1a07",
             "La strada del sale");
     private static final NoteLayout LAYOUT = new NoteLayout(40, 60, 220, 160, 1, NoteColor.PAPER);
-    private static final NoteStore.CopyProgress NONE = (copied, total) -> {};
+    private static final CopyProgress NONE = (copied, total) -> {};
 
     @TempDir
     Path tempDir;

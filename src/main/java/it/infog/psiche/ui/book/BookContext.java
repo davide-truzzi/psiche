@@ -55,6 +55,7 @@ public final class BookContext implements AutoCloseable {
     private final UnsavedChanges unsavedChanges;
     private final Exports exports;
     private final NotesTransfer notesTransfer;
+    private final ProjectTransfer projectTransfer;
     private final ErrorReporter errors;
     private final Supplier<Window> window;
     private final Runnable onOpened;
@@ -71,7 +72,8 @@ public final class BookContext implements AutoCloseable {
     /** @param settings where the books opened lately are remembered */
     public BookContext(ChapterContext chapters, GitControls gitControls, StatusBar statusBar,
                        UnsavedChanges unsavedChanges, Exports exports, NotesTransfer notesTransfer,
-                       ErrorReporter errors, Supplier<Window> window, Runnable onOpened, Settings settings) {
+                       ProjectTransfer projectTransfer, ErrorReporter errors, Supplier<Window> window,
+                       Runnable onOpened, Settings settings) {
 
         this.chapters = chapters;
         this.gitControls = gitControls;
@@ -79,6 +81,7 @@ public final class BookContext implements AutoCloseable {
         this.unsavedChanges = unsavedChanges;
         this.exports = exports;
         this.notesTransfer = notesTransfer;
+        this.projectTransfer = projectTransfer;
         this.errors = errors;
         this.window = window;
         this.onOpened = onOpened;
@@ -217,6 +220,18 @@ public final class BookContext implements AutoCloseable {
     public void importNotes() {
 
         notesTransfer.importNotes(book, chapters::refresh);
+    }
+
+    /**
+     * Writes the open book, as it is saved, to a Psiche project file; refused while a chapter has unsaved changes, as
+     * the file takes the book from disk.
+     */
+    public void exportProject() {
+
+        if (book == null || unsavedChanges.refuse("export the book"))
+            return;
+
+        projectTransfer.export(book);
     }
 
     /** Closes the open book, once unsaved changes are settled, and shows the welcome as when the app starts. */

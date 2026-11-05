@@ -55,6 +55,8 @@ public final class NotesPane extends StackPane {
     private final NotesThread notes;
 
     private boolean loaded;
+    // True while the book is exported: the notes can be looked at, but not changed.
+    private boolean frozen;
 
     /** What a chapter's board shows when it opens. */
     private record Loaded(List<Note> notes,
@@ -113,6 +115,17 @@ public final class NotesPane extends StackPane {
     public ReadOnlyBooleanProperty availableProperty() {
 
         return available.getReadOnlyProperty();
+    }
+
+    /**
+     * Keeps the notes from changing while {@code frozen}, as while the book is exported. The pane itself is not
+     * disabled, as its tab enables and disables it as the tab is.
+     */
+    public void setFrozen(boolean frozen) {
+
+        this.frozen = frozen;
+        viewport.setDisable(frozen);
+        bar.setDisable(frozen);
     }
 
     /** @param chapters gives the book's chapters, by name, in their order, which a note can be moved to */
@@ -233,6 +246,9 @@ public final class NotesPane extends StackPane {
      * Detached notes; Escape leaves it.
      */
     private void keyPressed(KeyEvent event) {
+
+        if (frozen)
+            return;
 
         KeyCode code = event.getCode();
 
