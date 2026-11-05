@@ -27,7 +27,8 @@ public final class DetachedNotes {
     private final StatusBar statusBar;
     private final ErrorReporter errors;
     private final Supplier<Window> window;
-    private final Runnable changed;
+    private final Supplier<NoteStore> store;
+    private final Supplier<List<String>> chapters;
     private final ReadOnlyBooleanWrapper any = new ReadOnlyBooleanWrapper();
 
     // The notes last asked about, so an answer about another book's, read before it closed, is dropped.
@@ -35,27 +36,33 @@ public final class DetachedNotes {
     // True from a click on Detached notes until its dialog closes, so a second click opens no second one.
     private boolean opening;
 
-    /** @param changed runs once notes have been restored or deleted for good */
+    /**
+     * @param store    the open book's notes; {@code null} with no book open
+     * @param chapters the open book's chapters, by name, in their order
+     */
     public DetachedNotes(NotesPane notesPane, StatusBar statusBar, ErrorReporter errors, Supplier<Window> window,
-                        Runnable changed) {
+                         Supplier<NoteStore> store, Supplier<List<String>> chapters) {
 
         this.notesPane = notesPane;
         this.thread = notesPane.thread();
         this.statusBar = statusBar;
         this.errors = errors;
         this.window = window;
-        this.changed = changed;
+        this.store = store;
+        this.chapters = chapters;
     }
 
-    /** Lists the notes of {@code store} kept for none of {@code chapters}, to restore or delete, until closed. */
-    public void show(NoteStore store, List<String> chapters) {
+    /** Lists the notes the open book keeps for none of its chapters, to restore or delete, until closed. */
+    public void show() {
 
-        if (opening)
+        NoteStore store = this.store.get();
+        List<String> chapters = this.chapters.get();
+        if (opening || store == null)
             return;
 
         opening = true;
         thread.run(() -> store.detached().orphans(chapters), groups -> {
-            DetachedNotesDialog dialog = new DetachedNotesDialog(window.get(), chapters);
+            DetachedNotesDialog dialog = new DetachedNotesDialog(window.get(), chapters, notesPane.bookTitle());
             dialog.setOnRestore((group, chapter) -> {
                 restore(store, group, chapter);
                 refill(dialog, store, chapters);
@@ -79,11 +86,13 @@ public final class DetachedNotes {
     }
 
     /**
-     * Looks, on the notes thread, whether {@code store} keeps notes for none of {@code chapters}, and keeps the answer
-     * in {@link #anyProperty}; with no store, as no book is open, there are none.
+     * Looks, on the notes thread, whether the open book keeps notes for none of its chapters, and keeps the answer in
+     * {@link #anyProperty}; with no book open there are none.
      */
-    public void check(NoteStore store, List<String> chapters) {
+    public void check() {
 
+        NoteStore store = this.store.get();
+        List<String> chapters = this.chapters.get();
         asked = store;
         if (store == null) {
             any.set(false);
@@ -97,8 +106,9 @@ public final class DetachedNotes {
     }
 
     /** Asks, after {@code chapter} is restored, whether the notes it had when it was deleted come back too. */
-    public void offerRestore(NoteStore store, String chapter) {
+    public void offerRestore(String chapter) {
 
+        NoteStore store = this.store.get();
         thread.run(() -> store.detached().latestDeleted(chapter), group -> {
             if (group.isPresent() && DetachedNotesDialog.askRestore(window.get(), group.get()))
                 restore(store, group.get(), chapter);
@@ -118,16 +128,22 @@ public final class DetachedNotes {
 
         thread.change(() -> store.detached().restoreTo(group, chapter), () -> {
             notesPane.reload(chapter);
-            statusBar.info("Restored %s to %s".formatted(DetachedNotesDialog.count(group), chapter));
-            changed.run();
-        }, failure -> errors.report("Cannot restore the notes of " + group.chapter(), failure));
+            statusBar.info("Restored %s to %s".formatted(DetachedNotesDialog.count(group), name(chapter)));
+            check();
+        }, failure -> errors.report("Cannot restore the notes of " + name(group.chapter()), failure));
     }
 
     private void delete(NoteStore store, OrphanGroup group) {
 
         thread.change(() -> store.detached().deletePermanently(group), () -> {
-            statusBar.info("Deleted the notes of %s for good".formatted(group.chapter()));
-            changed.run();
-        }, failure -> errors.report("Cannot delete the notes of " + group.chapter(), failure));
+            statusBar.info("Deleted the notes of %s for good".formatted(name(group.chapter())));
+            check();
+        }, failure -> errors.report("Cannot delete the notes of " + name(group.chapter()), failure));
+    }
+
+    /** The name the author knows the board kept in {@code folder} by. */
+    private String name(String folder) {
+
+        return DetachedNotesDialog.boardName(folder, notesPane.bookTitle());
     }
 }

@@ -1,5 +1,7 @@
 package it.infog.psiche.ui.notes;
 
+import it.infog.psiche.book.BookState;
+import it.infog.psiche.book.model.enums.NotesBoard;
 import it.infog.psiche.notes.NoteStore;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
@@ -7,28 +9,30 @@ import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.notes.card.NoteCard;
 
-import javafx.beans.binding.Bindings;
 import javafx.beans.binding.StringBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
-import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.value.ObservableBooleanValue;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
-import javafx.scene.control.TextInputControl;
-import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.function.Consumer;
 
 /**
- * The Notes tab: the open chapter's {@link NoteBoard}, shown in a {@link BoardViewport}, the author moving around it
- * with the pointer, the wheel, the keys or the corner bar; and a message while there is no chapter open, or no note on
- * its board yet. The files' copying and pictures are {@link NoteFiles}'.
+ * The Notes tab: the open chapter's {@link NoteBoard}, or the whole book's, as the {@link BoardSwitch} above it says,
+ * shown in a {@link BoardViewport}, the author moving around it with the pointer, the wheel, the keys or the corner
+ * bar; and a message while there is no note on the board yet. The board last looked at, the chapter's or the book's, is
+ * remembered for each book; a book with no chapter yet shows its own. The files' copying and pictures are
+ * {@link NoteFiles}'.
  * <p>
  * The notes are read as soon as their chapter opens, so the tab's title counts them even behind another tab, and every
  * change is written, on the {@link NotesThread}. Each chapter's board reopens where it was last looked at, once the
@@ -46,6 +50,8 @@ public final class NotesPane extends StackPane {
     private static final String EMPTY_HINT = "Double-click anywhere to write a note,\nor drop files here.";
 
     private final NoteBoard board;
+    private final BoardCounts counts = new BoardCounts();
+    private final BoardSwitch boardSwitch = new BoardSwitch(counts);
     private final BoardViewport viewport;
     private final Label message = new Label();
     private final BoardBar bar;
@@ -57,10 +63,23 @@ public final class NotesPane extends StackPane {
     private boolean loaded;
     // True while the book is exported: the notes can be looked at, but not changed.
     private boolean frozen;
+    // The open chapter, whose board the switch's left half shows; null with none open.
+    private String chapter;
+    // The board the author chose last, kept in the book's state; the book's is shown anyway while no chapter is open.
+    private NotesBoard chosen = NotesBoard.CHAPTER;
+    private BookState state;
+    private String bookTitle;
+    // True while the switch is set to the board shown, not by the author.
+    private boolean settingSwitch;
 
     /** What a chapter's board shows when it opens. */
     private record Loaded(List<Note> notes,
                           BoardView view) {
+    }
+
+    /** What the board not on screen holds, for the tab's title and the switch. */
+    private record Summary(int count,
+                           boolean duplicates) {
     }
 
     /** @param browser opens an address, here a note's file or its folder, in the system's default program */
@@ -80,15 +99,29 @@ public final class NotesPane extends StackPane {
         bar = new BoardBar(viewport, () -> board.createAround(viewport.centre()));
         StackPane.setAlignment(bar, Pos.BOTTOM_RIGHT);
 
-        getChildren().addAll(viewport, message, bar);
+        //the switch above the board
+        StackPane boardArea = new StackPane(viewport, message, bar);
+        VBox.setVgrow(boardArea, Priority.ALWAYS);
+        boardSwitch.selectedProperty().addListener((obs, old, board) -> choose(board));
+        board.moves().setOtherBoard(this::otherBoard, boardSwitch, () -> countHidden(notes.store()));
+
+        getChildren().add(new VBox(boardSwitch, boardArea));
         getStyleClass().add("notes-pane");
-        addEventHandler(KeyEvent.KEY_PRESSED, this::keyPressed);
+        BoardKeys keys = new BoardKeys(board, viewport);
+        addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (!frozen)
+                keys.pressed(event);
+        });
 
         showing.addListener((obs, was, isShowing) -> {
             if (isShowing)
                 board.showPictures();
         });
-        board.countProperty().addListener((obs, old, count) -> updateMessage());
+        board.countProperty().addListener((obs, old, count) -> {
+            updateMessage();
+            countShown();
+        });
+        board.duplicatesProperty().addListener((obs, had, has) -> countShown());
         updateMessage();
     }
 
@@ -98,17 +131,16 @@ public final class NotesPane extends StackPane {
         return showing;
     }
 
-    /** "Notes", or "Notes (3)" with the open chapter's count, for the tab's title. */
+    /** The tab's title, as {@link BoardCounts#title} gives it: "Notes (2+3)", the chapter's notes then the book's. */
     public StringBinding titleBinding() {
 
-        ReadOnlyIntegerProperty count = board.countProperty();
-        return Bindings.createStringBinding(() -> count.get() == 0 ? "Notes" : "Notes (" + count.get() + ")", count);
+        return counts.title();
     }
 
-    /** True while a note on the board carries the Duplicate on Import tag. */
-    public ReadOnlyBooleanProperty duplicatesProperty() {
+    /** True while a note on the chapter's board or the book's carries the Duplicate on Import tag. */
+    public ObservableBooleanValue duplicatesProperty() {
 
-        return board.duplicatesProperty();
+        return counts.anyDuplicates();
     }
 
     /** True while a book is open; the tab is disabled otherwise. */
@@ -126,12 +158,13 @@ public final class NotesPane extends StackPane {
         this.frozen = frozen;
         viewport.setDisable(frozen);
         bar.setDisable(frozen);
+        boardSwitch.setDisable(frozen);
     }
 
     /** @param chapters gives the book's chapters, by name, in their order, which a note can be moved to */
     public void setChapters(Supplier<List<String>> chapters) {
 
-        board.setChapters(chapters);
+        board.moves().setChapters(chapters);
     }
 
     /** Runs {@code binned} each time a note, or a file a note no longer carries, has gone to Detached notes. */
@@ -141,22 +174,53 @@ public final class NotesPane extends StackPane {
     }
 
     /**
-     * Shows the notes of {@code chapter} in {@code store}, saving first what the board it replaces still had to save.
+     * Takes the open book's title for the switch, and its state, where the board looked at last is remembered; both
+     * {@code null} as the book closes.
+     */
+    public void setBook(String title, BookState state) {
+
+        this.state = state;
+        chosen = state == null ? NotesBoard.CHAPTER : state.notesBoard();
+        setBookTitle(title);
+        counts.clear();
+    }
+
+    /** Names the switch's right half after {@code title}, the book's new title. */
+    public void setBookTitle(String title) {
+
+        bookTitle = title;
+        boardSwitch.setBook(title);
+    }
+
+    /**
+     * Shows the board chosen for {@code chapter} in {@code store}, the chapter's or the book's, saving first what the
+     * board it replaces still had to save.
      *
      * @param store   the open book's notes, or {@code null} with no book open
      * @param chapter the open chapter's name, or {@code null} with none open
      */
     public void show(NoteStore store, String chapter) {
 
-        if (!notes.shows(store, chapter))
-            open(store, chapter);
+        this.chapter = chapter;
+        boardSwitch.setChapter(chapter);
+        showBoard(store);
     }
 
-    /** Reads the notes of {@code chapter} again if its board is shown, as notes were put back on it. */
+    /**
+     * Reads the notes of {@code chapter}, a chapter's or the book's board, again if it is shown, as notes were put back
+     * on it, and counts the board not shown again.
+     */
     public void reload(String chapter) {
 
         if (chapter.equals(notes.chapter()))
             open(notes.store(), chapter);
+        countHidden(notes.store());
+    }
+
+    /** The open book's title, which its own notes are named after; null with no book open. */
+    String bookTitle() {
+
+        return bookTitle;
     }
 
     /**
@@ -167,6 +231,7 @@ public final class NotesPane extends StackPane {
 
         if (notes.chapter() != null)
             open(notes.store(), notes.chapter());
+        countHidden(notes.store());
     }
 
     /**
@@ -191,6 +256,82 @@ public final class NotesPane extends StackPane {
 
         notes.shutdown();
         files.shutdown();
+    }
+
+    // Boards
+
+    /** Shows the board the author chose, after the switch; nothing changes while the board is only set to it. */
+    private void choose(NotesBoard board) {
+
+        if (settingSwitch)
+            return;
+
+        chosen = board;
+        if (state != null)
+            state.saveNotesBoard(board);
+        showBoard(notes.store());
+    }
+
+    /** Shows the board chosen, the book's while no chapter is open, and counts the other one. */
+    private void showBoard(NoteStore store) {
+
+        NotesBoard shown = shownBoard();
+        settingSwitch = true;
+        boardSwitch.select(shown);
+        settingSwitch = false;
+
+        String folder = store == null ? null : folder(shown);
+        if (!notes.shows(store, folder))
+            open(store, folder);
+        countHidden(store);
+    }
+
+    /** The board on screen: the one chosen, or the book's while no chapter is open. */
+    private NotesBoard shownBoard() {
+
+        return chapter == null ? NotesBoard.BOOK : chosen;
+    }
+
+    /** The folder {@code board}'s notes are kept in, by the name the notes are asked for; null with no chapter open. */
+    private String folder(NotesBoard board) {
+
+        return board == NotesBoard.BOOK ? NoteStore.BOOK : chapter;
+    }
+
+    /** The board not on screen, which a note can go to straight away; none while no chapter is open. */
+    private Optional<NoteMoves.Destination> otherBoard() {
+
+        NotesBoard other = shownBoard() == NotesBoard.BOOK ? NotesBoard.CHAPTER : NotesBoard.BOOK;
+        String folder = folder(other);
+        if (notes.store() == null || folder == null)
+            return Optional.empty();
+
+        return Optional.of(new NoteMoves.Destination(other, folder, other == NotesBoard.BOOK ? bookTitle : chapter));
+    }
+
+    /** Tells the counts what the board on screen holds, as it changes. */
+    private void countShown() {
+
+        counts.set(shownBoard(), board.countProperty().get(), board.duplicatesProperty().get());
+    }
+
+    /** Reads what the board not on screen holds, for the tab's title and the switch. */
+    private void countHidden(NoteStore store) {
+
+        NotesBoard hidden = shownBoard() == NotesBoard.BOOK ? NotesBoard.CHAPTER : NotesBoard.BOOK;
+        String folder = folder(hidden);
+        if (store == null || folder == null) {
+            counts.set(hidden, 0, false);
+            return;
+        }
+
+        notes.read("Cannot count the notes of " + folder, (shownStore, shownFolder) -> summary(store.notes(folder)),
+                summary -> counts.set(hidden, summary.count(), summary.duplicates()));
+    }
+
+    private static Summary summary(List<Note> read) {
+
+        return new Summary(read.size(), read.stream().anyMatch(Note::duplicateOnImport));
     }
 
     // Loading
@@ -237,63 +378,5 @@ public final class NotesPane extends StackPane {
     private void saveView(BoardView view) {
 
         notes.write("Cannot remember where the board was", (store, chapter) -> store.saveBoardView(chapter, view));
-    }
-
-    // Keys
-
-    /**
-     * Ctrl/⌘ with + − 0 zoom, with V pastes into the selected note or on the board; Delete moves the selected note to
-     * Detached notes; Escape leaves it.
-     */
-    private void keyPressed(KeyEvent event) {
-
-        if (frozen)
-            return;
-
-        KeyCode code = event.getCode();
-
-        // In a note's text, the keys are the text's, but Escape leaves it.
-        if (event.getTarget() instanceof TextInputControl) {
-            if (code == KeyCode.ESCAPE) {
-                viewport.requestFocus();
-                event.consume();
-            }
-            return;
-        }
-
-        if ((event.isShortcutDown() && shortcutKey(code)) || boardKey(code))
-            event.consume();
-    }
-
-    /** Ctrl/⌘ with {@code code}: true if it is one of the board's. */
-    private boolean shortcutKey(KeyCode code) {
-
-        switch (code) {
-            case V -> board.paste(viewport.centre());
-            case PLUS, EQUALS, ADD -> viewport.zoomIn();
-            case MINUS, SUBTRACT -> viewport.zoomOut();
-            case DIGIT0, NUMPAD0 -> viewport.actualSize();
-            default -> {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /** {@code code} alone, or with any modifier: true if it is one of the board's. */
-    private boolean boardKey(KeyCode code) {
-
-        switch (code) {
-            case DELETE, BACK_SPACE -> {
-                return board.deleteSelected();
-            }
-            case ESCAPE -> board.select(null);
-            default -> {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

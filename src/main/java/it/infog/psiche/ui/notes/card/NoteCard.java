@@ -63,11 +63,8 @@ public final class NoteCard extends VBox {
         /** Moves the note to Detached notes. */
         void delete(NoteCard card);
 
-        /** True if the book has a chapter besides the board's, which a note can move to. */
-        boolean hasOtherChapters();
-
-        /** Asks the author for another chapter, and moves the note to its board. */
-        void moveToChapter(NoteCard card);
+        /** Where the card's note can go: another chapter's board, or the other board the Notes tab shows. */
+        NoteMoveActions moves();
 
         /** Clears the Duplicate on Import tag: the author keeps both versions. */
         void clearDuplicateTag(NoteCard card);
@@ -107,7 +104,7 @@ public final class NoteCard extends VBox {
         this.id = note.id();
         this.board = board;
         this.order = note.layout().order();
-        this.drag = new CardDrag(this, () -> board.layoutChanged(this));
+        this.drag = new CardDrag(this, board);
         this.fileSlot = new CardFileSlot(() -> board.files().open(this));
 
         text.setText(note.text());
@@ -323,8 +320,11 @@ public final class NoteCard extends VBox {
         for (NoteColor each : NoteColor.values())
             colors.getItems().add(menuItem(each.label(), () -> recolor(each)));
 
-        items.addAll(List.of(new SeparatorMenuItem(), colors,
-                menuItem("Move to chapter…", () -> board.moveToChapter(this), board.hasOtherChapters()),
+        NoteMoveActions moves = board.moves();
+        items.addAll(List.of(new SeparatorMenuItem(), colors));
+        moves.otherBoard().ifPresent(name ->
+                items.add(menuItem("Move to " + name, () -> moves.moveToOtherBoard(this))));
+        items.addAll(List.of(menuItem("Move to chapter…", () -> moves.moveToChapter(this), moves.hasOtherChapters()),
                 menuItem("Detach", () -> board.delete(this))));
         return items;
     }

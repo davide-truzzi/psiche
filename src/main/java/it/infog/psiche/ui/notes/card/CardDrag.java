@@ -7,21 +7,22 @@ import javafx.scene.layout.Region;
 
 /**
  * Moving and resizing a note with the pointer, whatever the board's zoom, the whole note always kept on the board.
- * Once a drag that changed something ends, the note's new place or size is handed on to be kept.
+ * Once a drag that changed something ends, the note's new place or size is handed on to be kept. While the note is
+ * moved, its board hears where the pointer is, and a note dropped on the other board's half of the switch goes there.
  */
 final class CardDrag {
 
     private final NoteCard card;
-    private final Runnable changed;
+    private final NoteCard.Board board;
     // Where the pointer took hold of the card, from its top-left corner, or its size when the resize began.
     private Point2D grip = Point2D.ZERO;
     private boolean moved;
 
-    /** @param changed runs when a drag that moved or resized the card ends */
-    CardDrag(NoteCard card, Runnable changed) {
+    /** @param board told when a drag that moved or resized the card ends, and where a moved card is dragged */
+    CardDrag(NoteCard card, NoteCard.Board board) {
 
         this.card = card;
-        this.changed = changed;
+        this.board = board;
     }
 
     /** Lets the author move the card by dragging {@code handle}: its strip, or the band above it. */
@@ -29,7 +30,7 @@ final class CardDrag {
 
         handle.setOnMousePressed(this::startMove);
         handle.setOnMouseDragged(this::move);
-        handle.setOnMouseReleased(event -> end());
+        handle.setOnMouseReleased(this::endMove);
     }
 
     /** Lets the author resize the card by dragging {@code corner}. */
@@ -55,10 +56,22 @@ final class CardDrag {
     private void move(MouseEvent event) {
 
         Point2D corner = boardPoint(event).subtract(grip);
-        card.relocate(Math.clamp(corner.getX(), 0, board().getWidth() - card.getWidth()),
-                Math.clamp(corner.getY(), 0, board().getHeight() - card.getHeight()));
+        card.relocate(Math.clamp(corner.getX(), 0, boardPane().getWidth() - card.getWidth()),
+                Math.clamp(corner.getY(), 0, boardPane().getHeight() - card.getHeight()));
         moved = true;
+        board.moves().dragged(card, event.getSceneX(), event.getSceneY());
         event.consume();
+    }
+
+    /** Ends a move: a note dropped on the other board goes there, with the place it had before the drag. */
+    private void endMove(MouseEvent event) {
+
+        if (moved && board.moves().dropped(card, event.getSceneX(), event.getSceneY())) {
+            moved = false;
+            return;
+        }
+
+        end();
     }
 
     private void startResize(MouseEvent event) {
@@ -74,9 +87,9 @@ final class CardDrag {
         Point2D size = boardPoint(event).add(grip);
         // A note kept too near the edge by an older version still gets its smallest size.
         double maxWidth = Math.max(NoteCard.MIN_WIDTH,
-                Math.min(NoteCard.MAX_WIDTH, board().getWidth() - card.getLayoutX()));
+                Math.min(NoteCard.MAX_WIDTH, boardPane().getWidth() - card.getLayoutX()));
         double maxHeight = Math.max(NoteCard.MIN_HEIGHT,
-                Math.min(NoteCard.MAX_HEIGHT, board().getHeight() - card.getLayoutY()));
+                Math.min(NoteCard.MAX_HEIGHT, boardPane().getHeight() - card.getLayoutY()));
         card.setPrefSize(Math.clamp(size.getX(), NoteCard.MIN_WIDTH, maxWidth),
                 Math.clamp(size.getY(), NoteCard.MIN_HEIGHT, maxHeight));
         moved = true;
@@ -86,17 +99,17 @@ final class CardDrag {
     private void end() {
 
         if (moved)
-            changed.run();
+            board.layoutChanged(card);
         moved = false;
     }
 
     /** Where the pointer is on the board, whatever the board's zoom. */
     private Point2D boardPoint(MouseEvent event) {
 
-        return board().sceneToLocal(event.getSceneX(), event.getSceneY());
+        return boardPane().sceneToLocal(event.getSceneX(), event.getSceneY());
     }
 
-    private Region board() {
+    private Region boardPane() {
 
         return (Region) card.getParent();
     }

@@ -28,6 +28,11 @@
   the folder Psiche is installed in.
 - Pin the tab that shows when a book opens: right-click **Preview**, **Notes** or **History** and tick **Show when a
   book opens**. The preview stays the default.
+- **Book notes**: notes for the whole book, such as a map, the cast or a timeline, on a board of their own in the
+  Notes tab. A switch above the board, **01-departure | Lorem**, after a page and a book, chooses the chapter's board
+  or the book's; the tab reads **Notes (3+2)**, the chapter's notes then the book's. Each book reopens on the board you
+  looked at last. Drag a note onto the other half of the switch to move it there, or use **Move to Lorem** /
+  **Move to 01-departure** in its menu.
 - A chapter reopens where you left it: with the caret where it was and the same paragraph at the top, after switching
   to another chapter, closing the book or restarting Psiche. Psiche keeps this in `psiche.properties` in the book's
   folder, which every book gets as it opens, and keeps that file out of Git with a commit of its own.

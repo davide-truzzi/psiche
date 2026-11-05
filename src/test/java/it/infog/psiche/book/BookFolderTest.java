@@ -265,6 +265,19 @@ class BookFolderTest {
         assertThat(book.cover()).isEmpty();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"_book", "_Book.md", " _BOOK "})
+    void noChapterCanTakeTheNameTheBooksOwnNotesAreKeptUnder(String title) throws IOException {
+        BookFolder book = BookFolder.open(book("lorem"));
+        Chapter chapter = book.createChapter("01-alba");
+
+        assertThatThrownBy(() -> book.createChapter(title))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("the book's own notes");
+        assertThatThrownBy(() -> book.renameChapter(chapter, title)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(book.chapters()).extracting(Chapter::title).containsExactly("01-alba");
+    }
+
     @Test
     void refusesToCreateOverAnExistingFolder() throws IOException {
         Path existing = Files.createDirectory(tempDir.resolve("novel"));

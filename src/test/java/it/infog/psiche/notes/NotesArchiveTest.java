@@ -77,6 +77,19 @@ class NotesArchiveTest {
     }
 
     @Test
+    void theBooksOwnNotesGoToTheBooksBoardNeverToDetachedNotes() throws IOException {
+        NoteStore laptop = laptop();
+        Note map = laptop.create(NoteStore.BOOK, LAYOUT);
+        laptop.saveText(NoteStore.BOOK, map.id(), "World map");
+
+        importInto(desktop(), export(laptop));
+
+        NoteStore desktop = desktop();
+        assertThat(desktop.notes(NoteStore.BOOK)).extracting(Note::text).containsExactly("World map");
+        assertThat(desktop.detached().orphans(List.of("01-alba"))).isEmpty();
+    }
+
+    @Test
     void textIsCompressedAndOtherFilesAreStoredAsTheyAre() throws IOException {
         NoteStore laptop = laptop();
         Note note = laptop.create("01-alba", LAYOUT);

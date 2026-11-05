@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+     stroke="#2a2219" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A closed book, its spine and the edge of its pages, a band on the cover: the whole book, on the Notes tab's
+       switch. The app reads only the paths; .notes-switch-icon in writer.css gives the ink and size. -->
+  <path d="M5 18.5V5.5A2.5 2.5 0 0 1 7.5 3H19v13H7.5A2.5 2.5 0 0 0 5 18.5z"/>
+  <path d="M5 18.5A2.5 2.5 0 0 0 7.5 21H19v-5"/>
+  <path d="M9 7h6"/>
+</svg>

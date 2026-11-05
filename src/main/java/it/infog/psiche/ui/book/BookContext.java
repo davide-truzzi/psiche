@@ -190,7 +190,7 @@ public final class BookContext implements AutoCloseable {
 
             bookTitle.setText(displayTitle());
             statusBar.setPageMeasure(pageMeasure());
-            chapters.setBookLanguage(edit.properties().language());
+            chapters.setBookProperties(edit.properties());
             statusBar.info("Book properties saved");
         });
     }

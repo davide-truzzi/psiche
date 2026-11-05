@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.notes;
 
+import it.infog.psiche.notes.NoteStore;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.ui.common.DateFormats;
@@ -20,6 +21,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -30,7 +32,8 @@ import static it.infog.psiche.ui.common.Controls.button;
 /**
  * Detached notes: the groups of notes left without a chapter, the most recently deleted first, each with the chapter it
  * belonged to, why and when it was left, a small card for each note, and the buttons to put it back on a chapter's
- * board or to delete it for good. Deleting for good is asked first: notes are not in Git, so nothing brings them back.
+ * board, or the book's, or to delete it for good. The book's own notes read as "Lorem (book notes)". Deleting for good
+ * is asked first: notes are not in Git, so nothing brings them back.
  * The dialog stays open, the groups shown again after each change, and greyed out while it is made.
  */
 final class DetachedNotesDialog {
@@ -40,13 +43,18 @@ final class DetachedNotesDialog {
     private final Dialog<ButtonType> dialog = new Dialog<>();
     private final VBox groupList = new VBox();
     private final List<String> chapters;
+    private final String bookTitle;
     private BiConsumer<OrphanGroup, String> restore = (group, chapter) -> {};
     private Consumer<OrphanGroup> delete = group -> {};
 
-    /** @param chapters the book's chapters, by name, which notes can be restored to */
-    DetachedNotesDialog(Window owner, List<String> chapters) {
+    /**
+     * @param chapters  the book's chapters, by name, which notes can be restored to, besides the book's own board
+     * @param bookTitle the book's title, which its own notes are named after
+     */
+    DetachedNotesDialog(Window owner, List<String> chapters, String bookTitle) {
 
         this.chapters = chapters;
+        this.bookTitle = bookTitle;
 
         Dialogs.ownAndStyle(dialog, owner);
         dialog.setHeaderText("Detached notes");
@@ -143,7 +151,7 @@ final class DetachedNotesDialog {
      */
     private VBox groupView(OrphanGroup group) {
 
-        Label chapter = wrapping(group.chapter(), "detached-notes-chapter");
+        Label chapter = wrapping(boardName(group.chapter(), bookTitle), "detached-notes-chapter");
         String when = group.deletedAt().map(at -> " · " + DateFormats.DAY_AND_TIME.format(at)).orElse("");
         Label details = wrapping(group.cause().label() + when, "detached-notes-details");
 
@@ -205,23 +213,24 @@ final class DetachedNotesDialog {
 
     // Restoring and deleting
 
-    /** Asks which chapter's board the notes go to, their own chapter first if the book still has it. */
+    /**
+     * Asks which board the notes go to: a chapter's, or the book's, listed last; their own first if the book still has
+     * it, or else the first chapter.
+     */
     private void restore(OrphanGroup group) {
 
-        if (chapters.isEmpty()) {
-            Dialogs.inform(window(), "No chapter to restore to",
-                    "Create a chapter first, then restore the notes to it.");
-            return;
-        }
-
-        String suggested = chapters.contains(group.chapter()) ? group.chapter() : chapters.getFirst();
-        Optional<String> chapter = Dialogs.chooseChapter(window(),
-                "Restore %s to a chapter".formatted(count(group)), chapters, suggested, "Restore");
-        if (chapter.isEmpty())
+        String book = boardName(NoteStore.BOOK, bookTitle);
+        List<String> boards = new ArrayList<>(chapters);
+        boards.add(book);
+        String own = boardName(group.chapter(), bookTitle);
+        String suggested = boards.contains(own) ? own : boards.getFirst();
+        Optional<String> chosen = Dialogs.chooseChapter(window(),
+                "Restore %s to a chapter or the book".formatted(count(group)), boards, suggested, "Restore");
+        if (chosen.isEmpty())
             return;
 
         groupList.setDisable(true);
-        restore.accept(group, chapter.get());
+        restore.accept(group, chosen.get().equals(book) ? NoteStore.BOOK : chosen.get());
     }
 
     private void delete(OrphanGroup group) {
@@ -237,20 +246,27 @@ final class DetachedNotesDialog {
     }
 
     /** "The notes of 03-sera and their files are not in Git, so they can't be recovered.", as many and as filed. */
-    private static String notInGit(OrphanGroup group) {
+    private String notInGit(OrphanGroup group) {
 
+        String name = boardName(group.chapter(), bookTitle);
         boolean files = group.notes().stream().anyMatch(note -> note.attachment().isPresent());
         if (group.notes().size() == 1)
-            return (files ? "The note of %s and its file are" : "The note of %s is").formatted(group.chapter())
+            return (files ? "The note of %s and its file are" : "The note of %s is").formatted(name)
                     + " not in Git, so it can't be recovered.";
 
-        return (files ? "The notes of %s and their files are" : "The notes of %s are").formatted(group.chapter())
+        return (files ? "The notes of %s and their files are" : "The notes of %s are").formatted(name)
                 + " not in Git, so they can't be recovered.";
     }
 
     private Window window() {
 
         return dialog.getDialogPane().getScene().getWindow();
+    }
+
+    /** The name the author knows the board kept in {@code folder} by: the chapter's, or "Lorem (book notes)". */
+    static String boardName(String folder, String bookTitle) {
+
+        return folder.equals(NoteStore.BOOK) ? bookTitle + " (book notes)" : folder;
     }
 
     /** "1 note", or "3 notes". */

@@ -138,11 +138,14 @@ public final class DetachedNoteStore {
         deleteTree(group.folder());
     }
 
-    /** The folders in {@code notes/} named after none of {@code chapters}. */
+    /** The folders in {@code notes/} named after none of {@code chapters}, nor the book's own board. */
     private List<Path> orphanFolders(Collection<String> chapters) {
 
         Set<String> names = Set.copyOf(chapters);
-        return folders(folder -> !names.contains(folder.getFileName().toString()));
+        return folders(folder -> {
+            String name = folder.getFileName().toString();
+            return !names.contains(name) && !name.equals(NoteStore.BOOK);
+        });
     }
 
     /** The folders directly in {@code notes/} that {@code wanted} accepts; none if there is no {@code notes/}. */

@@ -1,7 +1,9 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
+import it.infog.psiche.book.BookState;
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.notes.NoteStore;
@@ -95,10 +97,10 @@ public final class ChapterContext {
 
         revisions = new ChapterRevisions(gitControls, chapterList::refresh);
         changes = new ChapterChanges(chapterEditor, notesPane, gitControls, statusBar, errors, window);
-        detachedNotes = new DetachedNotes(notesPane, statusBar, errors, window, this::checkOrphans);
+        detachedNotes = new DetachedNotes(notesPane, statusBar, errors, window, () -> notes, this::chapterTitles);
         deletedChapters = new DeletedChapters(gitControls, errors, window,
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
-                title -> detachedNotes.offerRestore(notes, title), this::showChapter);
+                detachedNotes::offerRestore, this::showChapter);
         status = new ChapterStatus(chapterEditor, statusBar, bookCountsShown, rememberBookCounts);
         sidebar = buildSidebar();
 
@@ -115,7 +117,7 @@ public final class ChapterContext {
             if (change.wasRemoved())
                 countBook();
         });
-        notesPane.setOnBinned(this::checkOrphans);
+        notesPane.setOnBinned(detachedNotes::check);
         notesPane.setChapters(this::chapterTitles);
     }
 
@@ -133,12 +135,17 @@ public final class ChapterContext {
         this.book = book;
         this.repository = repository;
         notes = new NoteStore(book.notesDir());
+        // One state for the book, shared, as the editor and the notes keep theirs in the same file.
+        BookState state = BookState.of(book);
+        Optional<BookProperties> properties = properties(book);
+        chapterEditor.setBookState(state);
+        notesPane.setBook(properties.map(BookProperties::title).orElse(book.title()), state);
         notesPane.show(notes, null);
         chapterEditor.hideWelcome();
 
         bookOpen.set(true);
         hasRepository.set(repository != null);
-        chapterEditor.setBookLanguage(language(book));
+        chapterEditor.setBookLanguage(properties.map(BookProperties::language).orElse(null));
         revisions.show(repository);
 
         refresh();
@@ -152,8 +159,10 @@ public final class ChapterContext {
     public void clear() {
 
         chapterEditor.close();
+        chapterEditor.setBookState(null);
         chapterEditor.showWelcome();
         history.show(null, null);
+        notesPane.setBook(null, null);
         notesPane.show(null, null);
 
         // Closing a saved chapter leaves the dirty flag unchanged, so its listener would not clear the status bar.
@@ -165,15 +174,19 @@ public final class ChapterContext {
         notes = null;
         bookOpen.set(false);
         hasRepository.set(false);
-        detachedNotes.check(null, List.of());
+        detachedNotes.check();
         revisions.show(null);
         chapterEditor.setBookLanguage(null);
     }
 
-    /** Checks the spelling in {@code tag}, the open book's language, after the author changed it. */
-    public void setBookLanguage(String tag) {
+    /**
+     * Takes the open book's {@code properties} after the author changed them: the spelling is checked in its language,
+     * and the Notes tab names the book's board after its title.
+     */
+    public void setBookProperties(BookProperties properties) {
 
-        chapterEditor.setBookLanguage(tag);
+        chapterEditor.setBookLanguage(properties.language());
+        notesPane.setBookTitle(properties.title());
     }
 
     /** Lists the book's chapters again, keeping the open one selected. */
@@ -192,7 +205,7 @@ public final class ChapterContext {
 
         chapterList.getItems().setAll(chapters);
         chapterEditor.chapter().filter(chapters::contains).ifPresent(chapterList.getSelectionModel()::select);
-        checkOrphans();
+        detachedNotes.check();
         revisions.check();
         countBook();
     }
@@ -223,14 +236,14 @@ public final class ChapterContext {
         }
     }
 
-    /** The language {@code book} is written in, as its properties say; none if they cannot be read. */
-    private String language(BookFolder book) {
+    /** The book's properties; none, and the author told, if they cannot be read: its spelling is then not checked. */
+    private Optional<BookProperties> properties(BookFolder book) {
 
         try {
-            return book.properties().language();
+            return Optional.of(book.properties());
         } catch (UncheckedIOException e) {
-            errors.report("Cannot read the book's language, so its spelling is not checked", e);
-            return null;
+            errors.report("Cannot read the book's properties, so its spelling is not checked", e);
+            return Optional.empty();
         }
     }
 
@@ -268,7 +281,7 @@ public final class ChapterContext {
         deleted.disableProperty().bind(hasRepository.not().or(gitControls.busyProperty()));
 
         // Notes are not in Git, so their bin works without it; it is there only while it holds something.
-        Button detachedNotesButton = button("Detached notes", this::showDetachedNotes);
+        Button detachedNotesButton = button("Detached notes", detachedNotes::show);
         detachedNotesButton.visibleProperty().bind(detachedNotes.anyProperty());
         detachedNotesButton.managedProperty().bind(detachedNotes.anyProperty());
 
@@ -346,19 +359,9 @@ public final class ChapterContext {
         chapterList.getSelectionModel().select(chapter);
     }
 
-    // Detached notes
+    // Notes
 
-    private void showDetachedNotes() {
-
-        detachedNotes.show(notes, chapterTitles());
-    }
-
-    /** Shows Detached notes while notes are kept for no chapter of the book. */
-    private void checkOrphans() {
-
-        detachedNotes.check(notes, chapterTitles());
-    }
-
+    /** The chapters' names, in their order: where notes can be moved or restored to. */
     private List<String> chapterTitles() {
 
         return chapterList.getItems().stream().map(Chapter::title).toList();
