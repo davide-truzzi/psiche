@@ -27,11 +27,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import static it.infog.psiche.common.SafeFiles.move;
+import static it.infog.psiche.common.SafeFiles.temporaryBeside;
 import static it.infog.psiche.notes.NoteFolders.loadProperties;
-import static it.infog.psiche.notes.NoteFolders.move;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.subfolders;
-import static it.infog.psiche.notes.NoteFolders.temporaryBeside;
 
 /**
  * A book's notes as a zip, to move them to another computer or keep a copy: {@value #MANIFEST} saying whose notes they

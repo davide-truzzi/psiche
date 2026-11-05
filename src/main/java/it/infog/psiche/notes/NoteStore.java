@@ -20,14 +20,14 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.function.Consumer;
 
+import static it.infog.psiche.common.SafeFiles.copy;
+import static it.infog.psiche.common.SafeFiles.move;
 import static it.infog.psiche.notes.NoteFolders.BOARD_FILE;
 import static it.infog.psiche.notes.NoteFolders.DUPLICATE_KEY;
 import static it.infog.psiche.notes.NoteFolders.FILE_KEY;
 import static it.infog.psiche.notes.NoteFolders.OWN_FILES;
 import static it.infog.psiche.notes.NoteFolders.PROPERTIES_FILE;
 import static it.infog.psiche.notes.NoteFolders.TEXT_FILE;
-import static it.infog.psiche.notes.NoteFolders.copy;
-import static it.infog.psiche.notes.NoteFolders.move;
 import static it.infog.psiche.notes.NoteFolders.moveNotes;
 import static it.infog.psiche.notes.NoteFolders.number;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
@@ -57,11 +57,9 @@ public final class NoteStore {
     private static final String X_KEY = "x";
     private static final String Y_KEY = "y";
 
-    /** Hears how far a copy has come, on the thread that copies. */
+    /** Hears how far a copy has come, on the thread that copies; the notes' name for the shared one. */
     @FunctionalInterface
-    public interface CopyProgress {
-
-        void copied(long bytes, long total);
+    public interface CopyProgress extends it.infog.psiche.common.CopyProgress {
     }
 
     private final Path root;

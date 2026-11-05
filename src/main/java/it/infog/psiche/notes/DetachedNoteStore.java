@@ -22,9 +22,9 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static it.infog.psiche.common.SafeFiles.deleteTree;
 import static it.infog.psiche.notes.NoteFolders.DELETED_FILE;
 import static it.infog.psiche.notes.NoteFolders.chapterFolder;
-import static it.infog.psiche.notes.NoteFolders.deleteTree;
 import static it.infog.psiche.notes.NoteFolders.moveNotes;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
 import static it.infog.psiche.notes.NoteFolders.readProperties;
