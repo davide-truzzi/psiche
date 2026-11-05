@@ -111,6 +111,8 @@ class ProjectArchiveTest {
         assertThatThrownBy(() -> ProjectArchive.manifest(later)).hasMessageContaining("later Psiche Writer");
         assertThatThrownBy(() -> ProjectArchive.manifest(hidden)).hasMessageContaining("damaged");
         assertThatThrownBy(() -> ProjectArchive.manifest(plainZip)).hasMessageContaining("no Psiche project");
+        Path text = Files.writeString(tempDir.resolve("text.psiche"), "not a zip");
+        assertThatThrownBy(() -> ProjectArchive.manifest(text)).hasMessage("text.psiche is no Psiche project");
     }
 
     /** A book folder with chapters, media, notes, Git's objects and an empty folder Git keeps. */

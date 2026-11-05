@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.stream.Stream;
 import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
@@ -102,6 +103,8 @@ public final class ProjectArchive {
 
         try (ZipFile zip = new ZipFile(archive.toFile(), StandardCharsets.UTF_8)) {
             return manifest(zip, archive);
+        } catch (ZipException e) {
+            throw new UncheckedIOException(archive.getFileName() + " is no Psiche project", e);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + archive + ": " + e.getMessage(), e);
         }

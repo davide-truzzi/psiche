@@ -30,8 +30,6 @@ import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
@@ -137,7 +135,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         setLeft(chapters.sidebar());
         setCenter(pages());
         setBottom(statusBar);
-        freezeWhileExporting();
+        freezeWhileTransferring();
     }
 
     /** Opens the book in {@code directory}, discarding any unsaved changes; callers settle them first. */
@@ -159,33 +157,25 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     /**
-     * Lets the author save or discard unsaved chapters before the window closes, and keep an export that runs going;
+     * Lets the author save or discard unsaved chapters before the window closes, and keep a transfer that runs going;
      * false means stay open.
      */
     boolean confirmClose() {
 
-        if (projectTransfer.busyProperty().get()) {
-            ButtonType closeAnyway = new ButtonType("Close anyway", ButtonData.OK_DONE);
-            Optional<ButtonType> choice = Dialogs.choose(window(), "The book is being exported",
-                    "Closing now stops the export, and the project file is not written.",
-                    new ButtonType("Keep exporting", ButtonData.CANCEL_CLOSE), closeAnyway);
-            if (choice.filter(closeAnyway::equals).isEmpty())
-                return false;
-        }
-
-        return unsavedChanges.settle("Save them before closing Psiche Writer?");
+        return projectTransfer.confirmStop() && unsavedChanges.settle("Save them before closing Psiche Writer?");
     }
 
     /**
-     * Keeps the book from changing while it is exported: the chapter list, the notes, and Commit and Push are disabled,
-     * and the open chapter can be read but not edited. The Book menu waits too; see {@link #bookMenuButton}.
+     * Keeps the book from changing while a Psiche project is exported or imported: the chapter list, the notes, and
+     * Commit and Push are disabled, and the open chapter can be read but not edited. The Book menu waits too; see
+     * {@link #bookMenuButton}.
      */
-    private void freezeWhileExporting() {
+    private void freezeWhileTransferring() {
 
-        ReadOnlyBooleanProperty exporting = projectTransfer.busyProperty();
+        ReadOnlyBooleanProperty transferring = projectTransfer.busyProperty();
         for (Node part : List.of(chapters.sidebar(), gitControls))
-            part.disableProperty().bind(exporting);
-        exporting.addListener((obs, was, frozen) -> {
+            part.disableProperty().bind(transferring);
+        transferring.addListener((obs, was, frozen) -> {
             chapterEditor.setFrozen(frozen);
             notes.setFrozen(frozen);
         });
@@ -251,14 +241,18 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         MenuItem exportProject = menuItem("Export Psiche project", books::exportProject);
         exportProject.disableProperty().bind(exportNotes.disableProperty().or(gitControls.busyProperty()));
 
+        // It may replace the open book, which then closes: as Close book, it waits for Git and the notes.
+        MenuItem importProject = menuItem("Import Psiche project", books::importProject);
+        importProject.disableProperty().bind(gitControls.busyProperty().or(notesTransfer.busyProperty()));
+
         ContextMenu menu = new ContextMenu(create, open, recent.menu(), close, new SeparatorMenuItem(), saveAll,
                 new SeparatorMenuItem(), properties, export, new SeparatorMenuItem(), exportNotes, importNotes,
-                new SeparatorMenuItem(), exportProject);
+                new SeparatorMenuItem(), exportProject, importProject);
         menu.setOnShowing(event -> recent.refresh(gitControls.busyProperty().get()));
 
         Button book = new Button("Book");
         book.setOnAction(event -> menu.show(book, Side.BOTTOM, 0, 4));
-        // Nothing in it may change the book while the book is exported.
+        // Nothing in it may change the book while a Psiche project is exported or imported.
         book.disableProperty().bind(projectTransfer.busyProperty());
 
         return book;
