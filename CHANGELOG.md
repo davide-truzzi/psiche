@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### What is new
+
+- **Repetitions**: select some text, or rest the caret in a word of four letters or more, and its other places in
+  view show on a faint red, so a word used twice close together stands out while you write, not only when you read
+  the chapter again. It finds exactly what you select, capitals or not, inside longer words too ("meraviglios" finds
+  "Meravigliosa"); short words such as "il" or "the" are left alone. The status bar says how many times the word is
+  in the chapter. **Highlight repetitions** in Preferences turns it off.
+- The status bar's counts are no longer cut short by a long message beside them.
+
+### For testers
+
+- Repetitions: tell us if the highlight ever gets in the way while you write, or if the text moves when it appears.
+
 ## 0.3.0 Alpha (2026-11-03)
 
 The third release for testing: spell checking in six languages, export to DOCX, and far less power used while

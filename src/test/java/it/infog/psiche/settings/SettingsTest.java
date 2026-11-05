@@ -128,7 +128,7 @@ class SettingsTest {
     @Test
     void anAuthorWhoChoseNothingHasTheDefaultPreferences() {
         assertThat(settings().preferences())
-                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16, true, false))
+                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16, true, false, true))
                 .isEqualTo(Preferences.defaults());
     }
 
@@ -138,7 +138,8 @@ class SettingsTest {
         Settings settings = settings();
         settings.bookOpened(alba);
 
-        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false, true);
+        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false, true,
+                false);
         settings.savePreferences(chosen);
 
         assertThat(settings().preferences()).isEqualTo(chosen);
@@ -146,7 +147,7 @@ class SettingsTest {
         assertThat(Files.readString(folder().path().resolve(Settings.FILE)))
                 .contains("book.language=it-IT", "book.author=Anna Bianchi", "preview.theme=dark",
                         "startup.reopen-last-book=true", "editor.font-size=20", "preview.font-size=14",
-                        "spelling.enabled=false", "spelling.strict=true");
+                        "spelling.enabled=false", "spelling.strict=true", "editor.highlight-repetitions=false");
     }
 
     @Test
@@ -154,7 +155,8 @@ class SettingsTest {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE),
                 "book.language=\npreview.theme=sepia\nstartup.reopen-last-book=sometimes\neditor.font-size=big\n"
-                        + "preview.font-size=19\nspelling.enabled=no\nspelling.strict=yes\n");
+                        + "preview.font-size=19\nspelling.enabled=no\nspelling.strict=yes\n"
+                        + "editor.highlight-repetitions=maybe\n");
 
         assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
     }

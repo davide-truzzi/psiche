@@ -12,26 +12,32 @@ import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
 import static it.infog.psiche.ui.common.Controls.hSpacer;
 
 /**
- * The open chapter's characters, words and pages on the left, lined up with the editor's text, and on the right the
- * latest message, the chapter's title and its save state. Right-clicking the pages chooses how they are counted.
+ * The open chapter's characters, words and pages on the left, lined up with the editor's text, then how many times
+ * the word the author is at comes back in it, and on the right the latest message, the chapter's title and its save
+ * state. Right-clicking the pages chooses how they are counted.
  */
 public final class StatusBar extends HBox {
 
     private static final PseudoClass ERROR = PseudoClass.getPseudoClass("error");
     private static final PseudoClass DIRTY = PseudoClass.getPseudoClass("dirty");
     private static final Duration MESSAGE_FADE_IN = Duration.millis(260);
+    // A longer selection is cut, so the count stays beside the pages.
+    private static final int REPEATED_WORD_LENGTH = 24;
 
     private final Label message = new Label();
     private final Label counts = new Label();
     private final Label pages = new Label();
+    private final Label repetitions = new Label();
     private final Label chapterState = new Label();
     private final ToggleGroup measures = new ToggleGroup();
 
@@ -44,13 +50,18 @@ public final class StatusBar extends HBox {
         message.getStyleClass().add("status");
         counts.getStyleClass().add("chapter-counts");
         pages.getStyleClass().addAll("chapter-counts", "page-count");
+        repetitions.getStyleClass().add("chapter-counts");
+        // Short, so a long message is the one cut short, not the counts.
+        for (Label label : List.of(counts, pages, repetitions))
+            label.setMinWidth(Region.USE_PREF_SIZE);
         chapterState.getStyleClass().add("chapter-state");
 
         pages.setContextMenu(pageMeasureMenu());
         pages.setTooltip(new Tooltip("Right-click to choose how pages are counted"));
         showCount(null);
+        showRepetitions("", 0);
 
-        getChildren().addAll(counts, pages, hSpacer(), message, chapterState);
+        getChildren().addAll(counts, pages, repetitions, hSpacer(), message, chapterState);
         getStyleClass().add("status-bar");
     }
 
@@ -75,6 +86,7 @@ public final class StatusBar extends HBox {
 
         chapterState.setText("");
         showCount(null);
+        showRepetitions("", 0);
     }
 
     /** @param count the open chapter's characters and words; {@code null} hides the counts */
@@ -91,6 +103,22 @@ public final class StatusBar extends HBox {
 
         counts.setText(String.format(Locale.ENGLISH, "%,d characters  ·  %,d words", count.characters(), count.words()));
         pages.setText(pageMeasure.describe(count.characters(), count.words()));
+    }
+
+    /**
+     * Shows that {@code word}, the one the author is at, is {@code times} times in the open chapter; fewer than two
+     * hides the count, as the word does not come back.
+     */
+    public void showRepetitions(String word, int times) {
+
+        boolean shown = times > 1;
+        repetitions.setVisible(shown);
+        repetitions.setManaged(shown);
+        if (!shown)
+            return;
+
+        String shownWord = word.length() > REPEATED_WORD_LENGTH ? word.substring(0, REPEATED_WORD_LENGTH) + "…" : word;
+        repetitions.setText(String.format(Locale.ENGLISH, "“%s” %,d times", shownWord, times));
     }
 
     /** Counts pages by {@code measure} from now on, and marks it in the menu. */

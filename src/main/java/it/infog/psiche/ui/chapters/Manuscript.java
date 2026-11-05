@@ -28,12 +28,15 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.StyleClassedTextArea;
+import org.fxmisc.richtext.model.StyleSpans;
 import org.fxmisc.richtext.util.UndoUtils;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 
@@ -56,6 +59,7 @@ final class Manuscript {
     private final MarginMarks commentMarks =
             new MarginMarks(area, "comment-mark", COMMENT_MARK_OFFSET, "comment", "comments");
     private final Mistakes mistakes = new Mistakes(area, this::restyle);
+    private final Repetitions repetitions;
     // The logo behind the welcome, and the page that stacks the text over it, and the dots over the text.
     private final StackPane welcomeLogo = new StackPane();
     private final StackPane page = new StackPane(welcomeLogo, scrolled, commentMarks.node(), mistakes.node());
@@ -67,8 +71,12 @@ final class Manuscript {
     // True once the author scrolls the manuscript, until the caret next moves.
     private boolean reading;
 
-    /** @param welcome shown on the empty page from the start until a book opens; see {@link #hideWelcome} */
-    Manuscript(String welcome) {
+    /**
+     * @param welcome            shown on the empty page from the start until a book opens; see {@link #hideWelcome}
+     * @param repetitionsCounted told the word the author is at and how many times it is in the text, while it comes
+     *                           back; an empty word and 0 when it does not
+     */
+    Manuscript(String welcome, BiConsumer<String, Integer> repetitionsCounted) {
 
         area.getStyleClass().add("manuscript");
         scrolled.getStyleClass().add("manuscript-scroll");
@@ -79,10 +87,12 @@ final class Manuscript {
         area.setUndoManager(UndoUtils.plainTextUndoManager(area));
         // Kept by the area it listens to.
         new CaretBlink(area);
+        repetitions = new Repetitions(area, repetitionsCounted);
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             findComments();
             mistakes.follow(change);
+            repetitions.textChanged();
             restyle();
         });
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> menuIndex = event.isKeyboardTrigger()
@@ -209,6 +219,12 @@ final class Manuscript {
     void checkSpelling(SpellChecker checker, Set<String> ownWords, boolean strict) {
 
         mistakes.check(checker, ownWords, strict);
+    }
+
+    /** Shows the other places of the word the author is at, as Preferences asks, or none. */
+    void highlightRepetitions(boolean on) {
+
+        repetitions.setOn(on);
     }
 
     /** Shows the text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
@@ -358,11 +374,24 @@ final class Manuscript {
         commentMarks.setParts(comments);
     }
 
-    /** Shows the comments in grey and the spelling mistakes with a dotted line under them. */
+    /**
+     * Shows the comments in grey and the spelling mistakes with a dotted line under them. Only the paragraphs whose
+     * styles change are restyled: a restyled paragraph is measured again, which can move the view.
+     */
     private void restyle() {
 
-        if (area.getLength() > 0)
-            area.setStyleSpans(0, TextStyles.of(area.getLength(), comments, mistakes.ranges()));
+        StyleSpans<Collection<String>> styles = TextStyles.of(area.getLength(), comments, mistakes.ranges());
+        int start = 0;
+        for (int paragraph = 0; paragraph < area.getParagraphs().size(); paragraph++) {
+            int end = start + area.getParagraphLength(paragraph);
+            if (end > start) {
+                StyleSpans<Collection<String>> wanted = styles.subView(start, end);
+                if (!TextStyles.same(wanted, area.getParagraph(paragraph).getStyleSpans()))
+                    area.setStyleSpans(paragraph, 0, wanted);
+            }
+            // past the line break
+            start = end + 1;
+        }
     }
 
     /** Puts the caret at the start, with the first line at the top of the view, and the focus. */

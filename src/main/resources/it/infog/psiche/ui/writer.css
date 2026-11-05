@@ -321,6 +321,12 @@
     -fx-fill: rgba(224, 74, 47, 0.45);
 }
 
+/* The other places of the word the author is at, selected or at the caret, each drawn as a selection of its own:
+   the selection's red, fainter, so a repetition shows while the text stays easy to read. */
+.manuscript .repeated {
+    -fx-fill: rgba(224, 74, 47, 0.2);
+}
+
 /* The page sits a pixel in from the left, where the text area had its border; the scroll pane itself ignores its
    padding, so the stack it is in has it. */
 .manuscript-page {
