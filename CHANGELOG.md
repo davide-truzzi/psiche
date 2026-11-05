@@ -19,10 +19,15 @@
 - **Close book**, in the Book menu, closes the open book and shows the welcome page again, asking first about unsaved
   changes.
 - The window's title shows Psiche's version, as "Psiche Writer 0.3.0 Alpha", until the first stable release.
+- **Export Psiche project** and **Import Psiche project**, in the Book menu, move a whole book to another computer, or
+  keep a copy of it, as one `.psiche` file: chapters, media, notes with their files, and the Git history. The book is
+  frozen while it is exported, with a bar of blocks in the status bar showing how far it has come. An import over a
+  folder of the same name asks whether to back it up first, and opens the book when it is done.
 
 ### For testers
 
 - Repetitions: tell us if the highlight ever gets in the way while you write, or if the text moves when it appears.
+- Psiche projects: try moving a book between Linux, Windows and macOS, and tell us if anything is missing on arrival.
 
 ## 0.3.0 Alpha (2026-11-03)
 
