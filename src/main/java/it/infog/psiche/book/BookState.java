@@ -1,6 +1,7 @@
 package it.infog.psiche.book;
 
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.book.model.enums.NotesBoard;
 import it.infog.psiche.common.PropertiesFiles;
 
 import org.slf4j.Logger;
@@ -9,12 +10,15 @@ import org.slf4j.LoggerFactory;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Properties;
 
 /**
  * What Psiche remembers about one book, in {@value #FILE} at the book's root, which every book gets as it is created
- * or first opened, so a folder shows at a glance that it is a Psiche book: for now, where the author left each chapter.
+ * or first opened, so a folder shows at a glance that it is a Psiche book: where the author left each chapter, and
+ * which notes board, the chapter's or the book's, they looked at last.
  * It is the author's own state, not the book's, so it stays out of Git; a Psiche project takes it along.
  */
 public final class BookState {
@@ -22,12 +26,13 @@ public final class BookState {
     public static final String FILE = "psiche.properties";
 
     private static final Logger log = LoggerFactory.getLogger(BookState.class);
-    private static final String COMMENT = "Where you left each chapter, kept by Psiche Writer";
+    private static final String COMMENT = "Where you left each chapter and the notes, kept by Psiche Writer";
     private static final String FORMAT_KEY = "format";
     private static final String FORMAT = "1";
     private static final String CHAPTER_PREFIX = "chapter.";
     private static final String CARET = ".caret";
     private static final String TOP = ".top";
+    private static final String NOTES_BOARD = "notes.board";
 
     private final Path file;
     private final Path chaptersDir;
@@ -67,6 +72,26 @@ public final class BookState {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    /** The notes board the author looked at last, the chapter's or the book's; the chapter's at first. */
+    public NotesBoard notesBoard() {
+
+        String saved = properties.getProperty(NOTES_BOARD, "");
+        return Arrays.stream(NotesBoard.values())
+                .filter(board -> board.name().equalsIgnoreCase(saved))
+                .findFirst()
+                .orElse(NotesBoard.CHAPTER);
+    }
+
+    /** Remembers {@code board} as the notes board the author looked at last. */
+    public void saveNotesBoard(NotesBoard board) {
+
+        if (board == notesBoard())
+            return;
+
+        properties.setProperty(NOTES_BOARD, board.name().toLowerCase(Locale.ROOT));
+        write();
     }
 
     /**

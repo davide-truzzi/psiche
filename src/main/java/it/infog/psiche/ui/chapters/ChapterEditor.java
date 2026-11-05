@@ -205,8 +205,6 @@ public final class ChapterEditor {
         }
 
         rememberPlace();
-        if (book != this.book)
-            state = BookState.of(book);
         this.book = book;
         this.chapter = chapter;
         savedText = text;
@@ -214,7 +212,8 @@ public final class ChapterEditor {
         manuscript.setText(drafts.text(chapter).orElse(text));
         // setText does not fire a change when the new text equals the old, so recompute the state explicitly.
         trackDraft();
-        manuscript.startEditing(state.place(chapter).orElse(ChapterPlace.START));
+        manuscript.startEditing(Optional.ofNullable(state).flatMap(kept -> kept.place(chapter))
+                .orElse(ChapterPlace.START));
 
         return true;
     }
@@ -225,8 +224,17 @@ public final class ChapterEditor {
      */
     void rememberPlace() {
 
-        if (chapter != null)
+        if (chapter != null && state != null)
             state.savePlace(chapter, manuscript.place());
+    }
+
+    /**
+     * Takes {@code state}, the open book's, where the places chapters were left in are kept; the Notes tab keeps its
+     * own there too, so the two share it. {@code null} as the book closes.
+     */
+    void setBookState(BookState state) {
+
+        this.state = state;
     }
 
     /** Moves where {@code from} was left to {@code to}, the name it was just renamed to. */
@@ -263,7 +271,6 @@ public final class ChapterEditor {
         rememberPlace();
         drafts.clear();
         book = null;
-        state = null;
         chapter = null;
         savedText = "";
         manuscript.clear();

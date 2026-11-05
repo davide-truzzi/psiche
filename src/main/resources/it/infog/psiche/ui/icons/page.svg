@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+     stroke="#2a2219" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A page with its corner folded and two lines of text: a chapter, on the Notes tab's switch.
+       The app reads only the paths; .notes-switch-icon in writer.css gives the ink and size. -->
+  <path d="M6 3h8l5 5v13H6z"/>
+  <path d="M14 3v5h5"/>
+  <path d="M9 13h7"/>
+  <path d="M9 17h5"/>
+</svg>

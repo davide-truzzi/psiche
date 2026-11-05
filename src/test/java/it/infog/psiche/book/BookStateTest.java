@@ -1,6 +1,7 @@
 package it.infog.psiche.book;
 
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.book.model.enums.NotesBoard;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,7 +26,7 @@ class BookStateTest {
         BookState.of(BookFolder.open(old.getParent()));
 
         assertThat(created.root().resolve("psiche.properties")).hasContent("""
-                # Where you left each chapter, kept by Psiche Writer
+                # Where you left each chapter and the notes, kept by Psiche Writer
                 format=1""");
         assertThat(tempDir.resolve("old/psiche.properties")).exists();
     }
@@ -62,6 +63,17 @@ class BookStateTest {
         assertThat(again.place(alba)).isEmpty();
         assertThat(again.place(notte)).isEmpty();
         assertThat(Files.readString(book.root().resolve("psiche.properties"))).doesNotContain("alba", "notte");
+    }
+
+    @Test
+    void theNotesBoardLookedAtLastIsRememberedTheChaptersAtFirst() throws IOException {
+        BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
+        assertThat(BookState.of(book).notesBoard()).isEqualTo(NotesBoard.CHAPTER);
+
+        BookState.of(book).saveNotesBoard(NotesBoard.BOOK);
+
+        assertThat(BookState.of(book).notesBoard()).isEqualTo(NotesBoard.BOOK);
+        assertThat(Files.readString(book.root().resolve("psiche.properties"))).contains("notes.board=book");
     }
 
     @Test

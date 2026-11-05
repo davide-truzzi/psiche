@@ -1025,6 +1025,77 @@
     -fx-text-fill: -paper-dim;
 }
 
+/* The switch above the board: the open chapter's board or the book's, each half after a page or a book. The board on
+   screen reads in paper with a brass line under it, the other in graphite; quiet, as red pencil means attention. */
+.notes-switch {
+    -fx-spacing: 4;
+    -fx-padding: 4;
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge -desk-edge transparent -desk-edge;
+}
+
+.notes-switch-half {
+    -fx-pref-height: 30;
+    -fx-min-height: 30;
+    -fx-background-color: -desk-raised;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+    -fx-border-color: -desk-edge;
+    -fx-border-width: 1 1 2 1;
+    -fx-border-radius: 3;
+    -fx-padding: 0 10;
+    -fx-cursor: hand;
+}
+
+.notes-switch-half:selected {
+    -fx-border-color: -desk-edge -desk-edge -brass -desk-edge;
+}
+
+.notes-switch-half:focused {
+    -fx-border-color: -brass;
+}
+
+.notes-switch-content {
+    -fx-spacing: 8;
+    -fx-alignment: center;
+}
+
+.notes-switch-name {
+    -fx-text-fill: -graphite;
+    -fx-text-overrun: center-ellipsis;
+}
+
+.notes-switch-half:selected .notes-switch-name,
+.notes-switch-half:hover .notes-switch-name {
+    -fx-text-fill: -paper;
+}
+
+/* The page and the book, drawn in icons/page.svg and icons/book.svg on a 24 grid, shown at 16. */
+.notes-switch-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -graphite;
+    -fx-stroke-width: 1.8;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.67;
+    -fx-scale-y: 0.67;
+}
+
+.notes-switch-half:selected .notes-switch-icon,
+.notes-switch-half:hover .notes-switch-icon {
+    -fx-stroke: -paper;
+}
+
+/* A note on this half's board carries the Duplicate on Import tag. */
+.notes-switch-dot {
+    -fx-min-width: 7;
+    -fx-min-height: 7;
+    -fx-max-width: 7;
+    -fx-max-height: 7;
+    -fx-background-color: -red-pencil;
+    -fx-background-radius: 4;
+}
+
 /* The tab's title turns red-pencil while a note carries the Duplicate on Import tag. */
 .chapter-tabs .tab.notes-duplicates .tab-label {
     -fx-text-fill: -red-pencil;
