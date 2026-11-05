@@ -3,19 +3,15 @@ package it.infog.psiche.ui.chapters;
 import it.infog.psiche.book.model.ChapterPlace;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
-import it.infog.psiche.ui.common.Logo;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.value.ObservableValue;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
-import javafx.scene.control.Label;
 import javafx.scene.control.ScrollBar;
 import javafx.scene.input.ContextMenuEvent;
 import javafx.scene.input.KeyCombination;
@@ -40,7 +36,7 @@ import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
  * logo until a book opens. It knows where the author is in the text, the caret while writing and the place in view
  * while scrolling to read, and where the text starts, so the status bar can line up with it. Its text is a RichTextFX
  * {@link StyleClassedTextArea}, which only it and the parts it is made of know: the {@link PlainTextArea}, the
- * {@link TextMarks} and the {@link Repetitions}.
+ * {@link TextMarks}, the {@link Repetitions} and the {@link Welcome}.
  */
 final class Manuscript {
 
@@ -52,10 +48,9 @@ final class Manuscript {
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
     private final TextMarks marks = new TextMarks(area);
     private final Repetitions repetitions;
-    // The logo behind the welcome, and the page that stacks the text over it, and the marks' dots over the text.
-    private final StackPane welcomeLogo = new StackPane();
-    private final StackPane page = new StackPane(welcomeLogo, scrolled);
-    private final Label welcome;
+    // The page that stacks the text over the welcome's logo, and the marks' dots over the text.
+    private final StackPane page = new StackPane(scrolled);
+    private final Welcome welcome;
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     // Where the right-click menu was last asked for, in the text: under the pointer, or at the caret from the keyboard.
@@ -64,7 +59,7 @@ final class Manuscript {
     private boolean reading;
 
     /**
-     * @param welcome            shown on the empty page while no book is open; see {@link #hideWelcome}
+     * @param welcome            shown on the empty page while no book is open; see {@link Welcome}
      * @param repetitionsCounted told the word the author is at and how many times it is in the text, while it comes
      *                           back; an empty word and 0 when it does not
      */
@@ -90,15 +85,8 @@ final class Manuscript {
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> menuIndex = event.isKeyboardTrigger()
                 ? area.getCaretPosition()
                 : area.hit(event.getX(), event.getY()).getInsertionIndex());
-        this.welcome = welcome(welcome);
-        showWelcome();
-
-        //the welcome's logo, sized to the page and never in the way of the page's own size or the mouse
-        welcomeLogo.getChildren().add(Logo.lockup(welcomeLogo, 0.6));
-        welcomeLogo.getStyleClass().add("welcome-logo");
-        welcomeLogo.setMinSize(0, 0);
-        welcomeLogo.setPrefSize(0, 0);
-        welcomeLogo.setMouseTransparent(true);
+        this.welcome = new Welcome(area, page, welcome);
+        this.welcome.show();
 
         //where the text starts: the text's left edge, inside its padding
         Runnable measure = () -> textMargin.set(area.localToScene(0, 0).getX() + area.getPadding().getLeft());
@@ -206,28 +194,13 @@ final class Manuscript {
     /** Shows the welcome and its logo on the empty page, as when the app starts, once the book closes. */
     void showWelcome() {
 
-        area.setPlaceholder(welcome, Pos.TOP_LEFT);
-        // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
-        area.setMouseTransparent(true);
-        area.setFocusTraversable(false);
-        // The text kept the focus it had while a chapter was open, which would hide the welcome.
-        if (area.isFocused())
-            page.requestFocus();
-        if (!page.getChildren().contains(welcomeLogo))
-            page.getChildren().addFirst(welcomeLogo);
+        welcome.show();
     }
 
-    /**
-     * Removes the welcome and its logo while a book is open. The welcome is the text's placeholder, which shows
-     * whenever the text is empty, so it would otherwise fill every empty or new chapter as if it were the chapter's
-     * text.
-     */
+    /** Takes the welcome and its logo away while a book is open; see {@link Welcome}. */
     void hideWelcome() {
 
-        area.setPlaceholder(null);
-        area.setMouseTransparent(false);
-        area.setFocusTraversable(true);
-        page.getChildren().remove(welcomeLogo);
+        welcome.hide();
     }
 
     // How it looks, and where the author is
@@ -372,18 +345,6 @@ final class Manuscript {
     void selectAll() {
 
         area.selectAll();
-    }
-
-    /** The welcome, wrapped to the page's width inside its padding, in the placeholder's colour. */
-    private Label welcome(String text) {
-
-        Label welcome = new Label(text);
-        welcome.getStyleClass().add("manuscript-welcome");
-        welcome.setWrapText(true);
-        welcome.maxWidthProperty().bind(Bindings.createDoubleBinding(
-                () -> area.getWidth() - area.getPadding().getLeft() - area.getPadding().getRight(),
-                area.widthProperty(), area.paddingProperty()));
-        return welcome;
     }
 
     /** Puts the caret at {@code place}, with its paragraph at the top of the view, and the focus. */

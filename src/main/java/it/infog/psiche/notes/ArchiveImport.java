@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
@@ -34,14 +35,11 @@ import static it.infog.psiche.notes.NoteFolders.PROPERTIES_FILE;
 import static it.infog.psiche.notes.NoteFolders.TEXT_FILE;
 import static it.infog.psiche.notes.NoteFolders.attachmentName;
 import static it.infog.psiche.notes.NoteFolders.layout;
-import static it.infog.psiche.notes.NoteFolders.loadProperties;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
-import static it.infog.psiche.notes.NoteFolders.readProperties;
 import static it.infog.psiche.notes.NoteFolders.subfolders;
 import static it.infog.psiche.notes.NoteFolders.writeAtomically;
-import static it.infog.psiche.notes.NoteFolders.writeProperties;
 
 /**
  * One import of an export of notes into the book's, merging by note id. Each note keeps the fingerprints of its
@@ -182,11 +180,11 @@ final class ArchiveImport {
         try {
             extractAll(note, work);
             Path properties = work.resolve(PROPERTIES_FILE);
-            Properties written = readProperties(properties);
+            Properties written = PropertiesFiles.readLeniently(properties);
             Note read = readNote(work).orElseThrow(() -> new IOException("Cannot read the note " + note.id()));
             written.setProperty(NotePrints.CONTENT_KEY, NotePrints.content(read));
             written.setProperty(NotePrints.LAYOUT_KEY, NotePrints.layout(read.layout()));
-            writeProperties(properties, written);
+            PropertiesFiles.write(properties, written, "");
             move(work, target);
         } finally {
             deleteTree(work);
@@ -208,7 +206,7 @@ final class ArchiveImport {
 
         //what changed, and where
         Theirs theirs = read(note);
-        Properties base = readProperties(mine.resolve(PROPERTIES_FILE));
+        Properties base = PropertiesFiles.readLeniently(mine.resolve(PROPERTIES_FILE));
         String baseContent = base.getProperty(NotePrints.CONTENT_KEY, "");
         String baseLayout = base.getProperty(NotePrints.LAYOUT_KEY, "");
         String myContent = NotePrints.content(current);
@@ -277,7 +275,7 @@ final class ArchiveImport {
         try {
             extractAll(note, work);
             Path properties = work.resolve(PROPERTIES_FILE);
-            Properties written = readProperties(properties);
+            Properties written = PropertiesFiles.readLeniently(properties);
             int top = readNotes(folder).stream().mapToInt(other -> other.layout().order()).max().orElse(0) + 1;
             NoteLayout placed = besides(beside, layout(written), top);
 
@@ -285,7 +283,7 @@ final class ArchiveImport {
             written.setProperty(DUPLICATE_KEY, "true");
             written.setProperty(NotePrints.CONTENT_KEY, content);
             written.setProperty(NotePrints.LAYOUT_KEY, NotePrints.layout(placed));
-            writeProperties(properties, written);
+            PropertiesFiles.write(properties, written, "");
 
             // The new id's folder is made empty, so no other note takes it, then the duplicate takes its place.
             move(work, store.newNoteFolder(folder), StandardCopyOption.REPLACE_EXISTING);
@@ -321,7 +319,7 @@ final class ArchiveImport {
         ZipEntry propertiesEntry = note.files().get(PROPERTIES_FILE);
         if (propertiesEntry != null)
             try (InputStream in = zip.getInputStream(propertiesEntry)) {
-                properties = loadProperties(new InputStreamReader(in, StandardCharsets.UTF_8),
+                properties = PropertiesFiles.load(new InputStreamReader(in, StandardCharsets.UTF_8),
                         propertiesEntry.getName());
             }
 

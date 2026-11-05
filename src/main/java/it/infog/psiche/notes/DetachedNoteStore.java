@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.notes.model.enums.OrphanCause;
@@ -27,9 +28,7 @@ import static it.infog.psiche.notes.NoteFolders.DELETED_FILE;
 import static it.infog.psiche.notes.NoteFolders.chapterFolder;
 import static it.infog.psiche.notes.NoteFolders.moveNotes;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
-import static it.infog.psiche.notes.NoteFolders.readProperties;
 import static it.infog.psiche.notes.NoteFolders.subfolders;
-import static it.infog.psiche.notes.NoteFolders.writeProperties;
 
 /**
  * The notes off their boards, which Detached notes shows: those deleted in Psiche, alone or with their chapter, and
@@ -168,7 +167,7 @@ public final class DetachedNoteStore {
         }
 
         // Folders deleted with a note say so; any other deleted folder went with its chapter.
-        String cause = readProperties(folder.resolve(DELETED_FILE)).getProperty(CAUSE_KEY, "");
+        String cause = PropertiesFiles.readLeniently(folder.resolve(DELETED_FILE)).getProperty(CAUSE_KEY, "");
         OrphanCause orphanCause = cause.equals(NOTE_CAUSE) ? OrphanCause.NOTE_DELETED : OrphanCause.CHAPTER_DELETED;
         return new OrphanGroup(folder, deleted.group(1), orphanCause, at, notes);
     }
@@ -177,6 +176,6 @@ public final class DetachedNoteStore {
 
         Properties properties = new Properties();
         properties.setProperty(CAUSE_KEY, cause);
-        writeProperties(folder.resolve(DELETED_FILE), properties);
+        PropertiesFiles.write(folder.resolve(DELETED_FILE), properties, "");
     }
 }

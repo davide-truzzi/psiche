@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.CopyOption;
 import java.nio.file.Files;
@@ -51,6 +52,19 @@ public final class SafeFiles {
             Files.move(source, target, atomic);
         } catch (AtomicMoveNotSupportedException e) {
             Files.move(source, target, options);
+        }
+    }
+
+    /** Writes {@code text} to a temporary file beside {@code file}, which then takes its place whole. */
+    public static void writeString(Path file, String text) throws IOException {
+
+        Path temporary = temporaryBeside(file);
+        try {
+            Files.writeString(temporary, text, StandardCharsets.UTF_8);
+            move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            // Gone once moved; left only by a write that failed.
+            Files.deleteIfExists(temporary);
         }
     }
 

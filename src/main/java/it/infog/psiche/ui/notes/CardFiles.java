@@ -3,6 +3,7 @@ package it.infog.psiche.ui.notes;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.notes.card.NoteCard;
+import it.infog.psiche.ui.notes.card.NoteFileActions;
 
 import javafx.beans.value.ObservableBooleanValue;
 import javafx.scene.input.Clipboard;
@@ -20,7 +21,7 @@ import java.util.Set;
  * taking it away, to Detached notes; opening it or its folder; and asking {@link NoteFiles} for its picture, once,
  * while the tab is showing.
  */
-final class CardFiles {
+final class CardFiles implements NoteFileActions {
 
     static final String NOTHING_TO_PASTE = "Nothing to paste: copy a file or an image first";
 
@@ -48,8 +49,8 @@ final class CardFiles {
         this.showing = showing;
     }
 
-    /** Copies {@code file} into the note, in place of the file it carried. */
-    void attach(NoteCard card, Path file) {
+    @Override
+    public void attach(NoteCard card, Path file) {
 
         if (!notes.hasBoard())
             return;
@@ -59,8 +60,8 @@ final class CardFiles {
                 failure -> attachFailed(card, file.getFileName().toString(), failure));
     }
 
-    /** Asks the author for a file, and copies it into the note. */
-    void chooseFile(NoteCard card) {
+    @Override
+    public void chooseFile(NoteCard card) {
 
         FileChooser chooser = new FileChooser();
         chooser.setTitle(card.attachment().isPresent() ? "Replace the note's file" : "Attach a file to the note");
@@ -69,8 +70,8 @@ final class CardFiles {
             attach(card, chosen.toPath());
     }
 
-    /** Copies the file, or the image, on the clipboard into the note. */
-    void paste(NoteCard card) {
+    @Override
+    public void paste(NoteCard card) {
 
         Clipboard clipboard = Clipboard.getSystemClipboard();
         if (clipboard.hasFiles() && !clipboard.getFiles().isEmpty())
@@ -82,18 +83,20 @@ final class CardFiles {
             statusBar.info(NOTHING_TO_PASTE);
     }
 
-    void open(NoteCard card) {
+    @Override
+    public void open(NoteCard card) {
 
         card.attachment().filter(Files::exists).ifPresent(files::open);
     }
 
-    void showInFolder(NoteCard card) {
+    @Override
+    public void showInFolder(NoteCard card) {
 
         card.attachment().ifPresent(files::showFolder);
     }
 
-    /** Takes the file away from the note, to Detached notes. */
-    void remove(NoteCard card) {
+    @Override
+    public void remove(NoteCard card) {
 
         card.setAttachment(Optional.empty());
         pictured.remove(card);

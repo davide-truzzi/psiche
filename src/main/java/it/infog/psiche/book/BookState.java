@@ -1,25 +1,16 @@
 package it.infog.psiche.book;
 
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.common.PropertiesFiles;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringWriter;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
-
-import static it.infog.psiche.common.SafeFiles.move;
-import static it.infog.psiche.common.SafeFiles.temporaryBeside;
 
 /**
  * What Psiche remembers about one book, in {@value #FILE} at the book's root, which every book gets as it is created
@@ -31,6 +22,7 @@ public final class BookState {
     public static final String FILE = "psiche.properties";
 
     private static final Logger log = LoggerFactory.getLogger(BookState.class);
+    private static final String COMMENT = "Where you left each chapter, kept by Psiche Writer";
     private static final String FORMAT_KEY = "format";
     private static final String FORMAT = "1";
     private static final String CHAPTER_PREFIX = "chapter.";
@@ -112,39 +104,24 @@ public final class BookState {
                 .forEach(properties::remove);
     }
 
+    /** The properties in {@code file}; none, and logged, if they cannot be read: nothing depends on them. */
     private static Properties read(Path file) {
 
-        Properties properties = new Properties();
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            properties.load(reader);
-        } catch (NoSuchFileException e) {
-            // A book not opened by this Psiche before: it gets the file now.
-        } catch (IOException | IllegalArgumentException e) {
+        try {
+            return PropertiesFiles.readLeniently(file);
+        } catch (UncheckedIOException e) {
             log.warn("Reading {} as empty: it cannot be read", file, e);
-            properties.clear();
+            return new Properties();
         }
-        return properties;
     }
 
-    /** Writes the file whole, keys in order and with no timestamp, through a temporary file beside it. */
+    /** Writes the file; if it cannot be, that is only logged: where chapters were left is not remembered. */
     private void write() {
 
         properties.setProperty(FORMAT_KEY, FORMAT);
-        StringWriter text = new StringWriter();
         try {
-            properties.store(text, null);
-            String entries = text.toString().lines()
-                    .filter(line -> !line.startsWith("#"))
-                    .sorted()
-                    .collect(Collectors.joining("\n", "# Where you left each chapter, kept by Psiche Writer\n", "\n"));
-            Path temporary = temporaryBeside(file);
-            try {
-                Files.writeString(temporary, entries, StandardCharsets.UTF_8);
-                move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
-            } finally {
-                Files.deleteIfExists(temporary);
-            }
-        } catch (IOException | UncheckedIOException e) {
+            PropertiesFiles.write(file, properties, COMMENT);
+        } catch (UncheckedIOException e) {
             log.warn("Cannot write {}; where chapters were left is not remembered", file, e);
         }
     }

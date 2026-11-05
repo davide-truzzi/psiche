@@ -1,5 +1,7 @@
 package it.infog.psiche.settings;
 
+import it.infog.psiche.common.PropertiesFiles;
+import it.infog.psiche.common.SafeFiles;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.RecentBooks;
 import it.infog.psiche.settings.model.SettingsFolder;
@@ -10,15 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,7 +47,7 @@ public final class Settings {
     static final String FILE = "settings.properties";
 
     private static final Logger log = LoggerFactory.getLogger(Settings.class);
-    private static final String COMMENT = "# Psiche Writer's settings, written by the app";
+    private static final String COMMENT = "Psiche Writer's settings, written by the app";
     private static final String RECENT = "recent.";
     private static final String REOPEN_LAST_BOOK = "startup.reopen-last-book";
     private static final String NEW_BOOK_LANGUAGE = "book.language";
@@ -323,54 +322,31 @@ public final class Settings {
     /** The settings as saved; none if there is no file yet or it cannot be read. */
     private Properties read() {
 
-        Properties settings = new Properties();
-        try (Reader reader = Files.newBufferedReader(folder.path().resolve(FILE), StandardCharsets.UTF_8)) {
-            settings.load(reader);
-        } catch (NoSuchFileException e) {
-            return settings;
-        } catch (IOException | IllegalArgumentException e) {
+        try {
+            return PropertiesFiles.readLeniently(folder.path().resolve(FILE));
+        } catch (UncheckedIOException e) {
             log.warn("Cannot read the settings in {}; using none", folder.path(), e);
             return new Properties();
         }
-
-        return settings;
     }
 
     /** Writes {@code settings} whole, in place of the file, with the keys in order and no timestamp. */
     private void write(Properties settings) {
 
-        StringWriter text = new StringWriter();
         try {
-            settings.store(text, null);
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
+            Files.createDirectories(folder.path());
+            PropertiesFiles.write(folder.path().resolve(FILE), settings, COMMENT);
+        } catch (IOException | UncheckedIOException e) {
+            log.warn("Cannot save {} in {}", FILE, folder.path(), e);
         }
-        String entries = text.toString().lines()
-                .filter(line -> !line.startsWith("#"))
-                .sorted()
-                .collect(Collectors.joining("\n", COMMENT + "\n", "\n"));
-
-        writeFile(FILE, entries);
     }
 
     /** Writes {@code text} whole as the file {@code name} of the settings folder, in place of the one there. */
     private void writeFile(String name, String text) {
 
-        Path file = folder.path().resolve(name);
         try {
             Files.createDirectories(folder.path());
-            Path temporary = Files.createTempFile(folder.path(), name, ".tmp");
-            try {
-                Files.writeString(temporary, text, StandardCharsets.UTF_8);
-                try {
-                    Files.move(temporary, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-                } catch (AtomicMoveNotSupportedException e) {
-                    Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
-                }
-            } finally {
-                // Gone once moved; left only by a write that failed.
-                Files.deleteIfExists(temporary);
-            }
+            SafeFiles.writeString(folder.path().resolve(name), text);
         } catch (IOException e) {
             log.warn("Cannot save {} in {}", name, folder.path(), e);
         }

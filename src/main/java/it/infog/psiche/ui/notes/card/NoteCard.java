@@ -72,23 +72,8 @@ public final class NoteCard extends VBox {
         /** Clears the Duplicate on Import tag: the author keeps both versions. */
         void clearDuplicateTag(NoteCard card);
 
-        /** Copies {@code file} into the note, in place of the file it carried. */
-        void attach(NoteCard card, Path file);
-
-        /** Asks the author for a file, and copies it into the note. */
-        void chooseFile(NoteCard card);
-
-        /** Copies the file, or the image, on the clipboard into the note. */
-        void paste(NoteCard card);
-
-        /** Opens the note's file in the system's default program. */
-        void openFile(NoteCard card);
-
-        /** Opens the note's folder, where its file is, in the system's file manager. */
-        void showInFolder(NoteCard card);
-
-        /** Takes the file away from the note, to Detached notes. */
-        void removeFile(NoteCard card);
+        /** What the card can do with its note's file. */
+        NoteFileActions files();
 
         /** Shows {@code items} as the board's one menu, closing any other, at a point on the screen. */
         void showMenu(NoteCard card, List<MenuItem> items, double screenX, double screenY);
@@ -123,7 +108,7 @@ public final class NoteCard extends VBox {
         this.board = board;
         this.order = note.layout().order();
         this.drag = new CardDrag(this, () -> board.layoutChanged(this));
-        this.fileSlot = new CardFileSlot(() -> board.openFile(this));
+        this.fileSlot = new CardFileSlot(() -> board.files().open(this));
 
         text.setText(note.text());
         text.setWrapText(true);
@@ -179,7 +164,7 @@ public final class NoteCard extends VBox {
             if (!event.getDragboard().hasFiles() || event.getDragboard().getFiles().size() != 1)
                 return;
 
-            board.attach(this, event.getDragboard().getFiles().getFirst().toPath());
+            board.files().attach(this, event.getDragboard().getFiles().getFirst().toPath());
             event.setDropCompleted(true);
             event.consume();
         });
@@ -349,13 +334,13 @@ public final class NoteCard extends VBox {
 
         List<MenuItem> items = new ArrayList<>();
         if (attachment().isPresent()) {
-            items.add(menuItem("Open", () -> board.openFile(this), Files.exists(attachment().get())));
-            items.add(menuItem("Show in folder", () -> board.showInFolder(this)));
-            items.add(menuItem("Replace file…", () -> board.chooseFile(this)));
-            items.add(menuItem("Remove file", () -> board.removeFile(this)));
+            items.add(menuItem("Open", () -> board.files().open(this), Files.exists(attachment().get())));
+            items.add(menuItem("Show in folder", () -> board.files().showInFolder(this)));
+            items.add(menuItem("Replace file…", () -> board.files().chooseFile(this)));
+            items.add(menuItem("Remove file", () -> board.files().remove(this)));
         } else {
-            items.add(menuItem("Attach file…", () -> board.chooseFile(this)));
-            items.add(menuItem("Paste", () -> board.paste(this)));
+            items.add(menuItem("Attach file…", () -> board.files().chooseFile(this)));
+            items.add(menuItem("Paste", () -> board.files().paste(this)));
         }
         return items;
     }
