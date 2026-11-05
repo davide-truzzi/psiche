@@ -223,8 +223,9 @@ my-book/              ← the folder; the book's title is set in its properties
   places need not be added one by one; **Strict spell check** in Preferences checks them too. Right-click a marked
   word for up to five words you may have meant, which replace it (`Ctrl+Z` brings it back), or for **Add to
   dictionary** or **Ignore**: both make it right in every book, and Psiche keeps such words in `words.txt` in its
-  settings folder. **Check spelling**
-  there turns it off for every book; Book properties and Preferences show a green tick after a language Psiche has a
+  settings folder. Those words are suggested too: up to two of them, a slip or two away from the marked word, come
+  before the dictionary's, so a name of your own typed wrong is put right in one click. **Check spelling** there turns
+  it off for every book; Book properties and Preferences show a green tick after a language Psiche has a
   dictionary for.
   - **Clear formatting** `Ctrl+\` removes heading, list and quote markers and the bold or italic the selection
     touches.

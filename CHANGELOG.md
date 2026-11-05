@@ -13,6 +13,8 @@
   counts a chapter, from the chapters as saved. Click it to fold the numbers away; Psiche remembers.
 - **Move to chapter…** in a note's right-click menu moves the note, with its file, straight to another chapter's
   board, where it keeps its place and lies on top.
+- The words you add to the dictionary are suggested too: a name of your own typed wrong now gets the right spelling
+  first in its right-click menu.
 - The status bar's counts are no longer cut short by a long message beside them.
 
 ### For testers

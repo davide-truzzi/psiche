@@ -64,10 +64,13 @@ final class Mistakes {
         return ranges.stream().filter(range -> range.start() <= index && index <= range.end()).findFirst();
     }
 
-    /** Up to five words the author may have meant by {@code word}, the likeliest first; none while not checking. */
+    /**
+     * Up to five words the author may have meant by {@code word}, the likeliest first, their own words among them;
+     * none while not checking.
+     */
     List<String> suggestions(String word) {
 
-        return checker == null ? List.of() : checker.suggestions(word);
+        return checker == null ? List.of() : checker.suggestions(word, ownWords);
     }
 
     /**
