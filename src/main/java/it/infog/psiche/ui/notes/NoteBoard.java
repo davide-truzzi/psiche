@@ -3,7 +3,6 @@ package it.infog.psiche.ui.notes;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
 import it.infog.psiche.notes.model.enums.NoteColor;
-import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.notes.card.NoteCard;
@@ -27,9 +26,7 @@ import javafx.scene.layout.Pane;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * The open chapter's notes, as cards on the board {@link BoardViewport} shows: which one is selected, the order they
@@ -51,6 +48,7 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     // Reads the board's notes again, as a change to them failed half-way.
     private final Runnable reload;
     private final CardFiles files;
+    private final NoteMoves moves;
     private final ReadOnlyIntegerWrapper count = new ReadOnlyIntegerWrapper();
     private final ReadOnlyBooleanWrapper duplicates = new ReadOnlyBooleanWrapper();
     // The board's one right-click menu, so two are never open at once.
@@ -58,8 +56,6 @@ final class NoteBoard extends Pane implements NoteCard.Board {
 
     // Runs once something has gone to Detached notes: a note, or a file the note no longer carries.
     private Runnable onBinned = () -> {};
-    // The book's chapters, by name, which a note can move to.
-    private Supplier<List<String>> chapters = List::of;
     private NoteCard selected;
     private int topOrder;
 
@@ -80,6 +76,7 @@ final class NoteBoard extends Pane implements NoteCard.Board {
         this.firstNote = firstNote;
         this.reload = reload;
         this.files = new CardFiles(this, noteFiles, notes, statusBar, errors, showing);
+        this.moves = new NoteMoves(this, notes, statusBar, reload);
 
         getStyleClass().add("notes-board");
         setOnMouseClicked(this::createAtPointer);
@@ -103,12 +100,6 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     void setOnBinned(Runnable onBinned) {
 
         this.onBinned = onBinned;
-    }
-
-    /** @param chapters gives the book's chapters, by name, in their order, which a note can move to */
-    void setChapters(Supplier<List<String>> chapters) {
-
-        this.chapters = chapters;
     }
 
     /** Tells that something has gone to Detached notes. */
@@ -194,6 +185,17 @@ final class NoteBoard extends Pane implements NoteCard.Board {
             statusBar.info(CardFiles.NOTHING_TO_PASTE);
     }
 
+    /**
+     * Takes {@code card} off the board, as its note leaves it; if the note cannot leave, {@link #reload} puts it back.
+     */
+    void remove(NoteCard card) {
+
+        getChildren().remove(card);
+        if (card == selected)
+            selected = null;
+        updateCounts();
+    }
+
     // What the cards report
 
     @Override
@@ -224,39 +226,16 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     @Override
     public void delete(NoteCard card) {
 
-        removeCard(card);
+        remove(card);
         notes.write("Cannot delete the note", (store, chapter) -> store.binNote(chapter, card.id()), this::binned,
                 reload);
         statusBar.info("Note deleted: it's in Detached notes until you remove it for good");
     }
 
     @Override
-    public boolean hasOtherChapters() {
+    public NoteMoves moves() {
 
-        return !otherChapters().isEmpty();
-    }
-
-    @Override
-    public void moveToChapter(NoteCard card) {
-
-        String from = notes.chapter();
-        List<String> others = otherChapters();
-        if (others.isEmpty())
-            return;
-
-        // The chapter after this one, or the one before the last: where a note is most likely to go.
-        int next = Math.max(0, chapters.get().indexOf(from));
-        String suggested = next < others.size() ? others.get(next) : others.getLast();
-        Optional<String> to = Dialogs.chooseChapter(getScene().getWindow(), "Move the note to another chapter",
-                others, suggested, "Move");
-        if (to.isEmpty())
-            return;
-
-        // Text typed a moment ago is saved first: the thread does one thing at a time, in order.
-        card.flushText();
-        removeCard(card);
-        notes.write("Cannot move the note", (store, chapter) -> store.moveNote(chapter, card.id(), to.get()),
-                () -> statusBar.info("Note moved to " + to.get()), reload);
+        return moves;
     }
 
     @Override
@@ -282,24 +261,6 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     }
 
     // New notes
-
-    /**
-     * Takes {@code card} off the board, as its note leaves it; if the note cannot leave, {@link #reload} puts it back.
-     */
-    private void removeCard(NoteCard card) {
-
-        getChildren().remove(card);
-        if (card == selected)
-            selected = null;
-        updateCounts();
-    }
-
-    /** The book's chapters but the board's, in their order. */
-    private List<String> otherChapters() {
-
-        String shown = notes.chapter();
-        return chapters.get().stream().filter(chapter -> !chapter.equals(shown)).toList();
-    }
 
     /**
      * Adds a note with its top-left corner at {@code x}, {@code y}, or the nearest free spot after it, then hands its

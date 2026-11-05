@@ -23,6 +23,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.function.Consumer;
 
@@ -67,6 +68,7 @@ public final class NotesPane extends StackPane {
     // The board the author chose last, kept in the book's state; the book's is shown anyway while no chapter is open.
     private NotesBoard chosen = NotesBoard.CHAPTER;
     private BookState state;
+    private String bookTitle;
     // True while the switch is set to the board shown, not by the author.
     private boolean settingSwitch;
 
@@ -101,6 +103,7 @@ public final class NotesPane extends StackPane {
         StackPane boardArea = new StackPane(viewport, message, bar);
         VBox.setVgrow(boardArea, Priority.ALWAYS);
         boardSwitch.selectedProperty().addListener((obs, old, board) -> choose(board));
+        board.moves().setOtherBoard(this::otherBoard, boardSwitch, () -> countHidden(notes.store()));
 
         getChildren().add(new VBox(boardSwitch, boardArea));
         getStyleClass().add("notes-pane");
@@ -161,7 +164,7 @@ public final class NotesPane extends StackPane {
     /** @param chapters gives the book's chapters, by name, in their order, which a note can be moved to */
     public void setChapters(Supplier<List<String>> chapters) {
 
-        board.setChapters(chapters);
+        board.moves().setChapters(chapters);
     }
 
     /** Runs {@code binned} each time a note, or a file a note no longer carries, has gone to Detached notes. */
@@ -178,13 +181,14 @@ public final class NotesPane extends StackPane {
 
         this.state = state;
         chosen = state == null ? NotesBoard.CHAPTER : state.notesBoard();
-        boardSwitch.setBook(title);
+        setBookTitle(title);
         counts.clear();
     }
 
     /** Names the switch's right half after {@code title}, the book's new title. */
     public void setBookTitle(String title) {
 
+        bookTitle = title;
         boardSwitch.setBook(title);
     }
 
@@ -282,6 +286,17 @@ public final class NotesPane extends StackPane {
     private String folder(NotesBoard board) {
 
         return board == NotesBoard.BOOK ? NoteStore.BOOK : chapter;
+    }
+
+    /** The board not on screen, which a note can go to straight away; none while no chapter is open. */
+    private Optional<NoteMoves.Destination> otherBoard() {
+
+        NotesBoard other = shownBoard() == NotesBoard.BOOK ? NotesBoard.CHAPTER : NotesBoard.BOOK;
+        String folder = folder(other);
+        if (notes.store() == null || folder == null)
+            return Optional.empty();
+
+        return Optional.of(new NoteMoves.Destination(other, folder, other == NotesBoard.BOOK ? bookTitle : chapter));
     }
 
     /** Tells the counts what the board on screen holds, as it changes. */

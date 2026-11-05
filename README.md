@@ -338,7 +338,11 @@ my-book/              ← the folder; the book's title is set in its properties
   you left it.
 - **Move to chapter…** in a note's menu moves it, with its file, to another chapter's board, the next chapter
   suggested: it keeps its place and size there and lies over the notes it finds. It is greyed out while the book has
-  no other chapter.
+  no other chapter. From the book's board it offers every chapter.
+- To move a note between the chapter's board and the book's, drag it by its strip onto the other half of the switch:
+  while you drag, that half reads **Drop to move to Lorem** (or to the chapter), lit while the pointer is over it.
+  Dropped anywhere else, the note only moves on its board. The menu does the same: **Move to Lorem** on a chapter's
+  note, **Move to 01-departure** on a book note, named after the book and the open chapter.
 - **×**, **Detach** in the menu, or the Delete key on a selected note moves it out of the chapter, to a folder named
   after the chapter and the time (see [Book layout](#book-layout)); nothing is asked, as nothing is lost.
 - **Detached notes**, below Deleted chapters, shows while notes are kept for no chapter: notes deleted on their own,
@@ -514,6 +518,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `git.GitControls` | Commit message, Commit and Push. Runs Git commands one at a time on a background thread, exposes a *busy* flag that the book buttons disable on, and reports each commit so the history and the revision dots reload; also adds a line to `.gitignore`, for notes, and reads the book's state quietly, for the revision dots |
 | `notes.NotesPane` | The Notes tab: the open chapter's `NoteBoard`, or the book's, as the `BoardSwitch` above it says, shown in a `BoardViewport` with a `BoardBar` in its corner, and the board's keys (`BoardKeys`); remembers in the book's state which board was looked at last; `BoardCounts` gives the tab its *Notes (3+2)* title and the switch its dots, reading the board not on screen; reads a chapter's notes as it opens, again after notes are restored to it, and keeps each chapter's view; asks for pictures only while the tab is showing. `settle()` saves what is pending before a chapter is renamed or deleted, or the app closes |
 | `notes.NoteBoard` | The board itself: the notes as cards, the one selected and the order they lie in; makes new notes, by a double-click, New note, or for files dropped or pasted, writes each change a card reports, and moves a deleted note to Detached notes and says so |
+| `notes.NoteMoves` | The notes leaving the board, as the `NoteMoveActions` a card asks its board for: to another chapter's board, picked from a list, or to the other board the Notes tab shows, from the note's menu or dropped on that board's half of the switch, which `CardDrag` tells where the pointer is |
 | `notes.CardFiles` | The files on the cards, as the `NoteFileActions` a card asks its board for: gives a note a file dropped, chosen or pasted, growing the card to show it, takes it away to Detached notes, opens it or its folder, and asks `NoteFiles` for its picture once |
 | `notes.NotesThread` | The thread every read and write of the board's notes runs on, in order; it knows which board is shown, so a change goes to the board it was made on, and what is read is handed back only to the same board |
 | `notes.BoardViewport` | The part of the board in view: panned by dragging an empty spot or with the wheel, zoomed with Ctrl/⌘ + wheel (caught before the notes see it), a pinch or by steps, from the whole board up to 200 %; keeps the board in view, opens a saved view once it has a size, and hands on the view a second after it settles |

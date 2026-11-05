@@ -1086,6 +1086,26 @@
     -fx-stroke: -paper;
 }
 
+/* While a note is dragged, the other board's half: drop it there to move it, brighter with the pointer over it. */
+.notes-switch-half.notes-switch-target {
+    -fx-background-color: rgba(200, 163, 90, 0.14);
+    -fx-border-color: -brass;
+    -fx-border-style: dashed;
+    -fx-border-width: 1;
+}
+
+.notes-switch-half.notes-switch-target:over {
+    -fx-background-color: rgba(200, 163, 90, 0.3);
+}
+
+.notes-switch-half.notes-switch-target .notes-switch-name {
+    -fx-text-fill: -paper;
+}
+
+.notes-switch-half.notes-switch-target .notes-switch-icon {
+    -fx-stroke: -paper;
+}
+
 /* A note on this half's board carries the Duplicate on Import tag. */
 .notes-switch-dot {
     -fx-min-width: 7;
