@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 Alpha (2026-11-05)
+
+The fourth release for testing: notes for the whole book on a board of their own, repeated words shown while you
+write, the whole book's counts, chapters that reopen where you left them, and whole books moved or kept as one
+Psiche project file.
 
 ### What is new
 
@@ -41,6 +45,8 @@
 
 - Repetitions: tell us if the highlight ever gets in the way while you write, or if the text moves when it appears.
 - Psiche projects: try moving a book between Linux, Windows and macOS, and tell us if anything is missing on arrival.
+- Book notes: tell us whether dragging a note onto the other half of the switch feels natural, and whether the
+  Notes (3+2) count reads clearly.
 
 ## 0.3.0 Alpha (2026-11-03)
 

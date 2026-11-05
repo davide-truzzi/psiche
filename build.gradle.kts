@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "it.infog"
-version = "0.3.0-alpha"
+version = "0.4.0-alpha"
 
 java {
     toolchain {
