@@ -99,6 +99,32 @@ class DetachedNoteStoreTest extends BookNotesTest {
     }
 
     @Test
+    void theBooksOwnBoardIsNeverAnOrphan() {
+        NoteStore store = store(MORNING);
+        store.create(NoteStore.BOOK, LAYOUT);
+
+        assertThat(store.detached().orphans(List.of("01-alba"))).isEmpty();
+        assertThat(store.detached().hasOrphans(List.of())).isFalse();
+    }
+
+    @Test
+    void aDetachedBookNoteIsAnOrphanThatGoesBackToTheBook() {
+        NoteStore store = store(MORNING);
+        Note map = store.create(NoteStore.BOOK, LAYOUT);
+        store.saveText(NoteStore.BOOK, map.id(), "World map");
+        store.binNote(NoteStore.BOOK, map.id());
+        OrphanGroup group = store.detached().orphans(List.of("01-alba")).getFirst();
+
+        assertThat(group.chapter()).isEqualTo(NoteStore.BOOK);
+        assertThat(group.cause()).isEqualTo(OrphanCause.NOTE_DELETED);
+
+        store.detached().restoreTo(group, NoteStore.BOOK);
+
+        assertThat(store.notes(NoteStore.BOOK)).extracting(Note::text).containsExactly("World map");
+        assertThat(store.detached().hasOrphans(List.of("01-alba"))).isFalse();
+    }
+
+    @Test
     void aNoteDeletedAloneGoesBackToItsChapterWithItsFileAndPlace() throws IOException {
         NoteStore store = store(MORNING);
         Note note = store.create("01-alba", new NoteLayout(300, 420, 260, 190, 4, NoteColor.SKY));

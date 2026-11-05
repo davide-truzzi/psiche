@@ -27,6 +27,12 @@ import java.util.stream.Stream;
  */
 public final class BookFolder {
 
+    /**
+     * The folder in {@code notes/} that holds the notes of the whole book, beside one folder per chapter; no chapter
+     * may take its name.
+     */
+    public static final String BOOK_NOTES = "_book";
+
     static final String CHAPTERS_DIR = "chapters";
     static final String MEDIA_DIR = "media";
     static final String NOTES_DIR = "notes";
@@ -203,13 +209,18 @@ public final class BookFolder {
      * The file in {@code chapters/} for a chapter titled {@code title}, with or without its extension, whether or not
      * it exists.
      *
-     * @throws IllegalArgumentException if {@code title} is not a usable file name
+     * @throws IllegalArgumentException if {@code title} is not a usable file name, or is {@value #BOOK_NOTES}, which
+     *                                  the book's own notes are kept under
      */
     public Path chapterFile(String title) {
 
         String name = title == null ? "" : title.strip();
         if (name.endsWith(CHAPTER_EXTENSION))
             name = name.substring(0, name.length() - CHAPTER_EXTENSION.length());
+        // Any case: on Windows and macOS, "_Book" names the same folder.
+        if (name.equalsIgnoreCase(BOOK_NOTES))
+            throw new IllegalArgumentException(
+                    "'%s' is the name the book's own notes are kept under: choose another title".formatted(name));
 
         return resolveName(chaptersDir(), name, CHAPTER_EXTENSION, "Chapter title", "file");
     }

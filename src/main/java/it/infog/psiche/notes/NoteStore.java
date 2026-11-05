@@ -1,7 +1,8 @@
 package it.infog.psiche.notes;
 
-import it.infog.psiche.common.PropertiesFiles;
+import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.common.CopyProgress;
+import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
@@ -45,11 +46,17 @@ import static it.infog.psiche.notes.NoteFolders.writeAtomically;
  * of the file it carries, and the file itself sits beside them. The chapter's folder also keeps
  * {@code board.properties}, where its board was last looked at.
  * <p>
+ * The whole book has a board of its own, kept the same way in the folder {@value #BOOK}, a name no chapter may take:
+ * every method that takes a chapter takes {@link #BOOK} for it.
+ * <p>
  * Nothing here is destroyed. A deleted note, or the notes of a deleted chapter, go to the {@link #detached()} notes,
  * and so does a file a note no longer carries, replaced or removed, with a copy of the note; only there can they be
  * deleted for good. How each note is kept on disk is {@link NoteFolders}'.
  */
 public final class NoteStore {
+
+    /** The book's own board, given where a chapter is asked for. */
+    public static final String BOOK = BookFolder.BOOK_NOTES;
 
     private static final DateTimeFormatter ID_TIME = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     // Where a board was last looked at, in its properties.

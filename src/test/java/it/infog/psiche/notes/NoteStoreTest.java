@@ -299,6 +299,40 @@ class NoteStoreTest extends BookNotesTest {
     }
 
     @Test
+    void theBookHasABoardOfItsOwnBesideTheChapters() {
+        NoteStore store = store(MORNING);
+        Note chapterNote = store.create("01-alba", LAYOUT);
+        Note map = store.create(NoteStore.BOOK, layout(3));
+        store.saveText(NoteStore.BOOK, map.id(), "World map");
+        store.saveBoardView(NoteStore.BOOK, new BoardView(0.5, 100, 200));
+
+        assertThat(store(MORNING).notes(NoteStore.BOOK)).extracting(Note::text).containsExactly("World map");
+        assertThat(store.notes("01-alba")).extracting(Note::id).containsExactly(chapterNote.id());
+        assertThat(store.boardView(NoteStore.BOOK)).isEqualTo(new BoardView(0.5, 100, 200));
+        assertThat(store.boardView("01-alba")).isNotEqualTo(new BoardView(0.5, 100, 200));
+        assertThat(notesDir().resolve("_book").resolve(map.id())).isDirectoryContaining("glob:**/note.md");
+    }
+
+    @Test
+    void aNoteMovesFromAChapterToTheBookAndBackWithItsFile() throws IOException {
+        NoteStore store = store(MORNING);
+        Note note = store.create("01-alba", new NoteLayout(300, 420, 260, 200, 1, NoteColor.SAGE));
+        store.attach("01-alba", note.id(), Files.writeString(tempDir.resolve("map.png"), "map"), (bytes, total) -> {});
+
+        store.moveNote("01-alba", note.id(), NoteStore.BOOK);
+
+        assertThat(store.notes("01-alba")).isEmpty();
+        assertThat(store.notes(NoteStore.BOOK)).singleElement()
+                .satisfies(moved -> assertThat(moved.attachment()).hasValueSatisfying(file -> assertThat(file)
+                        .hasContent("map")));
+
+        store.moveNote(NoteStore.BOOK, note.id(), "02-mezzogiorno");
+
+        assertThat(store.notes(NoteStore.BOOK)).isEmpty();
+        assertThat(store.notes("02-mezzogiorno")).extracting(Note::id).containsExactly(note.id());
+    }
+
+    @Test
     void aNoteMovedToABoardWithItsIdTakesANewOne() throws IOException {
         NoteStore store = store(MORNING);
         Note note = store.create("01-alba", LAYOUT);
