@@ -21,7 +21,6 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -32,8 +31,8 @@ import static it.infog.psiche.ui.common.Controls.button;
 /**
  * Detached notes: the groups of notes left without a chapter, the most recently deleted first, each with the chapter it
  * belonged to, why and when it was left, a small card for each note, and the buttons to put it back on a chapter's
- * board, or the book's, or to delete it for good. The book's own notes read as "Lorem (book notes)". Deleting for good
- * is asked first: notes are not in Git, so nothing brings them back.
+ * board, to put it back on the book's own board, or to delete it for good. The book's own notes read as "Lorem (book
+ * notes)". Deleting for good is asked first: notes are not in Git, so nothing brings them back.
  * The dialog stays open, the groups shown again after each change, and greyed out while it is made.
  */
 final class DetachedNotesDialog {
@@ -162,10 +161,12 @@ final class DetachedNotesDialog {
 
         Button restoreButton = button("Restore to chapter", () -> restore(group));
         restoreButton.setMinWidth(Region.USE_PREF_SIZE);
+        Button bookButton = button("Restore to book", () -> restoreToBook(group));
+        bookButton.setMinWidth(Region.USE_PREF_SIZE);
         Button deleteButton = button("Delete permanently", () -> delete(group));
         deleteButton.setMinWidth(Region.USE_PREF_SIZE);
 
-        HBox heading = new HBox(source, restoreButton, deleteButton);
+        HBox heading = new HBox(source, restoreButton, bookButton, deleteButton);
         heading.getStyleClass().add("detached-notes-heading");
         heading.setAlignment(Pos.CENTER_LEFT);
 
@@ -213,24 +214,30 @@ final class DetachedNotesDialog {
 
     // Restoring and deleting
 
-    /**
-     * Asks which board the notes go to: a chapter's, or the book's, listed last; their own first if the book still has
-     * it, or else the first chapter.
-     */
+    /** Asks which chapter's board the notes go to, their own chapter first if the book still has it. */
     private void restore(OrphanGroup group) {
 
-        String book = boardName(NoteStore.BOOK, bookTitle);
-        List<String> boards = new ArrayList<>(chapters);
-        boards.add(book);
-        String own = boardName(group.chapter(), bookTitle);
-        String suggested = boards.contains(own) ? own : boards.getFirst();
-        Optional<String> chosen = Dialogs.chooseChapter(window(),
-                "Restore %s to a chapter or the book".formatted(count(group)), boards, suggested, "Restore");
-        if (chosen.isEmpty())
+        if (chapters.isEmpty()) {
+            Dialogs.inform(window(), "No chapter to restore to",
+                    "Create a chapter first, then restore the notes to it, or restore them to the book.");
+            return;
+        }
+
+        String suggested = chapters.contains(group.chapter()) ? group.chapter() : chapters.getFirst();
+        Optional<String> chapter = Dialogs.chooseChapter(window(),
+                "Restore %s to a chapter".formatted(count(group)), chapters, suggested, "Restore");
+        if (chapter.isEmpty())
             return;
 
         groupList.setDisable(true);
-        restore.accept(group, chosen.get().equals(book) ? NoteStore.BOOK : chosen.get());
+        restore.accept(group, chapter.get());
+    }
+
+    /** Puts the notes back on the book's own board, beside the notes it has; nothing is asked, as nothing is lost. */
+    private void restoreToBook(OrphanGroup group) {
+
+        groupList.setDisable(true);
+        restore.accept(group, NoteStore.BOOK);
     }
 
     private void delete(OrphanGroup group) {

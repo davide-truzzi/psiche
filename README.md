@@ -350,8 +350,9 @@ my-book/              ← the folder; the book's title is set in its properties
   or deleted outside Psiche Writer, or imported from another book. It works without Git. Each group shows its chapter,
   why and when it was left, and its notes as small cards:
   - **Restore to chapter** puts the notes back on the board of the chapter you pick, their own if the book still
-    has it, where they were; the book's own board is offered too, last, as **Lorem (book notes)**, the name a book
-    note's group also shows under, and suggested for those;
+    has it, where they were;
+  - **Restore to book** puts them on the book's own board, where they were; a book note's group shows as
+    **Lorem (book notes)**;
   - **Delete permanently** deletes them and their files for good, after asking: notes are not in Git, so nothing
     brings them back.
 - Restoring a chapter from Deleted chapters asks **Restore its notes too?**: **Restore notes** puts back the notes it
