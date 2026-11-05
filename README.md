@@ -442,7 +442,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book counts… menu (New boo
 
 | Class | Responsibility |
 |---|---|
-| `WriterApp` | Entry point: loads the fonts and stylesheet, binds `Ctrl+S` / `Cmd+S` (save the open chapter) and `Ctrl+Shift+S` / `Cmd+Shift+S` (save all), asks about unsaved chapters before the window closes, finds the settings, puts the window where it was last time and remembers it on closing, makes the preview's renderer for each theme, opens the book given on the command line, or else the last book if Preferences asks for it |
+| `WriterApp` | Entry point: titles the window with the app's name and, until the first stable release, its version; loads the fonts and stylesheet, binds `Ctrl+S` / `Cmd+S` (save the open chapter) and `Ctrl+Shift+S` / `Cmd+Shift+S` (save all), asks about unsaved chapters before the window closes, finds the settings, puts the window where it was last time and remembers it on closing, makes the preview's renderer for each theme, opens the book given on the command line, or else the last book if Preferences asks for it |
 | `BookWorkspace` | Lays out the window, creates the shared parts and wires them together; reports errors in the status bar and an alert |
 | `book.BookContext` | The open book: opens, creates and closes books (folder, Git repository, chapter watcher), edits the book's properties and cover and how its pages are counted, and hands the book to `ChapterContext`, and remembers each book opened, for **Open recent** |
 | `book.RecentBooksMenu` | **Open recent** in the Book counts… menu, filled from the settings each time the menu opens: the books by title, a missing one greyed out, and Clear list |
@@ -485,6 +485,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book counts… menu (New boo
 | `common.StatusBar` | The open chapter's characters, words and pages on the left, lined up with the editor's text (right-click the pages to choose how they are counted), and the latest message (`info` / `error`) and the chapter's saved/unsaved state on the right |
 | `common.Dialogs` | Title prompt, choice between buttons, error alert and folder chooser, owned by and styled like the main window |
 | `preferences.AboutDialog` | *About Psiche Writer*, opened from Preferences: logo, version (read from the module, where the build writes it), author, licence, the Buy Me a Coffee button, and the licences of the fonts and libraries, shown in the app or opened in the browser |
+| `common.AppInfo` | The app's name, as windows and dialogs are titled, and its version, read from the module, where the build writes it from `build.gradle.kts`, as people read it ("0.3.0 Alpha") |
 | `common.LanguageChoice` | The language field of *Book properties* and *Preferences*: shows the language chosen, lists them all on a click, and narrows the list as the author types, names starting with the search first |
 | `common.Animations`, `Controls`, `ErrorReporter`, `Logo`, `Icons` | The reveal animation; button, menu item, editing menu, spacer and fieldset factories; the callback components use to report failures; the Psiche logo drawn from the brand kit's SVG files; and the app's small drawings, read from the SVG files in `icons/`, where they can be changed in any SVG editor |
 
