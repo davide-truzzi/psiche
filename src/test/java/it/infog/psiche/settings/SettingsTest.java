@@ -1,6 +1,7 @@
 package it.infog.psiche.settings;
 
 import it.infog.psiche.settings.model.Preferences;
+import it.infog.psiche.settings.model.enums.ChapterTab;
 import it.infog.psiche.settings.model.RecentBooks;
 import it.infog.psiche.settings.model.SettingsFolder;
 import it.infog.psiche.settings.model.WindowBounds;
@@ -90,6 +91,16 @@ class SettingsTest {
         assertThat(Files.readString(folder().path().resolve(Settings.FILE)))
                 .startsWith("# Psiche Writer's settings").doesNotContain(".tmp");
         assertThat(Files.list(folder().path())).containsExactly(folder().path().resolve(Settings.FILE));
+    }
+
+    @Test
+    void thePreviewShowsWhenABookOpensUntilAnotherTabIsPinned() {
+        assertThat(settings().openingTab()).isEqualTo(ChapterTab.PREVIEW);
+
+        settings().saveOpeningTab(ChapterTab.NOTES);
+
+        assertThat(settings().openingTab()).isEqualTo(ChapterTab.NOTES);
+        assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
     }
 
     @Test
