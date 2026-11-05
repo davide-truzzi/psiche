@@ -6,6 +6,7 @@ import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
+import it.infog.psiche.settings.model.enums.ChapterTab;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.book.BookContext;
 import it.infog.psiche.ui.book.ProjectTransfer;
@@ -105,7 +106,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         unsavedChanges = new UnsavedChanges(chapterEditor, this::window);
         gitControls = new GitControls(() -> unsavedChanges.settle("Save them before committing?"),
                 this::committed, statusBar, this::reportError);
-        Runnable keepNotesOutOfGit = () -> gitControls.ignore("notes/", "Keep chapter notes out of Git");
+        Runnable keepNotesOutOfGit = () -> gitControls.ignore("notes/", "Keep chapter notes out of Git",
+                "Notes are kept out of Git");
         notes = new NotesPane(statusBar, this::reportError, keepNotesOutOfGit::run, browser);
         notesTransfer = new NotesTransfer(notes, statusBar, this::reportError, this::window, keepNotesOutOfGit);
         projectTransfer = new ProjectTransfer(statusBar, this::reportError, this::window, notes::settle);
@@ -260,16 +262,18 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     /**
-     * The preview of the open chapter, its notes, and its commit history, in the order {@link OpeningTab} expects;
-     * which shows as a book opens is pinned from their right-click menus.
+     * The preview of the open chapter, its notes, and its commit history, each knowing which {@link ChapterTab} it is;
+     * which shows as a book opens is pinned from their right-click menus, see {@link OpeningTab}.
      */
     private TabPane chapterTabs() {
 
         Tab previewTab = new Tab("Preview", preview);
+        previewTab.setUserData(ChapterTab.PREVIEW);
         preview.showingProperty().bind(previewTab.selectedProperty());
 
         // "Notes (3)", in red-pencil while a note carries the Duplicate on Import tag; disabled with no book open.
         Tab notesTab = new Tab("Notes", notes);
+        notesTab.setUserData(ChapterTab.NOTES);
         notes.showingProperty().bind(notesTab.selectedProperty());
         notesTab.textProperty().bind(notes.titleBinding());
         notesTab.disableProperty().bind(notes.availableProperty().not());
@@ -281,6 +285,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         });
 
         Tab historyTab = new Tab("History", history);
+        historyTab.setUserData(ChapterTab.HISTORY);
         history.showingProperty().bind(historyTab.selectedProperty());
 
         TabPane tabs = new TabPane(previewTab, notesTab, historyTab);

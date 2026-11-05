@@ -28,12 +28,13 @@ final class OpeningTab {
 
     private ChapterTab pinned;
 
-    /** @param tabs the tabs beside the chapter, in the order {@link ChapterTab} lists them */
+    /** @param tabs the tabs beside the chapter, each with the {@link ChapterTab} it is as its user data */
     OpeningTab(TabPane tabs, Settings settings, StatusBar statusBar) {
 
         this.tabs = tabs;
-        for (ChapterTab kind : ChapterTab.values())
-            byKind.put(kind, tabs.getTabs().get(kind.ordinal()));
+        for (Tab tab : tabs.getTabs())
+            if (tab.getUserData() instanceof ChapterTab kind)
+                byKind.put(kind, tab);
         this.settings = settings;
         this.statusBar = statusBar;
         pinned = settings.openingTab();

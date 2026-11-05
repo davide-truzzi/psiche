@@ -524,6 +524,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `common.Dialogs` | Title prompt, choice between buttons, error alert and folder chooser, owned by and styled like the main window |
 | `preferences.AboutDialog` | *About Psiche Writer*, opened from Preferences: logo, version (read from the module, where the build writes it), author, licence, the Buy Me a Coffee button, and the licences of the fonts and libraries, shown in the app or opened in the browser |
 | `common.AppInfo` | The app's name, as windows and dialogs are titled, and its version, read from the module, where the build writes it from `build.gradle.kts`, as people read it ("0.3.0 Alpha") |
+| `common.WorkThread`, `Progress` | A thread of its own for long work, one piece at a time with a *busy* flag, for Export and Import notes and Psiche project; and the percentage of a long copy, handed to the FX thread only when it changes |
 | `common.LanguageChoice` | The language field of *Book properties* and *Preferences*: shows the language chosen, lists them all on a click, and narrows the list as the author types, names starting with the search first |
 | `common.Animations`, `Controls`, `ErrorReporter`, `Logo`, `Icons` | The reveal animation; button, menu item, editing menu, spacer and fieldset factories; the callback components use to report failures; the Psiche logo drawn from the brand kit's SVG files; and the app's small drawings, read from the SVG files in `icons/`, where they can be changed in any SVG editor |
 

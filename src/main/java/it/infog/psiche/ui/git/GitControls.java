@@ -94,25 +94,12 @@ public final class GitControls extends HBox {
     }
 
     /**
-     * Keeps {@code pattern} out of Git, as {@link BookRepository#ignore} does, on the Git thread; nothing for a book
-     * without a repository.
+     * Keeps {@code pattern} out of Git, as {@link BookRepository#ignore} does, on the Git thread, committing it with
+     * {@code message}; nothing for a book without a repository.
+     *
+     * @param alreadyKept what the status bar says if {@code pattern} was out of Git already
      */
-    public void ignore(String pattern, String message) {
-
-        ignore(pattern, message, "Notes are kept out of Git");
-    }
-
-    /**
-     * Keeps {@code pattern} out of Git as {@link #ignore(String, String)} does, but does nothing, not even a word in
-     * the status bar, if it already is, as the author did not ask for it.
-     */
-    public void ignoreQuietly(String pattern, String message) {
-
-        if (repository != null && !repository.ignores(pattern))
-            ignore(pattern, message, "");
-    }
-
-    private void ignore(String pattern, String message, String alreadyKept) {
+    public void ignore(String pattern, String message, String alreadyKept) {
 
         if (repository == null)
             return;
@@ -122,6 +109,16 @@ public final class GitControls extends HBox {
             if (changed)
                 afterCommit.run();
         });
+    }
+
+    /**
+     * Keeps {@code pattern} out of Git as {@link #ignore} does, but does nothing, not even a word in the status bar, if
+     * it already is, as the author did not ask for it.
+     */
+    public void ignoreQuietly(String pattern, String message) {
+
+        if (repository != null && !repository.ignores(pattern))
+            ignore(pattern, message, "");
     }
 
     /**
