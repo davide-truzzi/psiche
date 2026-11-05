@@ -2,6 +2,11 @@ package it.infog.psiche.book;
 
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.book.model.enums.PageMeasure;
+import it.infog.psiche.common.FileErrors;
+import it.infog.psiche.common.SafeFiles;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,6 +47,7 @@ public final class BookFolder {
     static final String STYLE_FILE = "style.css";
     static final List<String> COVER_FILES = List.of("cover.jpg", "cover.png");
 
+    private static final Logger log = LoggerFactory.getLogger(BookFolder.class);
     private static final String PAGE_COUNT = "pageCount";
     private static final String PROPERTIES_COMMENT = " Book properties, edited in Psiche Writer: Book properties…";
 
@@ -87,20 +93,30 @@ public final class BookFolder {
         Path root = resolveName(parent, title, "", "Book title", "folder");
         try {
             Files.createDirectory(root);
-            Files.createDirectory(root.resolve(CHAPTERS_DIR));
-            Files.createDirectory(root.resolve(MEDIA_DIR));
         } catch (FileAlreadyExistsException e) {
-            throw new IllegalArgumentException(root + " already exists", e);
+            throw new IllegalArgumentException("There is already a folder named \"%s\" in %s: choose another title or"
+                    .formatted(root.getFileName(), parent) + " another place.", e);
         } catch (IOException e) {
-            throw new UncheckedIOException("Cannot create book folder " + root, e);
+            throw cannotCreate(root, e);
         }
 
-        BookFolder book = open(root);
-        BookProperties defaults = book.properties();
-        List<String> authors = author.isBlank() ? List.of() : List.of(author.strip());
-        book.saveProperties(new BookProperties(defaults.title(), defaults.subtitle(), authors, language,
-                defaults.rights(), defaults.identifier()));
-        return book;
+        // From here the folder is ours: if the book cannot be made whole, it goes, so a second try finds no half book.
+        try {
+            Files.createDirectory(root.resolve(CHAPTERS_DIR));
+            Files.createDirectory(root.resolve(MEDIA_DIR));
+            BookFolder book = open(root);
+            BookProperties defaults = book.properties();
+            List<String> authors = author.isBlank() ? List.of() : List.of(author.strip());
+            book.saveProperties(new BookProperties(defaults.title(), defaults.subtitle(), authors, language,
+                    defaults.rights(), defaults.identifier()));
+            return book;
+        } catch (IOException e) {
+            removeHalfMade(root);
+            throw cannotCreate(root, e);
+        } catch (UncheckedIOException e) {
+            removeHalfMade(root);
+            throw cannotCreate(root, e.getCause());
+        }
     }
 
     // Directories
@@ -375,6 +391,23 @@ public final class BookFolder {
     }
 
     /** Resolves {@code name + suffix} against {@code parent}, accepting only a single, non-blank path element. */
+    /** Why the book folder {@code root} cannot be created, in words the author can act on. */
+    private static UncheckedIOException cannotCreate(Path root, IOException cause) {
+
+        String reason = FileErrors.reason(cause);
+        return new UncheckedIOException("Cannot create the book folder %s. %s".formatted(root, reason), cause);
+    }
+
+    /** Removes {@code root}, a book folder just created that could not be made whole; logged if it cannot. */
+    private static void removeHalfMade(Path root) {
+
+        try {
+            SafeFiles.deleteTree(root);
+        } catch (UncheckedIOException e) {
+            log.warn("Cannot remove {}, a book folder left half made", root, e);
+        }
+    }
+
     private static Path resolveName(Path parent, String name, String suffix, String subject, String kind) {
 
         String stripped = name == null ? "" : name.strip();

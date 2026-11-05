@@ -79,6 +79,13 @@ my-book/              ← the folder; the book's title is set in its properties
   properties, in the language and with the author chosen for new books in **Preferences**, and the default ebook
   stylesheet, initialises a Git repository on branch `main`, and opens the book. It refuses titles that aren't a single
   folder name and never overwrites an existing folder.
+  - The folder chooser starts beside the open book, or the latest one, if Psiche can write there; otherwise in your
+    home folder, rather than wherever the system would start, which on Windows may be the folder Psiche is installed
+    in. **Open book** starts in the same place, or in your home folder when there is no book yet.
+  - When the book cannot be created, the message says why in plain words: no permission to write there, a read-only
+    or full drive, a folder of that name already there. Where the place is not yours to write in, such as
+    `C:\Program Files`, it suggests a folder of your own, such as Documents or your home folder. A book folder left
+    half made is removed, so trying again works.
 - **Open book** opens any folder that contains both `chapters/` and `media/`. A book folder can also be passed as the
   first command-line argument.
 - **Open recent** lists the last 10 books opened, by their titles, the open one left out; two books of the same title

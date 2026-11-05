@@ -139,7 +139,7 @@ public final class BookContext implements AutoCloseable {
             return;
 
         Optional<Path> parent = Dialogs.chooseDirectory(
-                window.get(), "Choose where to create \"%s\"".formatted(title.get().strip()), booksDirectory());
+                window.get(), "Choose where to create \"%s\"".formatted(title.get().strip()), newBooksDirectory());
         if (parent.isEmpty())
             return;
 
@@ -338,7 +338,8 @@ public final class BookContext implements AutoCloseable {
 
     /**
      * Where to start choosing a book folder: the folder holding the open book, or else the latest book still there,
-     * where the author most likely keeps other books; null to let the dialog choose.
+     * where the author most likely keeps other books; the home folder if there is none, rather than wherever the
+     * system starts, which may be the folder Psiche is installed in.
      */
     private Path booksDirectory() {
 
@@ -350,6 +351,24 @@ public final class BookContext implements AutoCloseable {
                 .filter(Files::isDirectory)
                 .findFirst()
                 .map(Path::getParent)
+                .orElseGet(BookContext::homeDirectory);
+    }
+
+    /**
+     * Where to start choosing where a new book goes: where the other books are, if Psiche may write there, or else the
+     * home folder.
+     */
+    private Path newBooksDirectory() {
+
+        return Optional.ofNullable(booksDirectory()).filter(Files::isWritable).orElseGet(BookContext::homeDirectory);
+    }
+
+    /** The author's home folder; null, to let the dialog choose, if the system does not say where it is. */
+    private static Path homeDirectory() {
+
+        return Optional.ofNullable(System.getProperty("user.home"))
+                .map(Path::of)
+                .filter(Files::isDirectory)
                 .orElse(null);
     }
 
