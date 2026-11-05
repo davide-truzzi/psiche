@@ -183,6 +183,7 @@ public final class BookHistory {
      * @throws GitCommandException if the revision's commit is not a commit of this repository
      */
     public Optional<String> contentOf(FileRevision revision) {
+
         return contentAt(revision.commitId(), revision.path());
     }
 
@@ -192,6 +193,7 @@ public final class BookHistory {
      * @throws GitCommandException if that commit is not a commit of this repository or does not have the chapter
      */
     public String contentOf(DeletedChapter chapter) {
+
         return contentAt(chapter.lastCommitId(), chapter.path()).orElseThrow(() -> new GitCommandException(
                 "%s is not in commit %s".formatted(chapter.path(), chapter.lastCommitId())));
     }

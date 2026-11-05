@@ -69,7 +69,7 @@ public final class NotesPane extends StackPane {
         this.notes = new NotesThread(errors);
 
         //board, inside a viewport that shows the part in view
-        board = new NoteBoard(notes, files, statusBar, errors, showing, firstNote);
+        board = new NoteBoard(notes, files, statusBar, errors, showing, firstNote, this::reloadShown);
         viewport = new BoardViewport(board, this::saveView, () -> board.select(null));
 
         message.getStyleClass().add("notes-message");
@@ -146,7 +146,10 @@ public final class NotesPane extends StackPane {
             open(notes.store(), chapter);
     }
 
-    /** Reads again the notes of the board shown, if any, as an import may have changed them. */
+    /**
+     * Reads again the notes of the board shown, if any, as an import may have changed them, or a note could not leave
+     * the board.
+     */
     void reloadShown() {
 
         if (notes.chapter() != null)

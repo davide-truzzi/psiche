@@ -13,8 +13,11 @@ import java.io.UncheckedIOException;
 import java.text.ParseException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Checks the spelling of words in one language, with the Hunspell dictionary the app brings for it, and suggests
@@ -32,6 +35,10 @@ import java.util.stream.Collectors;
 public final class SpellChecker {
 
     private static final int SUGGESTIONS = 5;
+    // The author's words offered at most, before the dictionary's: names and words of their own, so seldom more.
+    private static final int OWN_SUGGESTIONS = 2;
+    // How far one of the author's words may be from a word to be offered for it: one slip in a short word, two else.
+    private static final int SHORT_WORD = 4;
     // Long enough for a long word's suggestions, short enough that a right-click never seems to hang.
     private static final long SUGGESTION_TIME_MILLIS = 250;
     private static final String CURLY_APOSTROPHE = "’";
@@ -93,15 +100,42 @@ public final class SpellChecker {
 
     /**
      * Up to five words the author may have meant by {@code word}, the likeliest first; with its curly apostrophe if
-     * it had one. Splitting it in two is one of them, but not leaving a bare part of a compound, as "-haus".
+     * it had one. First come up to two of {@code ownWords} a slip or two away from it, the nearest first, then the
+     * dictionary's. Splitting it in two is one of them, but not leaving a bare part of a compound, as "-haus".
      */
-    public synchronized List<String> suggestions(String word) {
+    public synchronized List<String> suggestions(String word, Collection<String> ownWords) {
 
         boolean curly = word.contains(CURLY_APOSTROPHE);
-        return hunspell.suggest(straight(word), SUGGESTION_TIME_MILLIS).stream()
+        String straightWord = straight(word);
+        List<String> dictionaryWords = hunspell.suggest(straightWord, SUGGESTION_TIME_MILLIS).stream()
                 .filter(suggestion -> !suggestion.startsWith("-") && !suggestion.endsWith("-"))
+                .toList();
+
+        return Stream.concat(ownSuggestions(straightWord, straightened(ownWords)).stream(), dictionaryWords.stream())
+                .distinct()
                 .map(suggestion -> curly ? suggestion.replace(APOSTROPHE, CURLY_APOSTROPHE) : suggestion)
                 .limit(SUGGESTIONS)
+                .toList();
+    }
+
+    /**
+     * Up to two of {@code own} a slip or two from {@code word}, capitals aside, the nearest first; with a capital
+     * letter if the word had one and they have none, as at the start of a sentence.
+     */
+    private List<String> ownSuggestions(String word, Set<String> own) {
+
+        Locale locale = language.locale();
+        String lower = word.toLowerCase(locale);
+        int max = word.length() <= SHORT_WORD ? 1 : 2;
+        boolean capital = !word.isEmpty() && Character.isUpperCase(word.codePointAt(0));
+
+        return own.stream()
+                .map(each -> Map.entry(each, EditDistance.between(lower, each.toLowerCase(locale), max)))
+                .filter(near -> near.getValue() <= max)
+                .sorted(Map.Entry.<String, Integer>comparingByValue().thenComparing(Map.Entry.comparingByKey()))
+                .limit(OWN_SUGGESTIONS)
+                .map(Map.Entry::getKey)
+                .map(each -> capital ? each.substring(0, 1).toUpperCase(locale) + each.substring(1) : each)
                 .toList();
     }
 

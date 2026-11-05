@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.common;
 
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -20,6 +21,13 @@ import java.util.List;
 public final class Controls {
 
     private Controls() {
+    }
+
+    /** Shows {@code node}, or hides it and gives up its room in the layout. */
+    public static void setShown(Node node, boolean shown) {
+
+        node.setVisible(shown);
+        node.setManaged(shown);
     }
 
     /** A generic button */

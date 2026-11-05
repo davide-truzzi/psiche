@@ -5,10 +5,11 @@ import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.stage.Window;
 
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -27,7 +28,10 @@ public final class DetachedNotes {
     private final ErrorReporter errors;
     private final Supplier<Window> window;
     private final Runnable changed;
+    private final ReadOnlyBooleanWrapper any = new ReadOnlyBooleanWrapper();
 
+    // The notes last asked about, so an answer about another book's, read before it closed, is dropped.
+    private NoteStore asked;
     // True from a click on Detached notes until its dialog closes, so a second click opens no second one.
     private boolean opening;
 
@@ -68,11 +72,28 @@ public final class DetachedNotes {
         });
     }
 
-    /** Hands {@code answer} true if {@code store} keeps notes for none of {@code chapters}, for Detached notes. */
-    public void hasAny(NoteStore store, List<String> chapters, Consumer<Boolean> answer) {
+    /** True while the book keeps notes for no chapter, as {@link #check} last found: Detached notes shows then. */
+    public ReadOnlyBooleanProperty anyProperty() {
 
-        thread.run(() -> store.detached().hasOrphans(chapters), answer,
-                failure -> errors.report(READ_FAILURE, failure));
+        return any.getReadOnlyProperty();
+    }
+
+    /**
+     * Looks, on the notes thread, whether {@code store} keeps notes for none of {@code chapters}, and keeps the answer
+     * in {@link #anyProperty}; with no store, as no book is open, there are none.
+     */
+    public void check(NoteStore store, List<String> chapters) {
+
+        asked = store;
+        if (store == null) {
+            any.set(false);
+            return;
+        }
+
+        thread.run(() -> store.detached().hasOrphans(chapters), has -> {
+            if (asked == store)
+                any.set(has);
+        }, failure -> errors.report(READ_FAILURE, failure));
     }
 
     /** Asks, after {@code chapter} is restored, whether the notes it had when it was deleted come back too. */

@@ -12,6 +12,8 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
+import static it.infog.psiche.ui.common.Controls.setShown;
+
 /**
  * "Importing notes", over the window while an import runs: what it is doing, the backup first, and how far it has come.
  * It keeps the author's hands off the notes until it is done, so nothing typed or opened meanwhile can clash with the
@@ -32,8 +34,7 @@ final class ImportProgressDialog {
         // A dialog closes only if it has a button; this one's stays hidden, and the window's close button is ignored.
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CANCEL);
         Node cancel = dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
-        cancel.setVisible(false);
-        cancel.setManaged(false);
+        setShown(cancel, false);
         dialog.setOnCloseRequest(event -> {
             if (!done)
                 event.consume();

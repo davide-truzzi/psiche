@@ -116,6 +116,15 @@ final class NotesThread {
     /** Runs {@code work} on the thread, then {@code done} on the FX thread; or reports a failure as {@code failure}. */
     void write(String failure, Work work, Runnable done) {
 
+        write(failure, work, done, () -> {});
+    }
+
+    /**
+     * Runs {@code work} on the thread, then {@code done} on the FX thread; or reports a failure as {@code failure}, and
+     * then runs {@code failed} on the FX thread.
+     */
+    void write(String failure, Work work, Runnable done, Runnable failed) {
+
         if (!hasBoard())
             return;
 
@@ -126,7 +135,10 @@ final class NotesThread {
                 work.run(target, title);
                 Platform.runLater(done);
             } catch (RuntimeException e) {
-                Platform.runLater(() -> errors.report(failure, e));
+                Platform.runLater(() -> {
+                    errors.report(failure, e);
+                    failed.run();
+                });
             }
         });
     }

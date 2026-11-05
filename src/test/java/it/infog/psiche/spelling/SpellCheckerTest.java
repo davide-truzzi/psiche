@@ -105,18 +105,52 @@ class SpellCheckerTest {
     @Test
     void suggestsTheLikeliestWordsFirstAndNoBarePartsOfCompounds() {
 
-        assertThat(CHECKERS.get("it-IT").suggestions("perchè")).first().isEqualTo("perché");
-        assertThat(CHECKERS.get("en-US").suggestions("recieve")).first().isEqualTo("receive");
-        assertThat(CHECKERS.get("de-DE").suggestions("haus"))
+        assertThat(CHECKERS.get("it-IT").suggestions("perchè", Set.of())).first().isEqualTo("perché");
+        assertThat(CHECKERS.get("en-US").suggestions("recieve", Set.of())).first().isEqualTo("receive");
+        assertThat(CHECKERS.get("de-DE").suggestions("haus", Set.of()))
                 .contains("Haus")
                 .noneMatch(suggestion -> suggestion.startsWith("-"));
-        assertThat(CHECKERS.get("es-ES").suggestions("cancion")).hasSizeLessThanOrEqualTo(5);
+        assertThat(CHECKERS.get("es-ES").suggestions("cancion", Set.of())).hasSizeLessThanOrEqualTo(5);
+    }
+
+    @Test
+    void theAuthorsOwnWordsASlipAwayComeFirst() {
+
+        Set<String> own = Set.of("Montenevoso", "brughiera", "Valsassina", "zzz");
+
+        assertThat(CHECKERS.get("it-IT").suggestions("Montenevso", own)).first().isEqualTo("Montenevoso");
+        assertThat(CHECKERS.get("it-IT").suggestions("brughiear", own)).first().isEqualTo("brughiera");
+        assertThat(CHECKERS.get("it-IT").suggestions("Brughira", own)).first().isEqualTo("Brughiera");
+        assertThat(CHECKERS.get("it-IT").suggestions("Valsasina", own)).first().isEqualTo("Valsassina");
+    }
+
+    @Test
+    void ownWordsFarFromTheWordAreNotOffered() {
+
+        Set<String> own = Set.of("Montenevoso", "zzz");
+
+        assertThat(CHECKERS.get("it-IT").suggestions("montagna", own)).doesNotContain("Montenevoso");
+        // Short words allow one slip only.
+        assertThat(CHECKERS.get("en-US").suggestions("zqq", own)).doesNotContain("zzz");
+        assertThat(CHECKERS.get("en-US").suggestions("zzq", own)).first().isEqualTo("zzz");
+    }
+
+    @Test
+    void atMostTwoOwnWordsLeaveRoomForTheDictionarys() {
+
+        Set<String> own = Set.of("recieve", "recievea", "recieveb", "recievec");
+
+        List<String> suggestions = CHECKERS.get("en-US").suggestions("reciev", own);
+
+        assertThat(suggestions).hasSizeLessThanOrEqualTo(5);
+        assertThat(suggestions.subList(0, 2)).containsExactly("recieve", "recievea");
+        assertThat(suggestions.subList(2, suggestions.size())).isNotEmpty().noneMatch(own::contains);
     }
 
     @Test
     void aSuggestionKeepsTheCurlyApostropheOfTheWord() {
 
-        assertThat(CHECKERS.get("it-IT").suggestions("dell’anma")).contains("dell’anima");
+        assertThat(CHECKERS.get("it-IT").suggestions("dell’anma", Set.of())).contains("dell’anima");
     }
 
     @Test

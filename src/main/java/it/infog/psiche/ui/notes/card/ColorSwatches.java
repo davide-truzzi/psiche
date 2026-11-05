@@ -11,6 +11,8 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static it.infog.psiche.ui.common.Controls.setShown;
+
 /** A row of swatches under a note's toolbar, one per colour, the note's own ringed. Picking one closes the row. */
 final class ColorSwatches extends HBox {
 
@@ -45,8 +47,7 @@ final class ColorSwatches extends HBox {
 
     void show(boolean shown) {
 
-        setVisible(shown);
-        setManaged(shown);
+        setShown(this, shown);
     }
 
     void toggle() {
