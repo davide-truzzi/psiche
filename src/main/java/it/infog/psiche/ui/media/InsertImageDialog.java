@@ -35,15 +35,18 @@ final class InsertImageDialog {
     private final Dialog<ButtonType> dialog = new Dialog<>();
     private final TextField caption = new TextField();
 
-    /** @param chapter the chapter the image goes into, named where its copy is kept */
-    InsertImageDialog(Window owner, MediaImage image, String chapter) {
+    /**
+     * @param chapter  the chapter the image goes into, named where its copy is kept
+     * @param inFolder true for one of the chapter's images already, which is not copied again
+     */
+    InsertImageDialog(Window owner, MediaImage image, String chapter, boolean inFolder) {
 
         Dialogs.ownAndStyle(dialog, owner);
         dialog.setHeaderText("Insert image");
         dialog.getDialogPane().getButtonTypes().setAll(CHOOSE_ANOTHER, ButtonType.CANCEL, INSERT);
         dialog.getDialogPane().lookupButton(INSERT).getStyleClass().add("primary");
 
-        dialog.getDialogPane().setContent(content(image, chapter));
+        dialog.getDialogPane().setContent(content(image, chapter, inFolder));
         Platform.runLater(caption::requestFocus);
     }
 
@@ -59,7 +62,7 @@ final class InsertImageDialog {
         return caption.getText();
     }
 
-    private Node content(MediaImage image, String chapter) {
+    private Node content(MediaImage image, String chapter, boolean inFolder) {
 
         //preview
         ImageView view = new ImageView(new Image(image.file().toUri().toString(), PREVIEW_WIDTH, PREVIEW_HEIGHT, true,
@@ -87,7 +90,8 @@ final class InsertImageDialog {
             about.getChildren().add(ImageLabels.qualityWarning(image.issues()));
 
         //where it goes
-        Label hint = new Label("Copied to media/%s/ and inserted after the caret's line.".formatted(chapter));
+        Label hint = new Label((inFolder ? "Already in media/%s/; inserted after the caret's line."
+                : "Copied to media/%s/ and inserted after the caret's line.").formatted(chapter));
         hint.getStyleClass().add("insert-image-hint");
 
         VBox content = new VBox(new HBox(frame, about), hint);

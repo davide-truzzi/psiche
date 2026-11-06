@@ -1,19 +1,13 @@
 package it.infog.psiche.ui.media;
 
 import it.infog.psiche.media.model.DetachedGroup;
-import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.DetachedDialog;
 import it.infog.psiche.ui.common.Dialogs;
-import it.infog.psiche.ui.notes.card.FileLabels;
 
 import javafx.scene.Node;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
@@ -31,10 +25,6 @@ import static it.infog.psiche.ui.common.Controls.button;
  * so nothing brings them back. See {@link DetachedDialog} for how the dialog behaves.
  */
 final class DetachedImagesDialog {
-
-    // The pictures' bounds on the cards, read at that size, in the background.
-    private static final double PICTURE_WIDTH = 120;
-    private static final double PICTURE_HEIGHT = 80;
 
     private final DetachedDialog dialog;
     private final List<String> chapters;
@@ -111,25 +101,9 @@ final class DetachedImagesDialog {
 
         String when = group.deletedAt().map(at -> " · " + DateFormats.DAY_AND_TIME.format(at)).orElse("");
         return DetachedDialog.group(group.chapter(), group.cause().label() + when,
-                group.images().stream().map(image -> (Node) card(image)).toList(),
+                group.images().stream().map(image -> (Node) ImageLabels.smallCard(image)).toList(),
                 button("Restore to chapter", () -> restore(group)),
                 button("Delete permanently", () -> delete(group)));
-    }
-
-    /** An image as a small card: its picture, read in the background, and its name under it. */
-    private static VBox card(MediaImage image) {
-
-        ImageView picture = new ImageView(new Image(image.file().toUri().toString(), PICTURE_WIDTH, PICTURE_HEIGHT,
-                true, true, true));
-        StackPane frame = new StackPane(picture);
-        frame.getStyleClass().add("detached-image-picture");
-
-        Label name = new Label(FileLabels.shortened(image.name()));
-        name.getStyleClass().add("detached-image-name");
-
-        VBox card = new VBox(frame, name);
-        card.getStyleClass().add("detached-image");
-        return card;
     }
 
     // Restoring and deleting

@@ -581,14 +581,14 @@
     -fx-text-fill: rgba(42, 34, 25, 0.7);
 }
 
-.detached-image {
+.small-image {
     -fx-spacing: 4;
     -fx-alignment: top-center;
     -fx-pref-width: 130;
     -fx-max-width: 130;
 }
 
-.detached-image-picture {
+.small-image-picture {
     -fx-min-height: 88;
     -fx-pref-height: 88;
     -fx-max-height: 88;
@@ -597,9 +597,44 @@
     -fx-background-radius: 3;
 }
 
-.detached-image-name {
+.small-image-name {
     -fx-font-size: 10px;
     -fx-text-fill: -paper-dim;
+}
+
+.small-image-warning {
+    -fx-font-size: 10px;
+    -fx-text-fill: -amber;
+}
+
+/* Insert image, with images of the chapter its text does not show: those images as small cards to pick from, brass
+   under the pointer. */
+.unshown-images {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+    -fx-pref-width: 600;
+}
+
+.unshown-images-intro {
+    -fx-text-fill: -paper-dim;
+}
+
+.unshown-images-cards {
+    -fx-hgap: 10;
+    -fx-vgap: 10;
+}
+
+.unshown-image {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4;
+    -fx-padding: 6;
+    -fx-cursor: hand;
+}
+
+.unshown-image:hover,
+.unshown-image:focused {
+    -fx-border-color: -brass;
 }
 
 /* Importing notes: what the import is doing, above a thin bar in red pencil */

@@ -7,14 +7,24 @@ import it.infog.psiche.ui.notes.card.FileLabels;
 
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 import java.util.Set;
 
-/** How an image is told about, in the Insert image dialog and the Media tab: its details and its quality warning. */
+/**
+ * How an image is told about, in the Insert image dialog, the Media tab and the lists of images: its details, its
+ * quality warning, and a small card.
+ */
 final class ImageLabels {
 
     private static final String WARNING_HEADING = "Will look poor in the exports";
+    private static final String LOW_QUALITY = "Low quality";
+    // A small card's picture bounds, read at that size, in the background.
+    private static final double SMALL_WIDTH = 120;
+    private static final double SMALL_HEIGHT = 80;
 
     private ImageLabels() {
     }
@@ -33,6 +43,27 @@ final class ImageLabels {
         String name = dot > 0 ? fileName.substring(0, dot) : fileName;
 
         return name.replaceAll("[-_]+", " ").strip();
+    }
+
+    /** An image as a small card: its picture, read in the background, its name under it, and "Low quality" if so. */
+    static VBox smallCard(MediaImage image) {
+
+        ImageView picture = new ImageView(new Image(image.file().toUri().toString(), SMALL_WIDTH, SMALL_HEIGHT, true,
+                true, true));
+        StackPane frame = new StackPane(picture);
+        frame.getStyleClass().add("small-image-picture");
+
+        Label name = new Label(FileLabels.shortened(image.name()));
+        name.getStyleClass().add("small-image-name");
+
+        VBox card = new VBox(frame, name);
+        if (image.poor()) {
+            Label warning = new Label(LOW_QUALITY);
+            warning.getStyleClass().add("small-image-warning");
+            card.getChildren().add(warning);
+        }
+        card.getStyleClass().add("small-image");
+        return card;
     }
 
     /** The amber box listing what will make an image look poor in the exports, each in plain words. */
