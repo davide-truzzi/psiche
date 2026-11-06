@@ -1,0 +1,36 @@
+SE WINDOWS 11 BLOCCA PSICHE WRITER
+
+Su alcuni computer con Windows 11 la funzione "Smart App Control" blocca
+psiche.exe, perché questa versione di prova di Psiche non ha ancora una firma
+digitale. In questo caso Psiche non si apre, oppure compare un messaggio che
+dice che l'app è stata bloccata.
+
+Come avviarlo lo stesso:
+
+1. Apri la cartella "psiche", quella che contiene psiche.exe.
+
+2. Fai doppio clic su "psiche.cmd" (NON su psiche.exe).
+   - Se compare una finestra blu "Windows ha protetto il PC": clicca su
+     "Ulteriori informazioni" e poi su "Esegui comunque".
+   - Una finestra nera può comparire e sparire subito: è normale.
+   - Aspetta una decina di secondi: Psiche si apre.
+
+3. Usa sempre psiche.cmd per avviare Psiche su questo computer.
+   Per comodità puoi creare un collegamento sul desktop: clic destro su
+   psiche.cmd -> "Mostra altre opzioni" -> "Invia a" -> "Desktop (crea
+   collegamento)".
+
+Le impostazioni, i libri e le note restano gli stessi, che Psiche venga avviato
+da psiche.exe o da psiche.cmd.
+
+Se Psiche non si apre nemmeno così, scrivici: ci servirà sapere cosa ha
+bloccato Windows.
+   - Premi insieme i tasti Windows e R, scrivi  eventvwr  e premi Invio.
+   - A sinistra fai doppio clic in quest'ordine:
+       Registri applicazioni e servizi -> Microsoft -> Windows ->
+       CodeIntegrity -> Operativo
+   - Cerca le righe di oggi con il numero 3077 nella colonna "ID evento".
+   - Clicca su ciascuna e mandaci il nome del file bloccato che compare nel
+     riquadro sotto (oppure una foto dello schermo).
+
+Quando Psiche avrà la firma digitale, questo passaggio non servirà più.

@@ -12,11 +12,12 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 ## Status
 
-**0.4.0 Alpha**, the fourth release for testing. Psiche Writer does what a book needs from first draft to export:
-create or open a book, write its chapters in Markdown with a typeset preview beside them, keep notes on each
-chapter's board and on the book's own, commit and push with Git, browse or restore earlier versions, and export the book to PDF, ODT,
-DOCX or EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and expect things to change
-before 1.0. What this release holds is in [CHANGELOG.md](CHANGELOG.md).
+**0.4.1 Alpha**, the fourth release for testing, with a way round Windows 11 Smart App Control. Psiche Writer does
+what a book needs from first draft to export: create or open a book, write its chapters in Markdown with a typeset
+preview beside them, keep notes on each chapter's board and on the book's own, commit and push with Git, browse or
+restore earlier versions, and export the book to PDF, ODT, DOCX or EPUB. It is not finished: keep a copy of your
+books, read [Limitations](#limitations), and expect things to change before 1.0. What this release holds is in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Book layout
 
@@ -459,7 +460,10 @@ What each package holds:
 - The packages show the app's icon, from the brand kit's dark icon: `src/package/icons` holds `psiche.png` and
   `psiche.ico` (16 to 256 pixels, the small sizes drawn by hand), and the window uses the same sizes.
 - Both are about 100 MB: the runtime, JavaFX with its web engine, JGit and PDFBox. Neither is signed, so Windows
-  SmartScreen may ask to confirm the first start.
+  SmartScreen may ask to confirm the first start, and Windows 11 Smart App Control, which has no such button, blocks
+  `psiche.exe` outright. The Windows zip therefore also holds `psiche\psiche.cmd`, from `src/package/windows`: it
+  starts the app through the runtime's `javaw.exe`, which is signed, with the options `psiche.exe` would pass.
+  `ISTRUZIONI_WINDOWS_11.txt` beside it tells Italian testers how to use it. Both go once the packages are signed.
 
 ## Architecture
 

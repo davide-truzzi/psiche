@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1 Alpha (2026-11-06)
+
+0.4.0 Alpha with one addition for Windows 11.
+
+### What is new
+
+- **Windows 11 Smart App Control**: on some computers it blocks `psiche.exe`, since this test release is not yet
+  digitally signed, and offers no way to run it anyway. The `psiche` folder now holds `psiche.cmd` too: double-click it
+  instead, and Psiche starts through the Java runtime it brings, which is signed. Settings, books and notes are the
+  same either way. `ISTRUZIONI_WINDOWS_11.txt` beside it explains the steps in Italian. Signed packages, which need
+  neither, are planned for the first stable release.
+
 ## 0.4.0 Alpha (2026-11-05)
 
 The fourth release for testing: notes for the whole book on a board of their own, repeated words shown while you

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "it.infog"
-version = "0.4.0-alpha"
+version = "0.4.1-alpha"
 
 java {
     toolchain {
@@ -146,13 +146,18 @@ val jpackageImage by tasks.registering(Exec::class) {
     inputs.dir(layout.buildDirectory.dir("install/psiche/lib"))
     inputs.file(icon)
     inputs.file("LICENSE")
+    inputs.dir("src/package/windows")
     outputs.dir(image)
     doFirst { delete(image) }
     // The licence goes next to the launcher too, where whoever unpacks the app finds it: in the Windows zip beside
     // psiche.exe, and in the AppImage beside the launcher it starts. The app also carries it, for About to show.
+    // On Windows, psiche.cmd and its instructions join them: Smart App Control blocks the unsigned psiche.exe, and
+    // psiche.cmd starts the app through the runtime's signed javaw.exe instead.
     doLast {
         copy {
             from("LICENSE")
+            if (isWindows)
+                from("src/package/windows")
             into(image.map { it.dir("psiche") })
         }
     }
