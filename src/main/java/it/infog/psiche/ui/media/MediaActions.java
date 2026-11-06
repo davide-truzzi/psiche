@@ -66,7 +66,7 @@ final class MediaActions {
             return;
 
         ImageLine line = lines.get(Math.min(place.getAsInt(), lines.size() - 1));
-        if (editor.change(chapter.get(), text -> ImageLines.without(text, line)))
+        if (editor.edits().change(chapter.get(), text -> ImageLines.without(text, line)))
             statusBar.info(lines.size() == 1
                     ? "Took %s out of the text; the file stays in the chapter's images".formatted(image.image().name())
                     : "Took one of the %d places of %s out of the text".formatted(lines.size(), image.image().name()));
@@ -88,7 +88,7 @@ final class MediaActions {
 
         Path chaptersDir = book.get().chaptersDir();
         dialog.showAndWait().ifPresent(caption -> {
-            if (editor.change(chapter.get(),
+            if (editor.edits().change(chapter.get(),
                     text -> ImageUses.withCaption(text, chaptersDir, image.image().file(), caption)))
                 statusBar.info("Caption of %s changed".formatted(image.image().name()));
         });
@@ -113,7 +113,7 @@ final class MediaActions {
         String name = image.image().name();
         String line = ImageLines.markdown(ImageLabels.suggestedCaption(name),
                 ImageLines.destination(chapter.get().title(), name));
-        if (editor.insertImage(chapter.get(), line))
+        if (editor.edits().insertImage(chapter.get(), line))
             statusBar.info("Inserted %s after the caret's line; Edit caption gives it its own".formatted(name));
     }
 

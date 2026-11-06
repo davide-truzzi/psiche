@@ -123,8 +123,8 @@ final class ChapterChanges {
     }
 
     /**
-     * Deletes {@code chapter} once the author confirms, keeps its notes and images apart, and commits the deletion so it can be
-     * restored later.
+     * Deletes {@code chapter} once the author confirms, keeps its notes and images apart, and commits the deletion so
+     * it can be restored later.
      *
      * @return true if the chapter was deleted
      */

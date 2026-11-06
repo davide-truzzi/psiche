@@ -30,10 +30,11 @@ import java.util.stream.Stream;
 
 /**
  * Insert image: while the chapter's images include some its text does not show, the author is offered those first, in
- * the {@link UnshownImagesDialog}, or another file; otherwise the author picks a JPEG or PNG file straight away, sees it in the {@link InsertImageDialog} with a caption to write
- * and a warning if it will look poor in the exports, and the image is copied into the chapter's folder in
- * {@code media/}, unless it is there already, and written into the chapter after the caret's line, as one change Undo reverts. The file is read
- * and copied on a thread of its own; the first image of a book also keeps the chapters' images out of Git.
+ * the {@link UnshownImagesDialog}, or another file; otherwise the author picks a JPEG or PNG file straight away. The
+ * image shows in the {@link InsertImageDialog} with a caption to write and a warning if it will look poor in the
+ * exports; it is copied into the chapter's folder in {@code media/}, unless it is there already, and written into the
+ * chapter after the caret's line, as one change Undo reverts. The file is read and copied on a thread of its own; the
+ * first image of a book also keeps the chapters' images out of Git.
  */
 public final class ImageInsertion {
 
@@ -99,7 +100,7 @@ public final class ImageInsertion {
         thread.run(() -> media.add(title, ImageFiles.read(file.get()).file()), copied -> {
             onCopied.run();
             String destination = ImageLines.destination(title, copied.getFileName().toString());
-            if (editor.change(chapter.get(),
+            if (editor.edits().change(chapter.get(),
                     text -> ImageUses.withDestination(text, chaptersDir, image.file(), destination)))
                 statusBar.info("Replaced %s with %s; %s is no longer in the chapter".formatted(image.name(),
                         copied.getFileName(), image.name()));
@@ -220,7 +221,7 @@ public final class ImageInsertion {
     private boolean write(Chapter chapter, String name, String caption) {
 
         String line = ImageLines.markdown(caption, ImageLines.destination(chapter.title(), name));
-        if (!editor.insertImage(chapter, line))
+        if (!editor.edits().insertImage(chapter, line))
             return false;
 
         statusBar.info("Inserted " + name);

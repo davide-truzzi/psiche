@@ -146,7 +146,7 @@ public final class ChapterContext {
         // One state for the book, shared, as the editor and the notes keep theirs in the same file.
         BookState state = BookState.of(book);
         Optional<BookProperties> properties = properties(book);
-        chapterEditor.setBookState(state);
+        chapterEditor.places().setBookState(state);
         notesPane.setBook(properties.map(BookProperties::title).orElse(book.title()), state);
         notesPane.show(notes, null);
         chapterEditor.hideWelcome();
@@ -167,7 +167,7 @@ public final class ChapterContext {
     public void clear() {
 
         chapterEditor.close();
-        chapterEditor.setBookState(null);
+        chapterEditor.places().setBookState(null);
         chapterEditor.showWelcome();
         history.show(null, null);
         notesPane.setBook(null, null);
@@ -326,9 +326,9 @@ public final class ChapterContext {
 
         boolean wasOpen = chapterEditor.isOpen(chapter);
         if (wasOpen)
-            chapterEditor.rememberPlace();
+            chapterEditor.places().remember();
         changes.rename(book, repository, notes, chapter).ifPresent(renamed -> {
-            chapterEditor.placeRenamed(chapter, renamed);
+            chapterEditor.places().renamed(chapter, renamed);
             if (wasOpen)
                 showChapter(renamed);
             else
