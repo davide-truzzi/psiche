@@ -43,6 +43,7 @@ final class ImageLabels {
         icon.getStyleClass().add("quality-warning-icon");
         Label heading = new Label(WARNING_HEADING, icon);
         heading.getStyleClass().add("quality-warning-heading");
+        heading.setWrapText(true);
 
         //issues
         VBox box = new VBox(heading);

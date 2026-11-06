@@ -15,12 +15,13 @@ import org.commonmark.parser.Parser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * The images of a chapter, each a paragraph of its own, {@code ![caption](../media/<chapter>/<file>)}: finding them
- * in the text, and writing a new one in with a blank line before and after it.
+ * in the text, writing a new one in with a blank line before and after it, and changing or removing them.
  */
 public final class ImageLines {
 
@@ -81,11 +82,75 @@ public final class ImageLines {
         String after = text.substring(at);
 
         String opening = before.isEmpty() ? "" : PARAGRAPH_BREAK.substring(trailingLineEnds(before));
-        String closing = after.isEmpty() ? "\n" : PARAGRAPH_BREAK.substring(leadingLineEnds(after));
+        // Line ends alone after it are the text's end, which keeps its own line end.
+        String closing;
+        if (after.isEmpty())
+            closing = "\n";
+        else if (after.chars().allMatch(character -> character == '\n'))
+            closing = "";
+        else
+            closing = PARAGRAPH_BREAK.substring(leadingLineEnds(after));
         String replacement = opening + image + closing;
 
         int end = at + opening.length() + image.length();
         return new TextEdit(at, at, replacement, end, end);
+    }
+
+    /** {@code text} with every image found at {@code destination} given {@code caption}, as Edit caption does. */
+    public static String withCaption(String text, String destination, String caption) {
+
+        return rewrite(text, destination, line -> markdown(caption, destination));
+    }
+
+    /** {@code text} with every image found at {@code from} found at {@code to}, its caption kept. */
+    public static String withDestination(String text, String from, String to) {
+
+        return rewrite(text, from, line -> markdown(line.caption(), to));
+    }
+
+    /**
+     * {@code text} without the image paragraph {@code line}, and without the blank line it leaves: the paragraphs
+     * around it end up one blank line apart, as if it had never been inserted.
+     */
+    public static String without(String text, ImageLine line) {
+
+        String before = stripTrailingLineEnds(text.substring(0, line.range().start()));
+        String after = stripLeadingLineEnds(text.substring(line.range().end()));
+        if (before.isEmpty())
+            return after;
+        if (after.isEmpty())
+            return before + "\n";
+
+        return before + PARAGRAPH_BREAK + after;
+    }
+
+    /** {@code text} with each image paragraph found at {@code destination} written anew by {@code markdown}. */
+    private static String rewrite(String text, String destination, Function<ImageLine, String> markdown) {
+
+        StringBuilder rewritten = new StringBuilder(text);
+        for (ImageLine line : of(text).reversed())
+            if (line.destination().equals(destination))
+                rewritten.replace(line.range().start(), line.range().end(), markdown.apply(line));
+
+        return rewritten.toString();
+    }
+
+    private static String stripTrailingLineEnds(String text) {
+
+        int end = text.length();
+        while (end > 0 && text.charAt(end - 1) == '\n')
+            end--;
+
+        return text.substring(0, end);
+    }
+
+    private static String stripLeadingLineEnds(String text) {
+
+        int start = 0;
+        while (start < text.length() && text.charAt(start) == '\n')
+            start++;
+
+        return text.substring(start);
     }
 
     /** {@code caret} if it is at the start of a line, otherwise the end of its line. */

@@ -21,6 +21,7 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.flowless.VirtualizedScrollPane;
 import org.fxmisc.richtext.StyleClassedTextArea;
+import org.fxmisc.richtext.model.TwoDimensional.Bias;
 import org.fxmisc.richtext.util.UndoUtils;
 
 import java.util.List;
@@ -42,6 +43,8 @@ final class Manuscript {
 
     // Over writer.css's size for the manuscript, which is the default one.
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
+    // The lines of text left above a paragraph the author is taken to, as from the Media tab.
+    private static final int REVEAL_CONTEXT = 3;
 
     private final StyleClassedTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
@@ -306,6 +309,16 @@ final class Manuscript {
     int caret() {
 
         return positionAtCaret();
+    }
+
+    /**
+     * Puts the caret at {@code position}, with its paragraph a few lines below the top of the view, and the focus, so
+     * what the author was shown has some text above it.
+     */
+    void reveal(int position) {
+
+        int paragraph = area.offsetToPosition(Math.clamp(position, 0, area.getLength()), Bias.Forward).getMajor();
+        show(new ChapterPlace(position, Math.max(0, paragraph - REVEAL_CONTEXT)));
     }
 
     boolean canUndo() {

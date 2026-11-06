@@ -77,6 +77,7 @@ class ImageLinesTest {
         assertThat(apply("Text.", ImageLines.insert("Text.", 0, MAP))).isEqualTo(MAP + "\n\nText.");
         assertThat(apply("Text.", ImageLines.insert("Text.", 5, MAP))).isEqualTo("Text.\n\n" + MAP + "\n");
         assertThat(apply("", ImageLines.insert("", 0, MAP))).isEqualTo(MAP + "\n");
+        assertThat(apply("Text.\n", ImageLines.insert("Text.\n", 2, MAP))).isEqualTo("Text.\n\n" + MAP + "\n");
     }
 
     @Test
@@ -87,6 +88,38 @@ class ImageLinesTest {
         assertThat(apply(text, ImageLines.insert(text, "Anna wrote".length(), MAP)))
                 .isEqualTo("Anna wrote the date.\n\n" + MAP + "\n\nAgain.\n\nNext.");
         assertThat(apply("Last line", ImageLines.insert("Last line", 4, MAP))).isEqualTo("Last line\n\n" + MAP + "\n");
+    }
+
+    @Test
+    void editCaptionRewritesEveryParagraphOfThatImageOnly() {
+
+        String other = "![Anna](../media/01-departure/anna.jpg)";
+        String text = MAP + "\n\nText.\n\n" + other + "\n\n" + MAP + "\n";
+
+        assertThat(ImageLines.withCaption(text, "../media/01-departure/map.png", "The coast [1921]"))
+                .isEqualTo(("![The coast \\[1921\\]](../media/01-departure/map.png)\n\nText.\n\n" + other
+                        + "\n\n![The coast \\[1921\\]](../media/01-departure/map.png)\n"));
+    }
+
+    @Test
+    void anImageCanBeFoundElsewhereKeepingItsCaption() {
+
+        String text = "Text.\n\n" + MAP + "\n";
+
+        assertThat(ImageLines.withDestination(text, "../media/01-departure/map.png", "../media/01 (new)/map-2.png"))
+                .isEqualTo("Text.\n\n![Map of the coast](<../media/01 (new)/map-2.png>)\n");
+    }
+
+    @Test
+    void removingAnImageLeavesOneBlankLineBetweenTheParagraphsAround() {
+
+        String text = "First.\n\n" + MAP + "\n\nSecond.\n";
+        String atStart = MAP + "\n\nFirst.\n";
+        String atEnd = "First.\n\n" + MAP + "\n";
+
+        assertThat(ImageLines.without(text, ImageLines.of(text).getFirst())).isEqualTo("First.\n\nSecond.\n");
+        assertThat(ImageLines.without(atStart, ImageLines.of(atStart).getFirst())).isEqualTo("First.\n");
+        assertThat(ImageLines.without(atEnd, ImageLines.of(atEnd).getFirst())).isEqualTo("First.\n");
     }
 
     private static String apply(String text, TextEdit edit) {

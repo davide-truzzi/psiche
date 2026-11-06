@@ -1456,6 +1456,169 @@
     -fx-font-size: 11px;
 }
 
+/* The Media tab: the selected image large above the cards of all the chapter's images, then their count and Add
+   image. A red band for an image the text does not show, an amber one for one that will look poor in the exports. */
+
+.chapter-tabs .tab.media-not-in-chapter .tab-label {
+    -fx-text-fill: -red-pencil;
+}
+
+.media-pane {
+    -fx-background-color: -desk-raised;
+}
+
+/* As tall as the author drags the divider under it; the picture fits its frame, the details scroll if longer. */
+.media-preview {
+    -fx-spacing: 12;
+    -fx-padding: 12;
+}
+
+.media-preview-frame {
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+    -fx-padding: 12;
+    -fx-cursor: hand;
+}
+
+.media-preview-about {
+    -fx-spacing: 6;
+    -fx-padding: 0 10 0 0;
+}
+
+.media-preview-about-scroll {
+    -fx-pref-width: 252;
+    -fx-min-width: 252;
+}
+
+.media-preview-about-scroll,
+.media-preview-about-scroll > .viewport,
+.media-split {
+    -fx-background-color: transparent;
+}
+
+/* A thin line the author drags to make the preview taller or shorter, brass under the pointer. */
+.media-split > .split-pane-divider {
+    -fx-background-color: -desk-edge;
+    -fx-padding: 0 0 3 0;
+}
+
+.media-split > .split-pane-divider:hover {
+    -fx-background-color: -brass;
+}
+
+.media-preview-caption {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 17px;
+    -fx-text-fill: -paper;
+}
+
+.media-preview-caption.unnamed,
+.media-card-caption.unnamed {
+    -fx-text-fill: -graphite;
+    -fx-font-style: italic;
+}
+
+.media-preview-name {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+}
+
+.media-preview-tag {
+    -fx-background-color: -red-pencil;
+    -fx-text-fill: -desk;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 6;
+    -fx-background-radius: 2;
+}
+
+.media-preview-details {
+    -fx-hgap: 8;
+    -fx-vgap: 3;
+    -fx-padding: 4 0 0 0;
+}
+
+.media-preview-key {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 12px;
+    -fx-min-width: 64;
+}
+
+.media-preview-value {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+}
+
+.media-preview-value.not-in-chapter {
+    -fx-text-fill: -red-pencil;
+}
+
+.media-cards-scroll,
+.media-cards-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.media-cards {
+    -fx-padding: 12;
+}
+
+.media-card {
+    -fx-padding: 0;
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.media-card:selected {
+    -fx-border-color: -brass;
+    -fx-border-width: 2;
+}
+
+.media-card-band {
+    -fx-min-height: 20;
+    -fx-pref-height: 20;
+    -fx-padding: 0 4;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -desk;
+    -fx-background-color: derive(-desk-edge, -20%);
+}
+
+.media-card-band.not-in-chapter {
+    -fx-background-color: -red-pencil;
+}
+
+.media-card-band.low-quality {
+    -fx-background-color: -amber;
+}
+
+.media-card-caption {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 14px;
+    -fx-text-fill: -paper;
+    -fx-padding: 7 8 9 8;
+    -fx-pref-height: 52;
+    -fx-max-height: 52;
+}
+
+.media-footer {
+    -fx-alignment: center-left;
+    -fx-padding: 8 12;
+    -fx-border-color: -desk-edge transparent transparent transparent;
+}
+
+.media-summary {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+}
+
+.media-empty {
+    -fx-text-fill: -graphite;
+    -fx-text-alignment: center;
+    -fx-padding: 24;
+}
+
 /* Alerts */
 
 .dialog-pane {

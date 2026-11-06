@@ -13,6 +13,7 @@ import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.git.HistoryPane;
 import it.infog.psiche.ui.git.RevisionDialog;
+import it.infog.psiche.ui.media.MediaPane;
 import it.infog.psiche.ui.notes.DetachedNotes;
 import it.infog.psiche.ui.notes.NotesPane;
 import it.infog.psiche.ui.preview.PreviewPane;
@@ -56,6 +57,7 @@ public final class ChapterContext {
     private final PreviewPane preview;
     private final HistoryPane history;
     private final NotesPane notesPane;
+    private final MediaPane mediaPane;
     private final GitControls gitControls;
     private final StatusBar statusBar;
     private final ErrorReporter errors;
@@ -81,7 +83,7 @@ public final class ChapterContext {
      * @param rememberBookCounts told when the author opens or collapses them, to keep it for the next start
      */
     public ChapterContext(ChapterEditor chapterEditor, PreviewPane preview, HistoryPane history, NotesPane notesPane,
-                          GitControls gitControls, StatusBar statusBar, Exports exports,
+                          MediaPane mediaPane, GitControls gitControls, StatusBar statusBar, Exports exports,
                           ErrorReporter errors, Supplier<Window> window, boolean bookCountsShown,
                           Consumer<Boolean> rememberBookCounts) {
 
@@ -89,6 +91,7 @@ public final class ChapterContext {
         this.preview = preview;
         this.history = history;
         this.notesPane = notesPane;
+        this.mediaPane = mediaPane;
         this.gitControls = gitControls;
         this.statusBar = statusBar;
         this.exports = exports;
@@ -164,6 +167,7 @@ public final class ChapterContext {
         history.show(null, null);
         notesPane.setBook(null, null);
         notesPane.show(null, null);
+        mediaPane.show(null, null);
 
         // Closing a saved chapter leaves the dirty flag unchanged, so its listener would not clear the status bar.
         status.clear();
@@ -311,6 +315,7 @@ public final class ChapterContext {
             preview.render(chapterEditor.text(), book.chaptersDir());
             history.show(repository, chapter);
             notesPane.show(notes, chapter.title());
+            mediaPane.show(book, chapter);
             status.showChapter();
             status.countChapter();
         }
@@ -346,6 +351,7 @@ public final class ChapterContext {
         chapterEditor.close();
         history.show(repository, null);
         notesPane.show(notes, null);
+        mediaPane.show(null, null);
         status.showChapter();
         refresh();
         if (!chapterList.getItems().isEmpty())

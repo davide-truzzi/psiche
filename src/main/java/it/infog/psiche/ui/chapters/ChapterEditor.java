@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * The manuscript editor: one chapter at a time. Switching chapters never writes to disk; unsaved text stays in memory
@@ -72,12 +73,12 @@ public final class ChapterEditor {
         return manuscript.node();
     }
 
-    ObservableValue<String> textProperty() {
+    public ObservableValue<String> textProperty() {
 
         return manuscript.textProperty();
     }
 
-    String text() {
+    public String text() {
 
         return manuscript.text();
     }
@@ -195,6 +196,30 @@ public final class ChapterEditor {
     public boolean isOpen(Chapter candidate) {
 
         return candidate.equals(chapter);
+    }
+
+    /**
+     * Rewrites the text of {@code target} with {@code rewrite}, as one change Undo reverts: only the stretch between
+     * the first and the last character that differ is replaced, so the view stays where it is.
+     *
+     * @return false if {@code target} is no longer the open chapter, or cannot be edited now
+     */
+    public boolean change(Chapter target, UnaryOperator<String> rewrite) {
+
+        if (!isOpen(target) || !manuscript.isEditable())
+            return false;
+
+        String text = manuscript.text();
+        TextEdit edit = TextEdit.between(text, rewrite.apply(text));
+        if (!edit.empty())
+            manuscript.replace(edit.start(), edit.end(), edit.replacement());
+        return true;
+    }
+
+    /** Takes the author to {@code position} in the open chapter, with the caret and the focus there. */
+    public void reveal(int position) {
+
+        manuscript.reveal(position);
     }
 
     /** Runs {@code action} when the author asks to insert an image, from the manuscript's right-click menu. */

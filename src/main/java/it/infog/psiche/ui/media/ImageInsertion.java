@@ -5,6 +5,7 @@ import it.infog.psiche.book.Chapter;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.media.ChapterMedia;
 import it.infog.psiche.media.ImageFiles;
+import it.infog.psiche.media.ImageUses;
 import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.media.model.enums.ImageFormat;
 import it.infog.psiche.ui.chapters.ChapterEditor;
@@ -42,6 +43,7 @@ public final class ImageInsertion {
     private final Supplier<Window> window;
     private final Runnable keepOutOfGit;
     private final WorkThread thread = new WorkThread("Images");
+    private Runnable onCopied = () -> {};
 
     // Where the file chooser opens: the user's home, then the folder of the image last chosen.
     private Path lastFolder = Path.of(System.getProperty("user.home"));
@@ -64,6 +66,42 @@ public final class ImageInsertion {
         Optional<Chapter> chapter = editor.chapter();
         if (book.isPresent() && chapter.isPresent() && !thread.isBusy())
             choose(book.get(), chapter.get());
+    }
+
+    /** Runs {@code action} each time an image is copied into a chapter's folder. */
+    public void setOnCopied(Runnable action) {
+
+        onCopied = action;
+    }
+
+    /**
+     * Replace image: asks for a better file for {@code image}, copies it into the chapter's folder, and makes every
+     * paragraph that shows {@code image} show it instead, with its caption. The old file stays in the folder, no longer
+     * in the chapter, for the author to keep or detach.
+     */
+    public void replace(MediaImage image) {
+
+        Optional<BookFolder> book = editor.book();
+        Optional<Chapter> chapter = editor.chapter();
+        if (book.isEmpty() || chapter.isEmpty() || thread.isBusy())
+            return;
+
+        Optional<Path> file = chooseFile();
+        if (file.isEmpty())
+            return;
+
+        lastFolder = file.get().getParent();
+        Path chaptersDir = book.get().chaptersDir();
+        String title = chapter.get().title();
+        ChapterMedia media = new ChapterMedia(book.get().mediaDir());
+        thread.run(() -> media.add(title, ImageFiles.read(file.get()).file()), copied -> {
+            onCopied.run();
+            String destination = ImageLines.destination(title, copied.getFileName().toString());
+            if (editor.change(chapter.get(),
+                    text -> ImageUses.withDestination(text, chaptersDir, image.file(), destination)))
+                statusBar.info("Replaced %s with %s; %s is no longer in the chapter".formatted(image.name(),
+                        copied.getFileName(), image.name()));
+        }, failure -> refuse(file.get(), failure));
     }
 
     /** Stops the thread, interrupting a copy that runs. */
@@ -121,6 +159,7 @@ public final class ImageInsertion {
         ChapterMedia media = new ChapterMedia(book.mediaDir());
         thread.run(() -> media.add(chapter.title(), file), copied -> {
             keepOutOfGit.run();
+            onCopied.run();
             String name = copied.getFileName().toString();
             String line = ImageLines.markdown(caption, ImageLines.destination(chapter.title(), name));
             if (editor.insertImage(chapter, line))

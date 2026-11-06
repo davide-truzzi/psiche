@@ -114,6 +114,15 @@ class SettingsTest {
     }
 
     @Test
+    void theMediaPreviewKeepsTheHeightTheAuthorDraggedItTo() {
+        assertThat(settings().mediaPreviewHeight()).isEqualTo(320);
+
+        settings().saveMediaPreviewHeight(412.6);
+
+        assertThat(settings().mediaPreviewHeight()).isEqualTo(413);
+    }
+
+    @Test
     void aDamagedFileReadsAsNoSettings() throws IOException {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE), "recent.1=\\u00zz broken escape\n");
