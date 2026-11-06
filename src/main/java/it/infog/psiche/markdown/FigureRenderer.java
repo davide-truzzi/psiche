@@ -57,7 +57,7 @@ public final class FigureRenderer implements NodeRenderer {
         html.line();
         html.tag("figure", context.extendAttributes(paragraph, "figure", Map.of()));
         context.render(image);
-        String caption = ImageLines.caption(image);
+        String caption = PlainText.of(image);
         if (!caption.isBlank()) {
             // Given the image's attributes rather than the paragraph's, so only the figure says where it is.
             html.tag("figcaption", context.extendAttributes(image, "figcaption", Map.of()));

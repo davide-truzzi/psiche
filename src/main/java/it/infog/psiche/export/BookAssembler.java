@@ -7,6 +7,7 @@ import it.infog.psiche.export.model.Contents;
 import it.infog.psiche.export.model.ExportedChapter;
 import it.infog.psiche.export.model.TitlePage;
 import it.infog.psiche.export.model.enums.EmptyChapters;
+import it.infog.psiche.markdown.PlainText;
 
 import org.commonmark.node.Document;
 import org.commonmark.node.Heading;
@@ -73,7 +74,7 @@ public final class BookAssembler {
 
         for (Node node = document.getFirstChild(); node != null; node = node.getNext()) {
             if (node instanceof Heading heading) {
-                String text = XhtmlRenderer.plainText(heading).strip();
+                String text = PlainText.of(heading).strip();
                 if (!text.isEmpty())
                     return Optional.of(text);
             }

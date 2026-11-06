@@ -1,9 +1,10 @@
 package it.infog.psiche.export.document;
 
 import it.infog.psiche.export.document.model.Picture;
-import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.markdown.HtmlComments;
+import it.infog.psiche.markdown.ImageLines;
+import it.infog.psiche.markdown.PlainText;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.BlockQuote;
@@ -98,7 +99,7 @@ final class ChapterRenderer extends AbstractVisitor {
         if (found.isEmpty())
             return;
 
-        String caption = ImageLines.caption(image);
+        String caption = PlainText.of(image);
         body.openParagraph(Style.FIGURE);
         body.image(found.get(), caption);
         body.closeParagraph();
@@ -309,6 +310,6 @@ final class ChapterRenderer extends AbstractVisitor {
         if (found.isEmpty())
             return;
 
-        body.image(found.get(), ImageLines.caption(image));
+        body.image(found.get(), PlainText.of(image));
     }
 }

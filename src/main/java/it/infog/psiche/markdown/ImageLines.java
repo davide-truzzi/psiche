@@ -5,11 +5,9 @@ import it.infog.psiche.markdown.model.TextEdit;
 import it.infog.psiche.markdown.model.TextRange;
 
 import org.commonmark.node.AbstractVisitor;
-import org.commonmark.node.Code;
 import org.commonmark.node.Image;
 import org.commonmark.node.Paragraph;
 import org.commonmark.node.SourceSpan;
-import org.commonmark.node.Text;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
@@ -49,7 +47,7 @@ public final class ImageLines {
 
                 if (!paragraph.getSourceSpans().isEmpty())
                     figure(paragraph).ifPresent(image ->
-                            lines.add(new ImageLine(range(paragraph), caption(image), image.getDestination())));
+                            lines.add(new ImageLine(range(paragraph), PlainText.of(image), image.getDestination())));
             }
         });
 
@@ -207,26 +205,5 @@ public final class ImageLines {
         SourceSpan last = spans.getLast();
 
         return new TextRange(spans.getFirst().getInputIndex(), last.getInputIndex() + last.getLength());
-    }
-
-    /** The text of the image's description, as the reader sees it: its escapes undone, its formatting left out. */
-    public static String caption(Image image) {
-
-        StringBuilder caption = new StringBuilder();
-        image.accept(new AbstractVisitor() {
-            @Override
-            public void visit(Text text) {
-
-                caption.append(text.getLiteral());
-            }
-
-            @Override
-            public void visit(Code code) {
-
-                caption.append(code.getLiteral());
-            }
-        });
-
-        return caption.toString();
     }
 }

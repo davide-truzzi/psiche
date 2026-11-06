@@ -4,15 +4,13 @@ import it.infog.psiche.export.model.Contents;
 import it.infog.psiche.export.model.TitlePage;
 import it.infog.psiche.markdown.FigureRenderer;
 import it.infog.psiche.markdown.HtmlComments;
-import org.commonmark.node.AbstractVisitor;
-import org.commonmark.node.Code;
+import it.infog.psiche.markdown.PlainText;
 import org.commonmark.node.Heading;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.HtmlInline;
 import org.commonmark.node.Image;
 import org.commonmark.node.Link;
 import org.commonmark.node.Node;
-import org.commonmark.node.Text;
 import org.commonmark.node.ThematicBreak;
 import org.commonmark.renderer.NodeRenderer;
 import org.commonmark.renderer.html.HtmlNodeRendererContext;
@@ -153,25 +151,6 @@ public final class XhtmlRenderer {
         return xhtml.append("</ol>\n</nav>\n").toString();
     }
 
-    /** The plain text inside {@code node}, emphasis and code included, as a reader sees it. */
-    public static String plainText(Node node) {
-
-        StringBuilder text = new StringBuilder();
-        node.accept(new AbstractVisitor() {
-            @Override
-            public void visit(Text literal) {
-                text.append(literal.getLiteral());
-            }
-
-            @Override
-            public void visit(Code code) {
-                text.append(code.getLiteral());
-            }
-        });
-
-        return text.toString();
-    }
-
     /**
      * An ebook's image, linked to its copy in the ebook with its description as alt text, for readers who cannot
      * see it. An image the ebook could not take is left out.
@@ -191,7 +170,7 @@ public final class XhtmlRenderer {
             images.href(image.getDestination()).ifPresent(href -> {
                 Map<String, String> attributes = new LinkedHashMap<>();
                 attributes.put("src", href);
-                attributes.put("alt", plainText(image));
+                attributes.put("alt", PlainText.of(image));
                 html.tag("img", attributes, true);
             });
         }
