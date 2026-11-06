@@ -13,6 +13,7 @@
     -red-pencil: #e04a2f;
     -brass: #c8a35a;
     -sage: #8fae6b;
+    -amber: #d9a441;
 
     -fx-font-family: "Courier Prime";
     -fx-font-size: 13px;
@@ -1377,6 +1378,82 @@
 .scroll-bar .decrement-arrow {
     -fx-shape: " ";
     -fx-padding: 0;
+}
+
+/* Images */
+
+.insert-image-content {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+}
+
+.insert-image-content > .h-box {
+    -fx-spacing: 16;
+}
+
+.insert-image-preview {
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+    -fx-padding: 8;
+}
+
+.insert-image-about {
+    -fx-spacing: 8;
+    -fx-pref-width: 300;
+}
+
+.insert-image-name {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+    -fx-wrap-text: true;
+}
+
+.insert-image-details,
+.insert-image-hint {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 12px;
+}
+
+.insert-image-caption {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 15px;
+}
+
+.quality-warning {
+    -fx-background-color: derive(-amber, -78%);
+    -fx-border-color: -amber;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 7 8;
+    -fx-spacing: 5;
+}
+
+.quality-warning-heading {
+    -fx-text-fill: -amber;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-graphic-text-gap: 6;
+}
+
+.quality-warning-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -amber;
+    -fx-stroke-width: 2;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.6;
+    -fx-scale-y: 0.6;
+}
+
+.quality-warning-title {
+    -fx-text-fill: -paper;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.quality-warning-detail {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 11px;
 }
 
 /* Alerts */

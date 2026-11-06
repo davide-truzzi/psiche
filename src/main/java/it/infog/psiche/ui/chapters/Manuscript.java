@@ -302,6 +302,12 @@ final class Manuscript {
         area.selectRange(start, end);
     }
 
+    /** Where the caret is in the text. */
+    int caret() {
+
+        return positionAtCaret();
+    }
+
     boolean canUndo() {
 
         return area.isUndoAvailable();

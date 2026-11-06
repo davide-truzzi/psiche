@@ -4,6 +4,8 @@ import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.BookState;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.markdown.ImageLines;
+import it.infog.psiche.markdown.model.TextEdit;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
@@ -39,6 +41,7 @@ public final class ChapterEditor {
     private final Spelling spelling = new Spelling(this::checkSpelling);
     private Optional<SpellChecker> checker = Optional.empty();
     private boolean strictSpelling;
+    private Runnable insertImage = () -> {};
 
     private BookFolder book;
     // Where the open book's chapters were left; read as the book's first chapter opens.
@@ -61,7 +64,7 @@ public final class ChapterEditor {
 
         manuscript = new Manuscript(welcome, statusBar::showRepetitions);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
-        SpellingMenu.attach(FormattingMenu.attach(manuscript), manuscript, this::makeRight);
+        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run()), manuscript, this::makeRight);
     }
 
     public Node node() {
@@ -178,14 +181,43 @@ public final class ChapterEditor {
     }
 
     /** The chapter being edited; empty while no chapter is open. */
-    Optional<Chapter> chapter() {
+    public Optional<Chapter> chapter() {
 
         return Optional.ofNullable(chapter);
     }
 
-    boolean isOpen(Chapter candidate) {
+    /** The book whose chapter is edited; empty while no chapter is open. */
+    public Optional<BookFolder> book() {
+
+        return chapter().map(open -> book);
+    }
+
+    public boolean isOpen(Chapter candidate) {
 
         return candidate.equals(chapter);
+    }
+
+    /** Runs {@code action} when the author asks to insert an image, from the manuscript's right-click menu. */
+    public void setOnInsertImage(Runnable action) {
+
+        insertImage = action;
+    }
+
+    /**
+     * Writes {@code image}, an image's Markdown, into {@code target} as a paragraph of its own after the caret's line,
+     * as one change Undo reverts; see {@link ImageLines#insert}.
+     *
+     * @return false if {@code target} is no longer the open chapter, or cannot be edited now
+     */
+    public boolean insertImage(Chapter target, String image) {
+
+        if (!isOpen(target) || !manuscript.isEditable())
+            return false;
+
+        TextEdit edit = ImageLines.insert(manuscript.text(), manuscript.caret(), image);
+        manuscript.replace(edit.start(), edit.end(), edit.replacement());
+        manuscript.select(edit.selectionStart(), edit.selectionEnd());
+        return true;
     }
 
     /**

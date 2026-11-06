@@ -1,0 +1,143 @@
+package it.infog.psiche.ui.media;
+
+import it.infog.psiche.book.BookFolder;
+import it.infog.psiche.book.Chapter;
+import it.infog.psiche.markdown.ImageLines;
+import it.infog.psiche.media.ChapterMedia;
+import it.infog.psiche.media.ImageFiles;
+import it.infog.psiche.media.model.MediaImage;
+import it.infog.psiche.media.model.enums.ImageFormat;
+import it.infog.psiche.ui.chapters.ChapterEditor;
+import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.common.ErrorReporter;
+import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.common.WorkThread;
+
+import javafx.scene.control.ButtonType;
+import javafx.stage.FileChooser;
+import javafx.stage.Window;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+/**
+ * Insert image: the author picks a JPEG or PNG file, sees it in the {@link InsertImageDialog} with a caption to write
+ * and a warning if it will look poor in the exports, and the image is copied into the chapter's folder in
+ * {@code media/} and written into the chapter after the caret's line, as one change Undo reverts. The file is read
+ * and copied on a thread of its own; the first image of a book also keeps the chapters' images out of Git.
+ */
+public final class ImageInsertion {
+
+    private static final String KIND = "JPEG or PNG images";
+
+    private final ChapterEditor editor;
+    private final StatusBar statusBar;
+    private final ErrorReporter errors;
+    private final Supplier<Window> window;
+    private final Runnable keepOutOfGit;
+    private final WorkThread thread = new WorkThread("Images");
+
+    // Where the file chooser opens: the user's home, then the folder of the image last chosen.
+    private Path lastFolder = Path.of(System.getProperty("user.home"));
+
+    /** @param keepOutOfGit keeps the chapters' images out of the book's Git, once an image is copied into it */
+    public ImageInsertion(ChapterEditor editor, StatusBar statusBar, ErrorReporter errors, Supplier<Window> window,
+                          Runnable keepOutOfGit) {
+
+        this.editor = editor;
+        this.statusBar = statusBar;
+        this.errors = errors;
+        this.window = window;
+        this.keepOutOfGit = keepOutOfGit;
+    }
+
+    /** Asks for an image to insert into the open chapter; nothing with no chapter open, or while one is on its way. */
+    public void insert() {
+
+        Optional<BookFolder> book = editor.book();
+        Optional<Chapter> chapter = editor.chapter();
+        if (book.isPresent() && chapter.isPresent() && !thread.isBusy())
+            choose(book.get(), chapter.get());
+    }
+
+    /** Stops the thread, interrupting a copy that runs. */
+    public void shutdown() {
+
+        thread.shutdown();
+    }
+
+    /** Asks for the image's file, then reads it off the FX thread and shows it. */
+    private void choose(BookFolder book, Chapter chapter) {
+
+        Optional<Path> file = chooseFile();
+        if (file.isEmpty())
+            return;
+
+        lastFolder = file.get().getParent();
+        thread.run(() -> ImageFiles.read(file.get()), image -> ask(book, chapter, image),
+                failure -> refuse(file.get(), failure));
+    }
+
+    private Optional<Path> chooseFile() {
+
+        List<String> patterns = ImageFormat.allExtensions().stream()
+                .flatMap(extension -> Stream.of(extension, extension.toUpperCase(Locale.ROOT)))
+                .map(extension -> "*." + extension)
+                .toList();
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Insert image");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(KIND, patterns));
+        if (Files.isDirectory(lastFolder))
+            chooser.setInitialDirectory(lastFolder.toFile());
+
+        return Optional.ofNullable(chooser.showOpenDialog(window.get())).map(File::toPath);
+    }
+
+    /** Shows {@code image} to the author, who inserts it with a caption, chooses another, or cancels. */
+    private void ask(BookFolder book, Chapter chapter, MediaImage image) {
+
+        // The author may have opened another chapter while the file was read.
+        if (!editor.isOpen(chapter))
+            return;
+
+        InsertImageDialog dialog = new InsertImageDialog(window.get(), image, chapter.title());
+        Optional<ButtonType> choice = dialog.showAndWait();
+        if (choice.filter(InsertImageDialog.CHOOSE_ANOTHER::equals).isPresent())
+            choose(book, chapter);
+        else if (choice.filter(InsertImageDialog.INSERT::equals).isPresent())
+            copy(book, chapter, image.file(), dialog.caption());
+    }
+
+    /** Copies the image into the chapter's folder off the FX thread, then writes it into the chapter. */
+    private void copy(BookFolder book, Chapter chapter, Path file, String caption) {
+
+        ChapterMedia media = new ChapterMedia(book.mediaDir());
+        thread.run(() -> media.add(chapter.title(), file), copied -> {
+            keepOutOfGit.run();
+            String name = copied.getFileName().toString();
+            String line = ImageLines.markdown(caption, ImageLines.destination(chapter.title(), name));
+            if (editor.insertImage(chapter, line))
+                statusBar.info("Inserted " + name);
+            else
+                statusBar.info("Copied %s to media/%s/; open the chapter to insert it from the Media tab".formatted(
+                        name, chapter.title()));
+        }, failure -> errors.report("Cannot copy " + file.getFileName() + " into the book", failure));
+    }
+
+    /** Tells the author why the file cannot be inserted: not a JPEG or PNG image, or not readable at all. */
+    private void refuse(Path file, Throwable failure) {
+
+        if (failure instanceof IllegalArgumentException)
+            Dialogs.inform(window.get(), "Cannot insert " + file.getFileName(),
+                    "It is not a JPEG or PNG image. Save it as one in an image program first.");
+        else
+            errors.report("Cannot read " + file.getFileName(), failure);
+    }
+}
