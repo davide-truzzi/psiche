@@ -57,4 +57,29 @@ class ImageUsesTest {
         return new MediaImage(BOOK.resolve("media/01-departure").resolve(name), ImageFormat.PNG, 1200, 800, 1000,
                 Set.of());
     }
+
+    @Test
+    void aRenamedChaptersLinksFollowItsImagesWhicheverWayTheyAreWritten() {
+
+        String text = "![Map](../media/01-departure/map.png)\n\n![Map again](../media/01-departure/./map.png)\n\n"
+                + "![Old](../media/01-departure/old/letter.png)\n\n![Other](../media/02-crossing/map.png)\n\n"
+                + "![Web](https://example.org/01-departure/map.png)\n";
+
+        String moved = ImageUses.withChapter(text, CHAPTERS, BOOK.resolve("media/01-departure"), "01 leaving");
+
+        assertThat(ImageLines.of(moved)).extracting(line -> line.destination()).containsExactly(
+                "../media/01 leaving/map.png", "../media/01 leaving/map.png", "../media/01 leaving/old/letter.png",
+                "../media/02-crossing/map.png", "https://example.org/01-departure/map.png");
+        assertThat(ImageLines.of(moved)).extracting(line -> line.caption())
+                .containsExactly("Map", "Map again", "Old", "Other", "Web");
+    }
+
+    @Test
+    void aTextWithoutImagesOfTheRenamedChapterIsLeftAsItIs() {
+
+        String text = "Text.\n\n![Other](../media/02-crossing/map.png)\n";
+
+        assertThat(ImageUses.withChapter(text, CHAPTERS, BOOK.resolve("media/01-departure"), "01-leaving"))
+                .isSameAs(text);
+    }
 }

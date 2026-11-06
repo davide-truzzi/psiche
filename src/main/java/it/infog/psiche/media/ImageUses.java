@@ -9,11 +9,14 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Matches the images in a chapter's folder with the image paragraphs of its text that show them, and changes those
@@ -86,6 +89,29 @@ public final class ImageUses {
         return moved;
     }
 
+    /**
+     * {@code text} with each image paragraph that shows a file in {@code from}, the images folder of a chapter just
+     * renamed, showing it in the folder of {@code to}, the chapter's new name, as {@link ChapterMedia#rename} moved it.
+     */
+    public static String withChapter(String text, Path chaptersDir, Path from, String to) {
+
+        if (!text.contains(IMAGE_START))
+            return text;
+
+        Path folder = from.normalize();
+        Map<String, String> moves = new LinkedHashMap<>();
+        for (ImageLine line : ImageLines.of(text))
+            file(chaptersDir, line).filter(file -> file.startsWith(folder) && !file.equals(folder))
+                    .ifPresent(file -> moves.putIfAbsent(line.destination(),
+                            ImageLines.destination(to, inFolder(folder, file))));
+
+        String moved = text;
+        for (Map.Entry<String, String> move : moves.entrySet())
+            moved = ImageLines.withDestination(moved, move.getKey(), move.getValue());
+
+        return moved;
+    }
+
     /** The file {@code line} shows; empty if its destination is no path, such as a web address. */
     public static Optional<Path> file(Path chaptersDir, ImageLine line) {
 
@@ -94,6 +120,14 @@ public final class ImageUses {
         } catch (InvalidPathException e) {
             return Optional.empty();
         }
+    }
+
+    /** Where {@code file} is in {@code folder}, its parts joined by slashes as a link writes them. */
+    private static String inFolder(Path folder, Path file) {
+
+        Path relative = folder.relativize(file);
+        return String.join("/", StreamSupport.stream(relative.spliterator(), false)
+                .map(Path::toString).toList());
     }
 
     /** The destinations, each once, that the paragraphs showing {@code file} write. */

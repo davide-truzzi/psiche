@@ -180,12 +180,10 @@ public final class BookFolder {
             if (Files.exists(target) && !Files.isSameFile(source, target))
                 throw new IllegalArgumentException("Chapter " + target.getFileName() + " already exists");
 
-            if (Files.exists(target)) {
-                // The same file under another letter case: moving it straight there would do nothing.
-                Path temporary = source.resolveSibling(source.getFileName() + ".renaming");
-                Files.move(source, temporary);
-                Files.move(temporary, target);
-            } else
+            if (Files.exists(target))
+                // The same file under another letter case.
+                SafeFiles.changeCase(source, target);
+            else
                 Files.move(source, target);
         } catch (FileAlreadyExistsException e) {
             throw new IllegalArgumentException("Chapter " + target.getFileName() + " already exists", e);

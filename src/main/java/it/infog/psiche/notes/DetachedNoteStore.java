@@ -1,30 +1,29 @@
 package it.infog.psiche.notes;
 
-import it.infog.psiche.common.PropertiesFiles;
+import it.infog.psiche.common.ChapterFolders;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.notes.model.enums.OrphanCause;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import static it.infog.psiche.common.ChapterFolders.cause;
+import static it.infog.psiche.common.ChapterFolders.deletedAt;
+import static it.infog.psiche.common.ChapterFolders.deletedChapter;
+import static it.infog.psiche.common.ChapterFolders.hasCause;
+import static it.infog.psiche.common.ChapterFolders.isDeletedFrom;
+import static it.infog.psiche.common.ChapterFolders.markCause;
 import static it.infog.psiche.common.SafeFiles.deleteTree;
-import static it.infog.psiche.notes.NoteFolders.DELETED_FILE;
 import static it.infog.psiche.notes.NoteFolders.chapterFolder;
 import static it.infog.psiche.notes.NoteFolders.moveNotes;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
@@ -32,21 +31,14 @@ import static it.infog.psiche.notes.NoteFolders.subfolders;
 
 /**
  * The notes off their boards, which Detached notes shows: those deleted in Psiche, alone or with their chapter, and
- * those whose chapter the book no longer has. A deleted note, or the notes of a deleted chapter, are kept in a folder
- * of {@code notes/} named like the chapter with {@value #DELETED_MARK} and the time added, and {@value
- * NoteFolders#DELETED_FILE} in it says why; such a name matches no chapter, so its notes are orphans, as are those of a
- * folder whose chapter was renamed or deleted outside Psiche. Get it from {@link NoteStore#detached()}, which keeps
- * notes here as they are deleted.
+ * those whose chapter the book no longer has. A deleted note, or the notes of a deleted chapter, are kept in a deleted
+ * folder of {@code notes/}, as {@link it.infog.psiche.common.ChapterFolders} names them; its notes are orphans, as are
+ * those of a folder whose chapter was renamed or deleted outside Psiche. Get it from {@link NoteStore#detached()},
+ * which keeps notes here as they are deleted.
  */
 public final class DetachedNoteStore {
 
-    static final String DELETED_MARK = "-del-";
-
-    private static final DateTimeFormatter DELETED_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
-    private static final Pattern DELETED_FOLDER =
-            Pattern.compile("(.+)" + DELETED_MARK + "(\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2})");
-    // In the deleted folder's properties: what was deleted, a note on its own or its chapter.
-    private static final String CAUSE_KEY = "cause";
+    // In a deleted folder: what was deleted, a note on its own or its chapter.
     private static final String NOTE_CAUSE = "note";
     private static final String CHAPTER_CAUSE = "chapter";
 
@@ -68,20 +60,20 @@ public final class DetachedNoteStore {
     /** The folder that keeps what is deleted from {@code chapter} now: named after it and the time. */
     Path deletedFolder(String chapter) {
 
-        return root.resolve(chapter + DELETED_MARK + LocalDateTime.now(clock).format(DELETED_TIME));
+        return ChapterFolders.deletedFolder(root, chapter, clock);
     }
 
     /** Marks {@code folder} as holding notes deleted on their own, unless it says why already. */
     void markNoteDeleted(Path folder) {
 
-        if (!Files.exists(folder.resolve(DELETED_FILE)))
-            mark(folder, NOTE_CAUSE);
+        if (!hasCause(folder))
+            markCause(folder, NOTE_CAUSE);
     }
 
     /** Marks {@code folder} as holding the notes of a deleted chapter, the notes deleted alone before included. */
     void markChapterDeleted(Path folder) {
 
-        mark(folder, CHAPTER_CAUSE);
+        markCause(folder, CHAPTER_CAUSE);
     }
 
     // What Detached notes shows
@@ -113,9 +105,9 @@ public final class DetachedNoteStore {
     /** The notes of {@code chapter} as it was last deleted, if any are kept; a restored chapter offers them back. */
     public Optional<OrphanGroup> latestDeleted(String chapter) {
 
-        return folders(folder -> folder.getFileName().toString().startsWith(chapter + DELETED_MARK)).stream()
+        return folders(folder -> isDeletedFrom(folder, chapter)).stream()
                 .map(this::orphan)
-                .filter(group -> group.chapter().equals(chapter) && group.cause() == OrphanCause.CHAPTER_DELETED)
+                .filter(group -> group.cause() == OrphanCause.CHAPTER_DELETED)
                 .max(Comparator.comparing(group -> group.deletedAt().orElse(LocalDateTime.MIN)));
     }
 
@@ -156,29 +148,14 @@ public final class DetachedNoteStore {
 
     private OrphanGroup orphan(Path folder) {
 
-        String name = folder.getFileName().toString();
-        Matcher deleted = DELETED_FOLDER.matcher(name);
         List<Note> notes = readNotes(folder);
-        if (!deleted.matches())
-            return new OrphanGroup(folder, name, OrphanCause.CHAPTER_GONE, Optional.empty(), notes);
-
-        Optional<LocalDateTime> at;
-        try {
-            at = Optional.of(LocalDateTime.parse(deleted.group(2), DELETED_TIME));
-        } catch (DateTimeParseException e) {
-            return new OrphanGroup(folder, name, OrphanCause.CHAPTER_GONE, Optional.empty(), notes);
-        }
+        Optional<LocalDateTime> at = deletedAt(folder);
+        if (at.isEmpty())
+            return new OrphanGroup(folder, folder.getFileName().toString(), OrphanCause.CHAPTER_GONE, at, notes);
 
         // Folders deleted with a note say so; any other deleted folder went with its chapter.
-        String cause = PropertiesFiles.readLeniently(folder.resolve(DELETED_FILE)).getProperty(CAUSE_KEY, "");
-        OrphanCause orphanCause = cause.equals(NOTE_CAUSE) ? OrphanCause.NOTE_DELETED : OrphanCause.CHAPTER_DELETED;
-        return new OrphanGroup(folder, deleted.group(1), orphanCause, at, notes);
-    }
-
-    private static void mark(Path folder, String cause) {
-
-        Properties properties = new Properties();
-        properties.setProperty(CAUSE_KEY, cause);
-        PropertiesFiles.write(folder.resolve(DELETED_FILE), properties, "");
+        OrphanCause orphanCause = cause(folder).equals(NOTE_CAUSE) ? OrphanCause.NOTE_DELETED
+                : OrphanCause.CHAPTER_DELETED;
+        return new OrphanGroup(folder, deletedChapter(folder).orElseThrow(), orphanCause, at, notes);
     }
 }

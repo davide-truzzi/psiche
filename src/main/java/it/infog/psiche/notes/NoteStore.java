@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.function.Consumer;
 
+import static it.infog.psiche.common.SafeFiles.changeCase;
 import static it.infog.psiche.common.SafeFiles.copy;
 import static it.infog.psiche.common.SafeFiles.move;
 import static it.infog.psiche.notes.NoteFolders.BOARD_FILE;
@@ -300,12 +301,10 @@ public final class NoteStore {
         try {
             if (!Files.exists(target))
                 move(source, target);
-            else if (Files.isSameFile(source, target)) {
-                // The same folder under another letter case: moving it straight there would do nothing.
-                Path temporary = source.resolveSibling(source.getFileName() + ".renaming");
-                Files.move(source, temporary);
-                Files.move(temporary, target);
-            } else
+            else if (Files.isSameFile(source, target))
+                // The same folder under another letter case.
+                changeCase(source, target);
+            else
                 moveNotes(source, target);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot move the notes of " + from + " to " + to, e);
