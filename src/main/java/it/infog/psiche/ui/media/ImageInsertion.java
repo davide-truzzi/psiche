@@ -8,10 +8,10 @@ import it.infog.psiche.media.ImageFiles;
 import it.infog.psiche.media.ImageUses;
 import it.infog.psiche.media.model.ChapterImage;
 import it.infog.psiche.media.model.MediaImage;
-import it.infog.psiche.media.model.enums.ImageFormat;
 import it.infog.psiche.ui.chapters.ChapterEditor;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
+import it.infog.psiche.ui.common.ImageFilter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.common.WorkThread;
 
@@ -22,11 +22,8 @@ import javafx.stage.Window;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * Insert image: while the chapter's images include some its text does not show, the author is offered those first, in
@@ -37,8 +34,6 @@ import java.util.stream.Stream;
  * first image of a book also keeps the chapters' images out of Git.
  */
 public final class ImageInsertion {
-
-    private static final String KIND = "JPEG or PNG images";
 
     private final ChapterEditor editor;
     private final StatusBar statusBar;
@@ -157,14 +152,9 @@ public final class ImageInsertion {
 
     private Optional<Path> chooseFile() {
 
-        List<String> patterns = ImageFormat.allExtensions().stream()
-                .flatMap(extension -> Stream.of(extension, extension.toUpperCase(Locale.ROOT)))
-                .map(extension -> "*." + extension)
-                .toList();
-
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Insert image");
-        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(KIND, patterns));
+        chooser.getExtensionFilters().add(ImageFilter.jpegOrPng());
         if (Files.isDirectory(lastFolder))
             chooser.setInitialDirectory(lastFolder.toFile());
 
