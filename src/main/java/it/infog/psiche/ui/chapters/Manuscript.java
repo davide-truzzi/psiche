@@ -122,27 +122,13 @@ final class Manuscript {
         });
     }
 
-    Node node() {
-
-        return page;
-    }
+    Node node() { return page; }
 
     // The text
 
-    ObservableValue<String> textProperty() {
-
-        return area.textProperty();
-    }
-
-    String text() {
-
-        return area.getText();
-    }
-
-    int length() {
-
-        return area.getLength();
-    }
+    ObservableValue<String> textProperty() { return area.textProperty(); }
+    String text() { return area.getText(); }
+    int length() { return area.getLength(); }
 
     /** Shows {@code text} in place of the text shown, which Undo cannot bring back. */
     void setText(String text) {
@@ -165,6 +151,26 @@ final class Manuscript {
         show(ChapterPlace.START);
     }
 
+    /** Empties the page and makes it read-only. */
+    void clear() {
+
+        setText("");
+        area.setEditable(false);
+    }
+
+    /** Lets the author edit the text, or only read it, as while the book is being exported. */
+    void setEditable(boolean editable) { area.setEditable(editable); }
+    boolean isEditable() { return area.isEditable(); }
+
+    // The welcome, while no book is open
+
+    /** Shows the welcome and its logo on the empty page, as when the app starts, once the book closes. */
+    void showWelcome() { welcome.show(); }
+    /** Takes the welcome and its logo away while a book is open; see {@link Welcome}. */
+    void hideWelcome() { welcome.hide(); }
+
+    // Where the author is
+
     /**
      * Lets the author edit the text from {@code place}, where they left it: the caret there and that paragraph at the
      * top of the view, as far as the text still has them.
@@ -182,58 +188,17 @@ final class Manuscript {
         return new ChapterPlace(positionAtCaret(), top);
     }
 
-    /** Lets the author edit the text, or only read it, as while the book is being exported. */
-    void setEditable(boolean editable) {
-
-        area.setEditable(editable);
-    }
-
-    /** Empties the page and makes it read-only. */
-    void clear() {
-
-        setText("");
-        area.setEditable(false);
-    }
-
-    /** Shows the welcome and its logo on the empty page, as when the app starts, once the book closes. */
-    void showWelcome() {
-
-        welcome.show();
-    }
-
-    /** Takes the welcome and its logo away while a book is open; see {@link Welcome}. */
-    void hideWelcome() {
-
-        welcome.hide();
-    }
-
-    // How it looks, and where the author is
+    /** Where the caret is in the text. */
+    int caret() { return positionAtCaret(); }
 
     /**
-     * Checks the text's spelling with {@code checker} from now on, {@code ownWords} being right too, and the words that
-     * look like names too if {@code strict}; with none, the text is not checked and shows no mistakes.
+     * Puts the caret at {@code position}, with its paragraph a few lines below the top of the view, and the focus, so
+     * what the author was shown has some text above it.
      */
-    void checkSpelling(SpellChecker checker, Set<String> ownWords, boolean strict) {
+    void reveal(int position) {
 
-        marks.checkSpelling(checker, ownWords, strict);
-    }
-
-    /** Shows the other places of the word the author is at, as Preferences asks, or none. */
-    void highlightRepetitions(boolean on) {
-
-        repetitions.setOn(on);
-    }
-
-    /** Shows the text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
-    void setFontSize(int fontSize) {
-
-        area.setStyle(FONT_SIZE_STYLE.formatted(fontSize));
-    }
-
-    /** Where the text starts, in scene coordinates, so other parts of the window can line up with it. */
-    ReadOnlyDoubleProperty textMarginProperty() {
-
-        return textMargin.getReadOnlyProperty();
+        int paragraph = area.offsetToPosition(Math.clamp(position, 0, area.getLength()), Bias.Forward).getMajor();
+        show(new ChapterPlace(position, Math.max(0, paragraph - REVEAL_CONTEXT)));
     }
 
     /**
@@ -246,9 +211,55 @@ final class Manuscript {
     }
 
     /** True once the author scrolls the manuscript to read, until the caret next moves. */
-    boolean isReading() {
+    boolean isReading() { return reading; }
 
-        return reading;
+    /** Where the text starts, in scene coordinates, so other parts of the window can line up with it. */
+    ReadOnlyDoubleProperty textMarginProperty() {
+
+        return textMargin.getReadOnlyProperty();
+    }
+
+    // How it looks
+
+    /** Shows the text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
+    void setFontSize(int fontSize) {
+
+        area.setStyle(FONT_SIZE_STYLE.formatted(fontSize));
+    }
+
+    /** Shows the other places of the word the author is at, as Preferences asks, or none. */
+    void highlightRepetitions(boolean on) {
+
+        repetitions.setOn(on);
+    }
+
+    // Its marks: spelling mistakes and missing images
+
+    /**
+     * Checks the text's spelling with {@code checker} from now on, {@code ownWords} being right too, and the words that
+     * look like names too if {@code strict}; with none, the text is not checked and shows no mistakes.
+     */
+    void checkSpelling(SpellChecker checker, Set<String> ownWords, boolean strict) {
+
+        marks.checkSpelling(checker, ownWords, strict);
+    }
+
+    /** The spelling mistake the right-click menu was opened on, with the word as it is written; none if it was not. */
+    Optional<Word> menuMistake() {
+
+        return marks.mistakeAt(menuIndex).map(range -> new Word(area.getText(range.start(), range.end()), range));
+    }
+
+    /** Up to five words the author may have meant by {@code word}, the likeliest first. */
+    List<String> suggestions(String word) {
+
+        return marks.suggestions(word);
+    }
+
+    /** Looks for the text's images from {@code chaptersDir}, where the chapter's file is; none with {@code null}. */
+    void setChaptersDir(Path chaptersDir) {
+
+        marks.setChaptersDir(chaptersDir);
     }
 
     // Editing, for the formatting menu
@@ -268,110 +279,20 @@ final class Manuscript {
                 }));
     }
 
-    /** The spelling mistake the right-click menu was opened on, with the word as it is written; none if it was not. */
-    Optional<Word> menuMistake() {
-
-        return marks.mistakeAt(menuIndex).map(range -> new Word(area.getText(range.start(), range.end()), range));
-    }
-
-    /** Up to five words the author may have meant by {@code word}, the likeliest first. */
-    List<String> suggestions(String word) {
-
-        return marks.suggestions(word);
-    }
-
-    boolean isEditable() {
-
-        return area.isEditable();
-    }
-
-    IndexRange selection() {
-
-        return area.getSelection();
-    }
-
-    String selectedText() {
-
-        return area.getSelectedText();
-    }
-
+    IndexRange selection() { return area.getSelection(); }
+    String selectedText() { return area.getSelectedText(); }
+    void select(int start, int end) { area.selectRange(start, end); }
     /** Replaces the text from {@code start} to {@code end} with {@code replacement}, as one change Undo reverts. */
-    void replace(int start, int end, String replacement) {
-
-        area.replaceText(start, end, replacement);
-    }
-
-    void select(int start, int end) {
-
-        area.selectRange(start, end);
-    }
-
-    /** Looks for the text's images from {@code chaptersDir}, where the chapter's file is; none with {@code null}. */
-    void setChaptersDir(Path chaptersDir) {
-
-        marks.setChaptersDir(chaptersDir);
-    }
-
-    /** Where the caret is in the text. */
-    int caret() {
-
-        return positionAtCaret();
-    }
-
-    /**
-     * Puts the caret at {@code position}, with its paragraph a few lines below the top of the view, and the focus, so
-     * what the author was shown has some text above it.
-     */
-    void reveal(int position) {
-
-        int paragraph = area.offsetToPosition(Math.clamp(position, 0, area.getLength()), Bias.Forward).getMajor();
-        show(new ChapterPlace(position, Math.max(0, paragraph - REVEAL_CONTEXT)));
-    }
-
-    boolean canUndo() {
-
-        return area.isUndoAvailable();
-    }
-
-    boolean canRedo() {
-
-        return area.isRedoAvailable();
-    }
-
-    void undo() {
-
-        area.undo();
-    }
-
-    void redo() {
-
-        area.redo();
-    }
-
-    void cut() {
-
-        area.cut();
-    }
-
-    void copy() {
-
-        area.copy();
-    }
-
-    void paste() {
-
-        area.paste();
-    }
-
-    void deleteSelection() {
-
-        area.deleteText(area.getSelection());
-    }
-
-    void selectAll() {
-
-        area.selectAll();
-    }
+    void replace(int start, int end, String replacement) { area.replaceText(start, end, replacement); }
+    boolean canUndo() { return area.isUndoAvailable(); }
+    boolean canRedo() { return area.isRedoAvailable(); }
+    void undo() { area.undo(); }
+    void redo() { area.redo(); }
+    void cut() { area.cut(); }
+    void copy() { area.copy(); }
+    void paste() { area.paste(); }
+    void deleteSelection() { area.deleteText(area.getSelection()); }
+    void selectAll() { area.selectAll(); }
 
     /** Puts the caret at {@code place}, with its paragraph at the top of the view, and the focus. */
     private void show(ChapterPlace place) {

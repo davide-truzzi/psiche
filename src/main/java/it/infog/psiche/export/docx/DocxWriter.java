@@ -3,7 +3,7 @@ package it.infog.psiche.export.docx;
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.common.Template;
 import it.infog.psiche.export.XmlText;
-import it.infog.psiche.export.document.Manuscript;
+import it.infog.psiche.export.document.WriteManuscript;
 import it.infog.psiche.export.document.Pictures;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.docx.model.enums.Part;
@@ -21,7 +21,7 @@ import java.util.Map;
  * Writes a chapter or the whole book as a Word document (.docx), laid out like the ODT and the manuscript PDF.
  * <p>
  * The file is a zip ({@link DocxPackage}) of XML parts, each filled in from its template next to this class (see
- * {@link Part}): the text, written into a {@link DocxBody} by {@link Manuscript}, which only names styles; those
+ * {@link Part}): the text, written into a {@link DocxBody} by {@link WriteManuscript}, which only names styles; those
  * styles; the lists' numbering; the page header; the file's properties; and the images, found by {@link Pictures}.
  */
 public final class DocxWriter {
@@ -51,7 +51,7 @@ public final class DocxWriter {
 
         DocxBody body = new DocxBody();
         Pictures pictures = new Pictures(baseDirectory, PICTURES);
-        Manuscript.writeChapter(body, document, pictures);
+        WriteManuscript.writeChapter(body, document, pictures);
 
         write(body, pictures, title, header, book, target);
     }
@@ -66,7 +66,7 @@ public final class DocxWriter {
 
         DocxBody body = new DocxBody();
         Pictures pictures = new Pictures(book.baseDirectory(), PICTURES);
-        Manuscript.writeBook(body, book, pictures);
+        WriteManuscript.writeBook(body, book, pictures);
 
         write(body, pictures, book.properties().title(), header, book.properties(), target);
     }

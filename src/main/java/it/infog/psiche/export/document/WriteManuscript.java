@@ -10,9 +10,9 @@ import org.commonmark.node.Node;
  * What a word processor's document holds, in the same order for every format: a chapter alone, or the whole book,
  * laid out like the manuscript PDF. Each format only gives the {@link DocumentBody} to write it into, and packs it.
  */
-public final class Manuscript {
+public final class WriteManuscript {
 
-    private Manuscript() {
+    private WriteManuscript() {
     }
 
     /**
