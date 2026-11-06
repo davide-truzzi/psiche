@@ -27,6 +27,7 @@ import javafx.geometry.Orientation;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Window;
@@ -225,7 +226,10 @@ public final class MediaPane extends BorderPane {
                 split.heightProperty().removeListener(this);
             }
         });
-        split.setOnMouseReleased(event -> {
+        // Caught on its way down: the divider consumes the release it was dragged with.
+        split.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> {
+            // Laid out first, so the preview's height is the one the divider was let go at, never under its details.
+            split.layout();
             double now = preview.node().getBoundsInParent().getHeight();
             if (Math.round(now) != Math.round(previewHeight)) {
                 previewHeight = now;

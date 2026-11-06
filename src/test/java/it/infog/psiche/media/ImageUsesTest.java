@@ -6,7 +6,9 @@ import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.media.model.enums.ImageFormat;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +36,20 @@ class ImageUsesTest {
         assertThat(uses.getFirst().caption()).isEqualTo("Map");
         assertThat(uses.get(2).inChapter()).isFalse();
         assertThat(uses.get(2).caption()).isEmpty();
+    }
+
+    @Test
+    void anImageWhoseFileIsNotThereIsMissingButOneOnTheWebNever(@TempDir Path book) throws Exception {
+
+        Path chapters = Files.createDirectories(book.resolve("chapters"));
+        Files.createDirectories(book.resolve("media/01-departure"));
+        Files.writeString(book.resolve("media/01-departure/map.png"), "a picture");
+        String text = "![Map](../media/01-departure/map.png)\n\n![Gone](../media/01-departure/gone.png)\n\n"
+                + "![Web](https://example.com/a.png)\n\n![Folder](../media/01-departure)\n";
+
+        assertThat(ImageUses.missing(text, chapters)).extracting(line -> line.caption())
+                .containsExactly("Gone", "Folder");
+        assertThat(ImageUses.missing("No images here.", chapters)).isEmpty();
     }
 
     private static MediaImage image(String name) {

@@ -14,6 +14,7 @@
     -brass: #c8a35a;
     -sage: #8fae6b;
     -amber: #d9a441;
+    -orange: #e8772e;
 
     -fx-font-family: "Courier Prime";
     -fx-font-size: 13px;
@@ -299,6 +300,12 @@
 /* The comments, which the preview and the exports leave out, in the welcome's grey. */
 .manuscript .paragraph-text .text.comment {
     -fx-fill: -graphite;
+}
+
+/* An image whose file is missing, deleted, renamed or not brought back with a past version of the chapter: an error,
+   in attention orange. */
+.manuscript .paragraph-text .text.missing-image {
+    -fx-fill: -orange;
 }
 
 /* A spelling mistake: a dotted red line under the word, as a proofreader marks it. */
@@ -1467,7 +1474,7 @@
     -fx-background-color: -desk-raised;
 }
 
-/* As tall as the author drags the divider under it; the picture fits its frame, the details scroll if longer. */
+/* As tall as the author drags the divider under it, never shorter than the details beside the picture. */
 .media-preview {
     -fx-spacing: 12;
     -fx-padding: 12;
@@ -1482,28 +1489,26 @@
 
 .media-preview-about {
     -fx-spacing: 6;
-    -fx-padding: 0 10 0 0;
+    -fx-pref-width: 240;
+    -fx-min-width: 240;
 }
 
-.media-preview-about-scroll {
-    -fx-pref-width: 252;
-    -fx-min-width: 252;
-}
-
-.media-preview-about-scroll,
-.media-preview-about-scroll > .viewport,
 .media-split {
     -fx-background-color: transparent;
 }
 
-/* A thin line the author drags to make the preview taller or shorter, brass under the pointer. */
+/* The band the author drags to make the preview taller or shorter: 12 px to grab between two edges, which turn
+   brass under the pointer. The split takes a divider's thickness from its left and right padding, whichever way it
+   runs: 6 + 6 here makes it 12 px tall. */
 .media-split > .split-pane-divider {
-    -fx-background-color: -desk-edge;
-    -fx-padding: 0 0 3 0;
+    -fx-background-color: -desk-edge, -desk-raised;
+    -fx-background-insets: 0, 1 0 1 0;
+    -fx-padding: 0 6 0 6;
+    -fx-cursor: v-resize;
 }
 
 .media-split > .split-pane-divider:hover {
-    -fx-background-color: -brass;
+    -fx-background-color: -brass, -desk-raised;
 }
 
 .media-preview-caption {

@@ -24,6 +24,7 @@ import org.fxmisc.richtext.StyleClassedTextArea;
 import org.fxmisc.richtext.model.TwoDimensional.Bias;
 import org.fxmisc.richtext.util.UndoUtils;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -303,6 +304,12 @@ final class Manuscript {
     void select(int start, int end) {
 
         area.selectRange(start, end);
+    }
+
+    /** Looks for the text's images from {@code chaptersDir}, where the chapter's file is; none with {@code null}. */
+    void setChaptersDir(Path chaptersDir) {
+
+        marks.setChaptersDir(chaptersDir);
     }
 
     /** Where the caret is in the text. */

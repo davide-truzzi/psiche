@@ -5,6 +5,7 @@ import it.infog.psiche.markdown.model.ImageLine;
 import it.infog.psiche.media.model.ChapterImage;
 import it.infog.psiche.media.model.MediaImage;
 
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -19,6 +20,9 @@ import java.util.stream.Collectors;
  * paragraphs by the file they show, whatever way their destination is written.
  */
 public final class ImageUses {
+
+    // How every image's Markdown starts: a text without it has none, and need not be parsed.
+    private static final String IMAGE_START = "![";
 
     private ImageUses() {
     }
@@ -45,6 +49,21 @@ public final class ImageUses {
     public static List<ImageLine> lines(String text, Path chaptersDir, Path file) {
 
         return ImageLines.of(text).stream().filter(line -> shows(chaptersDir, line, file)).toList();
+    }
+
+    /**
+     * The image paragraphs of {@code text} whose file is not there, as after a file was deleted or a past version of
+     * the chapter was restored; images on the web are never looked for.
+     */
+    public static List<ImageLine> missing(String text, Path chaptersDir) {
+
+        if (!text.contains(IMAGE_START))
+            return List.of();
+
+        return ImageLines.of(text).stream()
+                .filter(line -> !ImageLines.isWebAddress(line.destination()))
+                .filter(line -> file(chaptersDir, line).filter(Files::isRegularFile).isEmpty())
+                .toList();
     }
 
     /** {@code text} with every paragraph that shows {@code file} given {@code caption}. */

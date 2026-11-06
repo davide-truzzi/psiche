@@ -266,6 +266,7 @@ public final class ChapterEditor {
         this.chapter = chapter;
         savedText = text;
 
+        manuscript.setChaptersDir(book.chaptersDir());
         manuscript.setText(drafts.text(chapter).orElse(text));
         // setText does not fire a change when the new text equals the old, so recompute the state explicitly.
         trackDraft();
@@ -330,6 +331,7 @@ public final class ChapterEditor {
         book = null;
         chapter = null;
         savedText = "";
+        manuscript.setChaptersDir(null);
         manuscript.clear();
         dirty.set(false);
     }

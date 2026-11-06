@@ -4,6 +4,7 @@
     --faded-ink: #7a6a55;
     --rule: #cdbd9c;
     --red-pencil: #b8361f;
+    --orange: #c25418;
 }
 
 html {
@@ -131,6 +132,19 @@ img {
     max-width: 100%;
     margin: 2em auto;
     box-shadow: 0 6px 18px rgba(60, 40, 20, 0.25);
+}
+
+/* In place of an image whose file is missing: a dashed box in attention orange, with the image's caption. */
+.missing-image {
+    display: block;
+    max-width: 70%;
+    margin: 2em auto;
+    padding: 1.5em 1em;
+    border: 1px dashed var(--orange);
+    color: var(--orange);
+    font-style: italic;
+    text-align: center;
+    text-indent: 0;
 }
 
 a {

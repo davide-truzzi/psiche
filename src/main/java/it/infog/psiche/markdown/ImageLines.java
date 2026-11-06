@@ -29,6 +29,8 @@ public final class ImageLines {
     private static final Pattern CAPTION_SPECIAL = Pattern.compile("[\\\\\\[\\]]");
     // Characters that make a destination need angle brackets around it.
     private static final Pattern DESTINATION_SPECIAL = Pattern.compile("[\\s()]");
+    // A destination with a scheme, as https: or data:, which is no file of the book.
+    private static final Pattern WEB_ADDRESS = Pattern.compile("[a-zA-Z][a-zA-Z0-9+.-]*:");
     private static final String PARAGRAPH_BREAK = "\n\n";
 
     private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
@@ -51,6 +53,12 @@ public final class ImageLines {
         });
 
         return lines;
+    }
+
+    /** True if {@code destination} has a scheme, as https: or data:, and so is no file of the book. */
+    public static boolean isWebAddress(String destination) {
+
+        return WEB_ADDRESS.matcher(destination).lookingAt();
     }
 
     /** Where the image {@code fileName} of {@code chapter} is, written from a chapter's file in {@code chapters/}. */

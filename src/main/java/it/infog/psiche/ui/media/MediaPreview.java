@@ -8,7 +8,6 @@ import javafx.beans.binding.Bindings;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
@@ -32,8 +31,7 @@ final class MediaPreview {
     private final ImageView picture = new ImageView();
     private final StackPane frame = new PictureFrame(picture);
     private final VBox about = new VBox();
-    private final ScrollPane aboutScroll = new ScrollPane(about);
-    private final HBox box = new HBox(frame, aboutScroll);
+    private final HBox box = new HBox(frame, about);
     private boolean frozen;
 
     /** @param reveal takes the author to the shown image in the text, or to its next place there */
@@ -54,14 +52,10 @@ final class MediaPreview {
         frame.setOnMouseClicked(event -> reveal.run());
         HBox.setHgrow(frame, Priority.ALWAYS);
 
-        // The details scroll when the preview is dragged shorter than they are.
         about.getStyleClass().add("media-preview-about");
-        aboutScroll.setFitToWidth(true);
-        aboutScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        aboutScroll.getStyleClass().add("media-preview-about-scroll");
         box.getStyleClass().add("media-preview");
-        // Its height is the divider's alone: sized from what it shows, the split would move it for each image.
-        box.setMinHeight(0);
+        // Never shorter than its details, which all show; otherwise as tall as the divider under it says, whatever
+        // picture it shows: sized from what it shows, the split would move the divider for each image.
         box.setPrefHeight(0);
     }
 

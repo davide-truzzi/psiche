@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.preview;
 
+import it.infog.psiche.common.SafeFiles;
 import it.infog.psiche.common.Template;
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
@@ -19,7 +20,11 @@ import org.w3c.dom.Node;
 import org.w3c.dom.events.Event;
 import org.w3c.dom.events.EventListener;
 import org.w3c.dom.events.EventTarget;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
@@ -41,6 +46,9 @@ public final class PreviewPane extends StackPane {
      */
     public static final double FOLLOW_POINT = 1.0 / 3;
 
+    private static final Logger log = LoggerFactory.getLogger(PreviewPane.class);
+    // The page shown, written in the web engine's folder, so the chapter's images, files too, show in it.
+    private static final String PAGE_FILE = "preview.html";
     // Long enough that the preview does not re-render on every keystroke while typing steadily.
     private static final Duration RENDER_DELAY = Duration.millis(500);
     // Short enough to feel immediate, long enough that holding an arrow key scrolls the page once, not per line.
@@ -63,6 +71,7 @@ public final class PreviewPane extends StackPane {
     // Held here because the page alone may not keep a listener added from Java alive.
     private final EventListener linkClicks = this::openLink;
     private final WebView view = new WebView();
+    private final Path page;
     private final PauseTransition renderDelay = new PauseTransition(RENDER_DELAY);
     private final PauseTransition followDelay = new PauseTransition(FOLLOW_DELAY);
     private final BooleanProperty showing = new SimpleBooleanProperty(true);
@@ -81,6 +90,8 @@ public final class PreviewPane extends StackPane {
     // How the page in the view was loaded; while a render would load it the same way, it only replaces the article.
     private MarkdownRenderer loadedRenderer;
     private Path loadedBaseDirectory;
+    // How many pages were loaded from the page's file, which tells each load's address apart from the last one's.
+    private int pageLoads;
     private int loadedFontSize;
 
     /**
@@ -99,6 +110,7 @@ public final class PreviewPane extends StackPane {
 
         // Without one, the engine makes a folder named after the app's main class in the home folder.
         view.getEngine().setUserDataDirectory(data.toFile());
+        page = data.resolve(PAGE_FILE);
         view.setPageFill(Color.TRANSPARENT);
         view.setContextMenuEnabled(false);
         // Loading a page resets its scroll position, so scroll the new page to where it should be.
@@ -272,7 +284,7 @@ public final class PreviewPane extends StackPane {
         shownMarkdown = markdown;
         shownBaseDirectory = baseDirectory;
         if (isLoadedFor(baseDirectory)) {
-            String article = renderer.renderArticle(markdown);
+            String article = renderer.renderArticle(markdown, baseDirectory);
             view.getEngine().executeScript(REPLACE_ARTICLE.formatted(JavaScript.string(article)));
             view.getEngine().executeScript(SCROLL_TO.formatted(scroll));
             showFollowedPosition();
@@ -283,7 +295,26 @@ public final class PreviewPane extends StackPane {
         loadedRenderer = renderer;
         loadedBaseDirectory = baseDirectory;
         loadedFontSize = fontSize;
-        view.getEngine().loadContent(renderer.render(markdown, baseDirectory, fontSize));
+        loadPage(renderer.render(markdown, baseDirectory, fontSize));
+    }
+
+    /**
+     * Shows {@code html} from a file of its own: a page given to the engine as text has no address of its own, and
+     * WebKit then shows none of the chapter's images, which are files. Each load gets an address of its own, so the
+     * engine never shows the last one from its cache. Should the file not be written, the page is shown as text.
+     */
+    private void loadPage(String html) {
+
+        try {
+            Files.createDirectories(page.getParent());
+            SafeFiles.writeString(page, html);
+        } catch (IOException e) {
+            log.warn("Cannot write the preview's page to {}; its images will not show", page, e);
+            view.getEngine().loadContent(html);
+            return;
+        }
+
+        view.getEngine().load(page.toUri() + "?" + ++pageLoads);
     }
 
     /** True if the page in the view is loaded, and was loaded for {@code baseDirectory}, the theme and font size. */

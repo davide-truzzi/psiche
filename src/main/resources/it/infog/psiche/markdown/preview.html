@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!-- The preview's page: links and images resolve against the chapters' folder, and the stylesheet's sizes in em
-     follow the font size. The article is replaced in place as the author writes. -->
+     follow the font size. The article is replaced in place as the author writes; an image whose file is missing
+     shows as a box saying so. -->
 <html>
 <head>
 <meta charset="utf-8">
@@ -9,5 +10,19 @@
 <style>body { font-size: {{font-size}}px; }</style>
 </head>
 <body><article>
-{{article}}</article></body>
+{{article}}</article>
+<script>
+// An image whose file is missing shows as a box saying so, with its caption, in place of a broken picture. Listening
+// on the document, while errors are caught on their way down, covers every article put in later too.
+document.addEventListener('error', function (event) {
+    var image = event.target;
+    if (!image || image.tagName !== 'IMG')
+        return;
+    var missing = document.createElement('span');
+    missing.className = 'missing-image';
+    missing.textContent = image.alt ? 'Missing image: ' + image.alt : 'Missing image';
+    image.parentNode.replaceChild(missing, image);
+}, true);
+</script>
+</body>
 </html>
