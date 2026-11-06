@@ -128,7 +128,9 @@ final class MediaPreview {
 
     private Button[] unusedActions(ChapterImage image) {
 
-        return new Button[]{action("Insert at the caret", () -> actions.insertAtCaret(image))};
+        return new Button[]{
+                action("Insert at the caret", () -> actions.insertAtCaret(image)),
+                action("Detach", () -> actions.detach(image))};
     }
 
     private Button action(String text, Runnable run) {

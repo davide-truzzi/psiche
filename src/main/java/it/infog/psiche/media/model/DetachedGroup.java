@@ -16,13 +16,13 @@ import java.util.Optional;
  * @param deletedAt when Psiche detached them or deleted their chapter; empty for {@link DetachCause#CHAPTER_GONE}
  * @param images    the images, by name
  */
-public record DetachedImages(Path folder,
+public record DetachedGroup(Path folder,
                              String chapter,
                              DetachCause cause,
                              Optional<LocalDateTime> deletedAt,
                              List<MediaImage> images) {
 
-    public DetachedImages {
+    public DetachedGroup {
 
         images = List.copyOf(images);
     }

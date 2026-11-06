@@ -84,6 +84,8 @@ public final class MediaPane extends BorderPane {
     private Chapter chapter;
     private List<MediaImage> images = List.of();
     private List<ChapterImage> shown = List.of();
+    // Runs once an image has been detached, so Detached images knows.
+    private Runnable detached = () -> {};
     private Path selected;
     private int place;
     // How tall the preview is, in pixels, as last placed or dragged.
@@ -99,7 +101,7 @@ public final class MediaPane extends BorderPane {
         this.editor = editor;
         this.statusBar = statusBar;
         this.errors = errors;
-        preview = new MediaPreview(new MediaActions(editor, insertion, statusBar, window, () -> place),
+        preview = new MediaPreview(new MediaActions(editor, insertion, statusBar, window, () -> place, this::detach),
                 this::revealSelected);
 
         //layout
@@ -195,6 +197,40 @@ public final class MediaPane extends BorderPane {
                 match();
             }
         }, failure -> errors.report("Cannot read the images of " + reading.title(), failure));
+    }
+
+    /** Runs {@code detached} each time the author detaches an image from the chapter. */
+    public void setOnDetached(Runnable detached) {
+
+        this.detached = detached;
+    }
+
+    /** The thread the chapters' images are read and moved on, one thing at a time, in order. */
+    WorkThread thread() {
+
+        return thread;
+    }
+
+    /**
+     * Moves {@code image}, which the text does not show, out of the chapter's folder to Detached images; it never
+     * breaks a link, and Detached images can bring it back.
+     */
+    private void detach(ChapterImage image) {
+
+        if (chapter == null)
+            return;
+
+        Chapter from = chapter;
+        ChapterMedia media = new ChapterMedia(book.mediaDir());
+        MediaImage file = image.image();
+        thread.run(() -> {
+            media.detach(from.title(), file.file());
+            return file;
+        }, done -> {
+            statusBar.info("Detached %s; Detached images keeps it".formatted(file.name()));
+            reload();
+            detached.run();
+        }, failure -> errors.report("Cannot detach " + file.name(), failure));
     }
 
     /** Stops the thread, interrupting a read that runs. */

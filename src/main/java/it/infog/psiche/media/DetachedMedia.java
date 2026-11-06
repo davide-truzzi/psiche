@@ -1,6 +1,6 @@
 package it.infog.psiche.media;
 
-import it.infog.psiche.media.model.DetachedImages;
+import it.infog.psiche.media.model.DetachedGroup;
 import it.infog.psiche.media.model.enums.DetachCause;
 
 import java.io.IOException;
@@ -49,14 +49,14 @@ public final class DetachedMedia {
      * The folders of images that belong to none of {@code chapters}: detached in Psiche, or left behind by a chapter
      * renamed or deleted outside it. The most recently detached come first, then the others by name.
      */
-    public List<DetachedImages> orphans(Collection<String> chapters) {
+    public List<DetachedGroup> orphans(Collection<String> chapters) {
 
         return orphanFolders(chapters).stream()
                 .map(DetachedMedia::orphan)
                 .filter(group -> !group.images().isEmpty())
-                .sorted(Comparator.comparing((DetachedImages group) -> group.deletedAt().orElse(LocalDateTime.MIN))
+                .sorted(Comparator.comparing((DetachedGroup group) -> group.deletedAt().orElse(LocalDateTime.MIN))
                         .reversed()
-                        .thenComparing(DetachedImages::chapter))
+                        .thenComparing(DetachedGroup::chapter))
                 .toList();
     }
 
@@ -71,7 +71,7 @@ public final class DetachedMedia {
     }
 
     /** The images of {@code chapter} as it was last deleted, if any are kept; a restored chapter offers them back. */
-    public Optional<DetachedImages> latestDeleted(String chapter) {
+    public Optional<DetachedGroup> latestDeleted(String chapter) {
 
         return folders(folder -> isDeletedFrom(folder, chapter)).stream()
                 .map(DetachedMedia::orphan)
@@ -83,7 +83,7 @@ public final class DetachedMedia {
      * Moves the images of {@code group} to {@code chapter}'s folder, and removes the group's folder once it is empty.
      * An image that meets another of its name there keeps it, or takes a number, so nothing is lost.
      */
-    public void restoreTo(DetachedImages group, String chapter) {
+    public void restoreTo(DetachedGroup group, String chapter) {
 
         try {
             ChapterMedia.moveImages(group.folder(), media.folder(chapter));
@@ -93,7 +93,7 @@ public final class DetachedMedia {
     }
 
     /** Deletes the images of {@code group} for good: they are not in Git, so they cannot come back. */
-    public void deletePermanently(DetachedImages group) {
+    public void deletePermanently(DetachedGroup group) {
 
         deleteTree(group.folder());
     }
@@ -122,17 +122,17 @@ public final class DetachedMedia {
         }
     }
 
-    private static DetachedImages orphan(Path folder) {
+    private static DetachedGroup orphan(Path folder) {
 
         Optional<LocalDateTime> at = deletedAt(folder);
         if (at.isEmpty())
-            return new DetachedImages(folder, folder.getFileName().toString(), DetachCause.CHAPTER_GONE, at,
+            return new DetachedGroup(folder, folder.getFileName().toString(), DetachCause.CHAPTER_GONE, at,
                     ChapterMedia.imagesIn(folder));
 
         // Folders an image was detached to say so; any other deleted folder went with its chapter.
         DetachCause cause = cause(folder).equals(ChapterMedia.DETACHED_CAUSE) ? DetachCause.DETACHED
                 : DetachCause.CHAPTER_DELETED;
-        return new DetachedImages(folder, deletedChapter(folder).orElseThrow(), cause, at,
+        return new DetachedGroup(folder, deletedChapter(folder).orElseThrow(), cause, at,
                 ChapterMedia.imagesIn(folder));
     }
 }

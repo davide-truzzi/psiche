@@ -1,6 +1,6 @@
 package it.infog.psiche.media;
 
-import it.infog.psiche.media.model.DetachedImages;
+import it.infog.psiche.media.model.DetachedGroup;
 import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.media.model.enums.DetachCause;
 
@@ -45,10 +45,10 @@ class DetachedMediaTest {
         store(MORNING).add("02-dusk", image("sun.png"));
         store(MORNING.plus(Duration.ofHours(2))).binChapter("02-dusk");
 
-        List<DetachedImages> orphans = store(MORNING).detached().orphans(List.of("04-day"));
+        List<DetachedGroup> orphans = store(MORNING).detached().orphans(List.of("04-day"));
 
-        assertThat(orphans).extracting(DetachedImages::chapter).containsExactly("02-dusk", "01-dawn", "03-night");
-        assertThat(orphans).extracting(DetachedImages::cause).containsExactly(DetachCause.CHAPTER_DELETED,
+        assertThat(orphans).extracting(DetachedGroup::chapter).containsExactly("02-dusk", "01-dawn", "03-night");
+        assertThat(orphans).extracting(DetachedGroup::cause).containsExactly(DetachCause.CHAPTER_DELETED,
                 DetachCause.DETACHED, DetachCause.CHAPTER_GONE);
         assertThat(orphans.get(1).deletedAt()).contains(LocalDateTime.of(2026, 11, 6, 9, 30));
         assertThat(orphans.get(2).deletedAt()).isEmpty();
@@ -85,7 +85,7 @@ class DetachedMediaTest {
         store.add("01-dawn", image("map.png"));
         store.binChapter("01-dawn");
         store.add("02-dusk", image("other/map.png", 900));
-        DetachedImages group = store.detached().orphans(List.of("02-dusk")).getFirst();
+        DetachedGroup group = store.detached().orphans(List.of("02-dusk")).getFirst();
 
         store.detached().restoreTo(group, "02-dusk");
 
@@ -99,7 +99,7 @@ class DetachedMediaTest {
         ChapterMedia store = store(MORNING);
         store.add("01-dawn", image("map.png"));
         store.binChapter("01-dawn");
-        DetachedImages group = store.detached().orphans(List.of()).getFirst();
+        DetachedGroup group = store.detached().orphans(List.of()).getFirst();
 
         store.detached().deletePermanently(group);
 

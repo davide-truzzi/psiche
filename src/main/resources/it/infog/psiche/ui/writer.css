@@ -503,56 +503,56 @@
     -fx-pref-height: 280;
 }
 
-/* Detached notes: a group of notes under each line, the notes as small cards in their colours, with the darker layer
-   a note on the board has. */
-.detached-notes .scroll-pane,
-.detached-notes .scroll-pane > .viewport {
+/* Detached notes and images: a group under each line, the notes as small cards in their colours, with the darker
+   layer a note on the board has, the images as small pictures. */
+.detached .scroll-pane,
+.detached .scroll-pane > .viewport {
     -fx-background-color: transparent;
 }
 
-.detached-notes .scroll-pane {
+.detached .scroll-pane {
     -fx-pref-width: 700;
     -fx-pref-height: 420;
 }
 
-.detached-notes-groups {
+.detached-groups {
     -fx-spacing: 18;
     -fx-padding: 16 20;
 }
 
-.detached-notes-group {
+.detached-group {
     -fx-spacing: 8;
 }
 
-.detached-notes-heading {
+.detached-heading {
     -fx-spacing: 10;
 }
 
-.detached-notes-source {
+.detached-source {
     -fx-spacing: 2;
 }
 
-.detached-notes-heading .button {
+.detached-heading .button {
     -fx-font-size: 12px;
     -fx-padding: 4 10;
 }
 
-.detached-notes-chapter {
+.detached-chapter {
     -fx-text-fill: -paper;
 }
 
-.detached-notes-details {
+.detached-details {
     -fx-text-fill: -graphite;
     -fx-font-size: 12px;
 }
 
-.detached-notes-rule {
+.detached-rule {
     -fx-min-height: 1;
     -fx-max-height: 1;
     -fx-background-color: -desk-edge;
 }
 
-.detached-notes-cards {
+.detached-cards {
     -fx-hgap: 10;
     -fx-vgap: 10;
 }
@@ -579,6 +579,27 @@
 .deleted-note-file {
     -fx-font-size: 10px;
     -fx-text-fill: rgba(42, 34, 25, 0.7);
+}
+
+.detached-image {
+    -fx-spacing: 4;
+    -fx-alignment: top-center;
+    -fx-pref-width: 130;
+    -fx-max-width: 130;
+}
+
+.detached-image-picture {
+    -fx-min-height: 88;
+    -fx-pref-height: 88;
+    -fx-max-height: 88;
+    -fx-padding: 4;
+    -fx-background-color: -desk;
+    -fx-background-radius: 3;
+}
+
+.detached-image-name {
+    -fx-font-size: 10px;
+    -fx-text-fill: -paper-dim;
 }
 
 /* Importing notes: what the import is doing, above a thin bar in red pencil */

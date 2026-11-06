@@ -16,12 +16,14 @@ import javafx.stage.Window;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 /**
  * What the Media tab's buttons do to the open chapter: take an image out of the text, give it another caption, show a
- * better file in its place, or put an image of the folder into the text at the caret. Each change to the text is one
+ * better file in its place, put an image of the folder into the text at the caret, or detach one the text does not
+ * show. Each change to the text is one
  * change Undo reverts; the images' paragraphs are found in the text as it is now, not as the tab last read it.
  */
 final class MediaActions {
@@ -31,16 +33,21 @@ final class MediaActions {
     private final StatusBar statusBar;
     private final Supplier<Window> window;
     private final IntSupplier place;
+    private final Consumer<ChapterImage> detach;
 
-    /** @param place which of the image's places in the text the author was last taken to, counted from 0 */
+    /**
+     * @param place  which of the image's places in the text the author was last taken to, counted from 0
+     * @param detach moves an image the text does not show out of the chapter's folder, to Detached images
+     */
     MediaActions(ChapterEditor editor, ImageInsertion insertion, StatusBar statusBar, Supplier<Window> window,
-                 IntSupplier place) {
+                 IntSupplier place, Consumer<ChapterImage> detach) {
 
         this.editor = editor;
         this.insertion = insertion;
         this.statusBar = statusBar;
         this.window = window;
         this.place = place;
+        this.detach = detach;
     }
 
     /**
@@ -108,5 +115,11 @@ final class MediaActions {
                 ImageLines.destination(chapter.get().title(), name));
         if (editor.insertImage(chapter.get(), line))
             statusBar.info("Inserted %s after the caret's line; Edit caption gives it its own".formatted(name));
+    }
+
+    /** Moves {@code image}, which the text does not show, out of the chapter's folder, to Detached images. */
+    void detach(ChapterImage image) {
+
+        detach.accept(image);
     }
 }
