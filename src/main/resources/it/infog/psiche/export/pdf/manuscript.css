@@ -105,6 +105,26 @@ img {
     max-width: 100%;
 }
 
+/* An image on a paragraph of its own: centred, with room around it, and its caption under it, smaller and in
+   italics. */
+figure {
+    display: block;
+    margin: 0.6cm 0;
+    text-align: center;
+    text-indent: 0;
+    page-break-inside: avoid;
+}
+
+figcaption {
+    display: block;
+    margin-top: 0.2cm;
+    font-size: 10.5pt;
+    font-style: italic;
+    line-height: 1.4;
+    text-align: center;
+    text-indent: 0;
+}
+
 code {
     font-family: monospace;
     font-size: 10.5pt;

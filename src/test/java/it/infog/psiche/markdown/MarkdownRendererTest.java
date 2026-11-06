@@ -86,4 +86,11 @@ class MarkdownRendererTest {
         assertThat(page.indexOf("<style>body { font-size: 22px; }</style>"))
                 .isGreaterThan(page.indexOf("<style>p { text-indent: 1.6em; }</style>"));
     }
+
+    @Test
+    void showsAnImageAloneAsAFigureThatKeepsWhereItIsInTheText() {
+        assertThat(renderer.renderArticle("Text.\n\n![The salt road](https://example.org/map.png)\n", chaptersDir))
+                .contains("<figure data-start=\"7\" data-end=\"52\"><img src=\"https://example.org/map.png\" "
+                        + "alt=\"The salt road\" /><figcaption>The salt road</figcaption></figure>");
+    }
 }

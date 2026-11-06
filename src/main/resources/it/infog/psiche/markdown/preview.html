@@ -20,7 +20,9 @@ document.addEventListener('error', function (event) {
         return;
     var missing = document.createElement('span');
     missing.className = 'missing-image';
-    missing.textContent = image.alt ? 'Missing image: ' + image.alt : 'Missing image';
+    // In a figure with a caption, the caption under the box names the image already.
+    var captioned = image.parentNode.tagName === 'FIGURE' && image.parentNode.querySelector('figcaption');
+    missing.textContent = image.alt && !captioned ? 'Missing image: ' + image.alt : 'Missing image';
     image.parentNode.replaceChild(missing, image);
 }, true);
 </script>

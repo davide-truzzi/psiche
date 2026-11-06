@@ -56,7 +56,24 @@ class XhtmlRendererTest {
                 + "![Lost](../media/lost.png)"));
 
         assertThat(xhtml).isEqualTo("<p>Before.</p>\n<hr />\n"
-                + "<p><img src=\"../images/image-1.png\" alt=\"The salt road\" /></p>\n<p></p>\n");
+                + "<figure style=\"margin: 1.5em 0; text-align: center; text-indent: 0;\">"
+                + "<img src=\"../images/image-1.png\" alt=\"The salt road\" />"
+                + "<figcaption style=\"margin-top: 0.5em; font-size: 0.9em; font-style: italic; text-align: center; "
+                + "text-indent: 0;\">The salt road</figcaption></figure>\n");
+    }
+
+    @Test
+    void theManuscriptPrintsAnImageAloneAsAFigureWithItsCaptionAndNoneIfEmpty() {
+        assertThat(render("![The salt road](../media/map.png)\n\n![](../media/sea.png)\n\nSee ![x](../media/x.png)."))
+                .isEqualTo("<figure><img src=\"../media/map.png\" alt=\"The salt road\" />"
+                        + "<figcaption>The salt road</figcaption></figure>\n"
+                        + "<figure><img src=\"../media/sea.png\" alt=\"\" /></figure>\n"
+                        + "<p>See <img src=\"../media/x.png\" alt=\"x\" />.</p>\n");
+    }
+
+    @Test
+    void aTightListsItemsStayWithoutParagraphs() {
+        assertThat(render("- north\n- south\n")).isEqualTo("<ul>\n<li>north</li>\n<li>south</li>\n</ul>\n");
     }
 
     @Test

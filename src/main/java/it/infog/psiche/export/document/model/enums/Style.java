@@ -16,8 +16,10 @@ public enum Style {
     LIST("List"),
     /** The centred {@code * * *} between scenes. */
     SCENE_BREAK("Scene_20_Break"),
-    /** A paragraph holding only an image, centred. */
+    /** A paragraph holding only an image, centred, with room above it. */
     FIGURE("Figure"),
+    /** An image's caption, centred under it, smaller and in italics. */
+    CAPTION("Caption"),
     /** Code, in a monospaced font with its spaces kept. */
     PREFORMATTED("Preformatted_20_Text"),
     /** The chapter's title, a third of the way down its first page. */

@@ -20,7 +20,8 @@ import java.util.Map;
 /**
  * Renders chapter Markdown to a standalone HTML page for the preview pane. Each block element carries
  * {@code data-start} and {@code data-end} attributes with where it starts and ends in the Markdown, counted in
- * characters from the start of the text, so the preview can follow the editor's caret.
+ * characters from the start of the text, so the preview can follow the editor's caret. An image on a paragraph of its
+ * own is a figure, with its caption under it, as the exports print it; see {@link FigureRenderer}.
  * <p>
  * Each image of the book is asked for with its file's version, {@code ?v=} and the time it last changed, 0 while it is
  * not there: WebKit keeps the pictures it showed by their address, and would go on showing one renamed, deleted or
@@ -62,6 +63,7 @@ public final class MarkdownRenderer {
 
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .softbreak("<br>") // Forces <br> for all soft breaks
+                .nodeRendererFactory(context -> new FigureRenderer(context, image -> true))
                 .attributeProviderFactory(context -> MarkdownRenderer::markSourceRange)
                 .attributeProviderFactory(context -> (node, tagName, attributes) ->
                         markVersion(baseDirectory, node, attributes))

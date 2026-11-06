@@ -134,6 +134,26 @@ img {
     box-shadow: 0 6px 18px rgba(60, 40, 20, 0.25);
 }
 
+/* An image on a paragraph of its own, as the exports print it: centred, with room around it, and its caption under
+   it, smaller and in italics. */
+figure {
+    margin: 2em 0;
+    text-align: center;
+    text-indent: 0;
+}
+
+figure img {
+    margin: 0 auto;
+}
+
+figcaption {
+    margin-top: 0.8em;
+    font-size: 0.9em;
+    font-style: italic;
+    color: var(--faded-ink);
+    text-indent: 0;
+}
+
 /* In place of an image whose file is missing: a dashed box in attention orange, with the image's caption. */
 .missing-image {
     display: block;

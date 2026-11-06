@@ -15,6 +15,7 @@ import org.commonmark.parser.Parser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,13 +47,21 @@ public final class ImageLines {
             @Override
             public void visit(Paragraph paragraph) {
 
-                if (paragraph.getFirstChild() instanceof Image image && image.getNext() == null
-                        && !paragraph.getSourceSpans().isEmpty())
-                    lines.add(new ImageLine(range(paragraph), caption(image), image.getDestination()));
+                if (!paragraph.getSourceSpans().isEmpty())
+                    figure(paragraph).ifPresent(image ->
+                            lines.add(new ImageLine(range(paragraph), caption(image), image.getDestination())));
             }
         });
 
         return lines;
+    }
+
+    /** The image {@code paragraph} holds alone, a figure, as images are inserted; empty for any other paragraph. */
+    public static Optional<Image> figure(Paragraph paragraph) {
+
+        return paragraph.getFirstChild() instanceof Image image && image.getNext() == null
+                ? Optional.of(image)
+                : Optional.empty();
     }
 
     /** True if {@code destination} has a scheme, as https: or data:, and so is no file of the book. */
@@ -201,7 +210,7 @@ public final class ImageLines {
     }
 
     /** The text of the image's description, as the reader sees it: its escapes undone, its formatting left out. */
-    private static String caption(Image image) {
+    public static String caption(Image image) {
 
         StringBuilder caption = new StringBuilder();
         image.accept(new AbstractVisitor() {
