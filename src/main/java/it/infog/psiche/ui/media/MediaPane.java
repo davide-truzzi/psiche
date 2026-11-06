@@ -10,9 +10,9 @@ import it.infog.psiche.media.model.ChapterImage;
 import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.ui.chapters.ChapterEditor;
 import it.infog.psiche.ui.common.ErrorReporter;
+import it.infog.psiche.ui.common.FileLabels;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.common.WorkThread;
-import it.infog.psiche.ui.notes.card.FileLabels;
 
 import javafx.animation.PauseTransition;
 import javafx.beans.property.BooleanProperty;

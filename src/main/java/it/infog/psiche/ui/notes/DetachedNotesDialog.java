@@ -6,7 +6,7 @@ import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.DetachedDialog;
 import it.infog.psiche.ui.common.Dialogs;
-import it.infog.psiche.ui.notes.card.FileLabels;
+import it.infog.psiche.ui.common.FileLabels;
 
 import javafx.scene.Node;
 import javafx.scene.control.ButtonBar.ButtonData;

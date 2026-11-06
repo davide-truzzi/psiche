@@ -2,7 +2,7 @@ package it.infog.psiche.ui.media;
 
 import it.infog.psiche.media.model.ChapterImage;
 import it.infog.psiche.media.model.MediaImage;
-import it.infog.psiche.ui.notes.card.FileLabels;
+import it.infog.psiche.ui.common.FileLabels;
 
 import javafx.beans.binding.Bindings;
 import javafx.scene.Node;

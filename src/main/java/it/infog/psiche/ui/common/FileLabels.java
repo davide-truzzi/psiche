@@ -1,8 +1,11 @@
-package it.infog.psiche.ui.notes.card;
+package it.infog.psiche.ui.common;
 
 import java.util.Locale;
 
-/** How a note's file is named on its card: its size as people read it, and a long name shortened. */
+/**
+ * How a file is named to the author, on a note's card or an image's: its size as people read it, and a long name
+ * shortened.
+ */
 public final class FileLabels {
 
     // Names longer than this are shortened in the middle, where they differ least.

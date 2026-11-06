@@ -2,8 +2,8 @@ package it.infog.psiche.ui.media;
 
 import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.media.model.enums.QualityIssue;
+import it.infog.psiche.ui.common.FileLabels;
 import it.infog.psiche.ui.common.Icons;
-import it.infog.psiche.ui.notes.card.FileLabels;
 
 import javafx.scene.Node;
 import javafx.scene.control.Label;
