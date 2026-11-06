@@ -55,6 +55,17 @@ public final class SafeFiles {
         }
     }
 
+    /**
+     * Moves {@code source} to {@code target}, the same file or folder under a name that differs only in letter case,
+     * on a file system that ignores it: moved straight there, it would keep its name.
+     */
+    public static void changeCase(Path source, Path target) throws IOException {
+
+        Path temporary = source.resolveSibling(source.getFileName() + ".renaming");
+        Files.move(source, temporary);
+        Files.move(temporary, target);
+    }
+
     /** Writes {@code text} to a temporary file beside {@code file}, which then takes its place whole. */
     public static void writeString(Path file, String text) throws IOException {
 

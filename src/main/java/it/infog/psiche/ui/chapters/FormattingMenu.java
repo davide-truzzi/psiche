@@ -19,9 +19,9 @@ import java.util.Map;
 import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
- * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, above
- * the editing commands the text's own menu has, which this menu replaces. Each formatting is one change, which a
- * single Undo reverts.
+ * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, then
+ * Insert image…, above the editing commands the text's own menu has, which this menu replaces. Each formatting is one
+ * change, which a single Undo reverts.
  */
 final class FormattingMenu {
 
@@ -53,17 +53,19 @@ final class FormattingMenu {
     /**
      * Gives {@code manuscript} the menu on a right-click, and its shortcuts while it has the focus.
      *
+     * @param insertImage asks for an image and writes it into the chapter, for Insert image…
+     *
      * @return the menu, for other parts of the editor to add to
      */
-    static ContextMenu attach(Manuscript manuscript) {
+    static ContextMenu attach(Manuscript manuscript, Runnable insertImage) {
 
         FormattingMenu formatting = new FormattingMenu(manuscript);
-        ContextMenu menu = formatting.menu();
+        ContextMenu menu = formatting.menu(insertImage);
         manuscript.setMenu(menu, formatting.shortcuts);
         return menu;
     }
 
-    private ContextMenu menu() {
+    private ContextMenu menu(Runnable insertImage) {
 
         //formatting
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
@@ -79,6 +81,9 @@ final class FormattingMenu {
         MenuItem comment = formatItem("Comment", COMMENT, MarkdownFormatter::comment);
         MenuItem clear = formatItem("Clear formatting", CLEAR_FORMATTING, MarkdownFormatter::clearFormatting);
 
+        //inserting
+        MenuItem image = menuItem("Insert image…", insertImage);
+
         //editing
         MenuItem undo = menuItem("Undo", manuscript::undo);
         MenuItem redo = menuItem("Redo", manuscript::redo);
@@ -89,8 +94,8 @@ final class FormattingMenu {
         MenuItem selectAll = menuItem("Select All", manuscript::selectAll);
 
         ContextMenu menu = new ContextMenu(bold, italic, heading, bulletedList, numberedList, quote, comment, clear,
-                new SeparatorMenuItem(), undo, redo, new SeparatorMenuItem(), cut, copy, paste, delete,
-                new SeparatorMenuItem(), selectAll);
+                new SeparatorMenuItem(), image, new SeparatorMenuItem(), undo, redo, new SeparatorMenuItem(), cut, copy,
+                paste, delete, new SeparatorMenuItem(), selectAll);
 
         // Enable what applies to the text and selection as they are when the menu opens.
         menu.setOnShowing(event -> {
@@ -104,7 +109,8 @@ final class FormattingMenu {
             bold.setDisable(!editable || !words);
             italic.setDisable(!editable || !words);
             heading.setDisable(!editable || !oneLine);
-            List.of(bulletedList, numberedList, quote, comment, clear).forEach(item -> item.setDisable(!editable));
+            List.of(bulletedList, numberedList, quote, comment, clear, image)
+                    .forEach(item -> item.setDisable(!editable));
 
             undo.setDisable(!editable || !manuscript.canUndo());
             redo.setDisable(!editable || !manuscript.canRedo());

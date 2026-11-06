@@ -9,6 +9,7 @@ import it.infog.psiche.export.epub.model.EpubPage;
 import it.infog.psiche.export.model.BookExport;
 import it.infog.psiche.export.model.ExportedChapter;
 import it.infog.psiche.export.model.enums.EpubVariant;
+import it.infog.psiche.markdown.PlainText;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Image;
@@ -83,7 +84,7 @@ public final class EpubWriter {
         EpubImages images = new EpubImages(book.baseDirectory());
         int undescribed = 0;
         for (Image image : images(book))
-            if (images.image(image.getDestination()).isPresent() && XhtmlRenderer.plainText(image).isBlank())
+            if (images.image(image.getDestination()).isPresent() && PlainText.of(image).isBlank())
                 undescribed++;
 
         if (!images.leftOut().isEmpty())
@@ -198,7 +199,7 @@ public final class EpubWriter {
 
         return images(book).stream()
                 .filter(image -> images.image(image.getDestination()).isPresent())
-                .noneMatch(image -> XhtmlRenderer.plainText(image).isBlank());
+                .noneMatch(image -> PlainText.of(image).isBlank());
     }
 
     /** Every image the chapters show, in order. */

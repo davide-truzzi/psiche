@@ -138,8 +138,10 @@ class ChapterDocxTest {
         // 192 by 96 pixels at 96 dpi: 5.08 by 2.54cm, in 360000ths of a centimetre
         assertThat(entry(target, DOCUMENT)).contains("<w:pStyle w:val=\"Figure\"/>",
                 "<wp:extent cx=\"1828800\" cy=\"914400\"/>\n<wp:docPr id=\"1\" name=\"Picture 1\" descr=\"Map\"/>",
-                "<wp:docPr id=\"2\" name=\"Picture 2\" descr=\"Again\"/>", "<a:blip r:embed=\"rId1\"/>")
+                "<wp:docPr id=\"2\" name=\"Picture 2\" descr=\"Again\"/>", "<a:blip r:embed=\"rId1\"/>",
+                "<w:pStyle w:val=\"Caption\"/>")
                 .doesNotContain("Gone");
+        assertThat(entry(target, "word/styles.xml")).contains("w:styleId=\"Caption\"");
         assertThat(entry(target, "word/_rels/document.xml.rels")).containsOnlyOnce("Target=\"media/image1.png\"");
         assertThat(entry(target, "[Content_Types].xml"))
                 .contains("<Default Extension=\"png\" ContentType=\"image/png\"/>");

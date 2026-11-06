@@ -56,9 +56,19 @@
             <style:paragraph-properties fo:text-indent="0cm" fo:text-align="center"/>
         </style:style>
 
+        <!-- An image on a paragraph of its own, centred, with room above it, and kept with its caption. -->
         <style:style style:name="Figure" style:family="paragraph" style:parent-style-name="Text_20_body"
                      style:class="extra">
-            <style:paragraph-properties fo:text-indent="0cm" fo:text-align="center"/>
+            <style:paragraph-properties fo:text-indent="0cm" fo:text-align="center" fo:margin-top="0.42cm"
+                                        fo:margin-bottom="0.21cm" fo:keep-with-next="always"/>
+        </style:style>
+
+        <!-- An image's caption, centred under it, smaller and in italics, with room below it. -->
+        <style:style style:name="Caption" style:family="paragraph" style:parent-style-name="Text_20_body"
+                     style:class="extra">
+            <style:paragraph-properties fo:line-height="150%" fo:text-indent="0cm" fo:text-align="center"
+                                        fo:margin-top="0cm" fo:margin-bottom="0.42cm"/>
+            <style:text-properties fo:font-size="10.5pt" fo:font-style="italic"/>
         </style:style>
 
         <style:style style:name="Preformatted_20_Text" style:display-name="Preformatted Text"

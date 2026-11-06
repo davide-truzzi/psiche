@@ -25,6 +25,7 @@ final class StyleIds {
             case LIST -> "List";
             case SCENE_BREAK -> "SceneBreak";
             case FIGURE -> "Figure";
+            case CAPTION -> "Caption";
             case PREFORMATTED -> "PreformattedText";
             case HEADING_1 -> "Heading1";
             case HEADING_2 -> "Heading2";

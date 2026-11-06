@@ -1,5 +1,6 @@
 package it.infog.psiche.notes;
 
+import it.infog.psiche.common.ChapterFolders;
 import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.common.SafeFiles;
 import it.infog.psiche.notes.model.Note;
@@ -35,7 +36,6 @@ final class NoteFolders {
     static final String TEXT_FILE = "note.md";
     static final String PROPERTIES_FILE = "note.properties";
     static final String BOARD_FILE = "board.properties";
-    static final String DELETED_FILE = "deleted.properties";
     static final Set<String> OWN_FILES = Set.of(TEXT_FILE, PROPERTIES_FILE);
     static final String FILE_KEY = "file";
     static final String DUPLICATE_KEY = "duplicateOnImport";
@@ -147,11 +147,7 @@ final class NoteFolders {
     /** The folder of {@code chapter}'s notes in {@code root}, the book's {@code notes/}. */
     static Path chapterFolder(Path root, String chapter) {
 
-        if (chapter.isBlank() || chapter.contains("/") || chapter.contains("\\") || chapter.equals("..")
-                || chapter.equals("."))
-            throw new IllegalArgumentException("'%s' cannot name a chapter's notes".formatted(chapter));
-
-        return root.resolve(chapter);
+        return ChapterFolders.chapterFolder(root, chapter, "notes");
     }
 
     /** Moves each note in {@code source} to {@code target}; one with an id {@code target} already has stays put. */
@@ -181,7 +177,7 @@ final class NoteFolders {
                 return;
         }
         Files.deleteIfExists(folder.resolve(BOARD_FILE));
-        Files.deleteIfExists(folder.resolve(DELETED_FILE));
+        Files.deleteIfExists(folder.resolve(ChapterFolders.DELETED_FILE));
 
         try (Stream<Path> entries = Files.list(folder)) {
             if (entries.findAny().isEmpty())

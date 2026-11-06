@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.notes.card;
 
 import it.infog.psiche.notes.model.enums.FileKind;
+import it.infog.psiche.ui.common.FileLabels;
 
 import javafx.geometry.Pos;
 import javafx.scene.Node;

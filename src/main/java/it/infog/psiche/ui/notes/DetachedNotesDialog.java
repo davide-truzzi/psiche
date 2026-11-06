@@ -4,20 +4,15 @@ import it.infog.psiche.notes.NoteStore;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.ui.common.DateFormats;
+import it.infog.psiche.ui.common.DetachedDialog;
 import it.infog.psiche.ui.common.Dialogs;
-import it.infog.psiche.ui.notes.card.FileLabels;
+import it.infog.psiche.ui.common.FileLabels;
 
-import javafx.geometry.Pos;
-import javafx.scene.control.Button;
+import javafx.scene.Node;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
@@ -33,14 +28,12 @@ import static it.infog.psiche.ui.common.Controls.button;
  * belonged to, why and when it was left, a small card for each note, and the buttons to put it back on a chapter's
  * board, to put it back on the book's own board, or to delete it for good. The book's own notes read as "Lorem (book
  * notes)". Deleting for good is asked first: notes are not in Git, so nothing brings them back.
- * The dialog stays open, the groups shown again after each change, and greyed out while it is made.
+ * The dialog stays open, the groups shown again after each change, and greyed out while it is made; see
+ * {@link DetachedDialog}.
  */
 final class DetachedNotesDialog {
 
-    private static final ButtonType CLOSE = new ButtonType("Close", ButtonData.CANCEL_CLOSE);
-
-    private final Dialog<ButtonType> dialog = new Dialog<>();
-    private final VBox groupList = new VBox();
+    private final DetachedDialog dialog;
     private final List<String> chapters;
     private final String bookTitle;
     private BiConsumer<OrphanGroup, String> restore = (group, chapter) -> {};
@@ -54,23 +47,8 @@ final class DetachedNotesDialog {
 
         this.chapters = chapters;
         this.bookTitle = bookTitle;
-
-        Dialogs.ownAndStyle(dialog, owner);
-        dialog.setHeaderText("Detached notes");
-        dialog.setResizable(true);
-        dialog.getDialogPane().getStyleClass().add("detached-notes-dialog");
-        dialog.getDialogPane().getButtonTypes().setAll(CLOSE);
-
-        groupList.getStyleClass().add("detached-notes-groups");
-        ScrollPane scroll = new ScrollPane(groupList);
-        scroll.setFitToWidth(true);
-
-        Label hint = new Label("Notes are not in Git: what is deleted from here is gone for good.");
-        hint.getStyleClass().add("history-hint");
-
-        VBox content = new VBox(scroll, hint);
-        content.getStyleClass().add("detached-notes");
-        dialog.getDialogPane().setContent(content);
+        dialog = new DetachedDialog(owner, "Detached notes",
+                "Notes are not in Git: what is deleted from here is gone for good.", "No detached notes.");
     }
 
     /**
@@ -101,20 +79,7 @@ final class DetachedNotesDialog {
     /** Shows {@code groups} in place of those shown, and lets the author act on them again. */
     void showGroups(List<OrphanGroup> groups) {
 
-        groupList.getChildren().clear();
-        groupList.setDisable(false);
-        if (groups.isEmpty()) {
-            Label none = new Label("No detached notes.");
-            none.getStyleClass().add("detached-notes-details");
-            groupList.getChildren().add(none);
-            return;
-        }
-
-        for (OrphanGroup group : groups) {
-            if (!groupList.getChildren().isEmpty())
-                groupList.getChildren().add(rule());
-            groupList.getChildren().add(groupView(group));
-        }
+        dialog.setGroups(groups.stream().map(group -> (Node) groupView(group)).toList());
     }
 
     void close() {
@@ -144,47 +109,15 @@ final class DetachedNotesDialog {
 
     // The groups
 
-    /**
-     * The chapter above the cause and date, the buttons beside them, and below them a small card for each note. The
-     * buttons keep their whole text; a long chapter name wraps.
-     */
+    /** The chapter above the cause and date, the buttons beside them, and below them a small card for each note. */
     private VBox groupView(OrphanGroup group) {
 
-        Label chapter = wrapping(boardName(group.chapter(), bookTitle), "detached-notes-chapter");
         String when = group.deletedAt().map(at -> " · " + DateFormats.DAY_AND_TIME.format(at)).orElse("");
-        Label details = wrapping(group.cause().label() + when, "detached-notes-details");
-
-        VBox source = new VBox(chapter, details);
-        source.getStyleClass().add("detached-notes-source");
-        source.setMaxWidth(Double.MAX_VALUE);
-        HBox.setHgrow(source, Priority.ALWAYS);
-
-        Button restoreButton = button("Restore to chapter", () -> restore(group));
-        restoreButton.setMinWidth(Region.USE_PREF_SIZE);
-        Button bookButton = button("Restore to book", () -> restoreToBook(group));
-        bookButton.setMinWidth(Region.USE_PREF_SIZE);
-        Button deleteButton = button("Delete permanently", () -> delete(group));
-        deleteButton.setMinWidth(Region.USE_PREF_SIZE);
-
-        HBox heading = new HBox(source, restoreButton, bookButton, deleteButton);
-        heading.getStyleClass().add("detached-notes-heading");
-        heading.setAlignment(Pos.CENTER_LEFT);
-
-        FlowPane cards = new FlowPane();
-        cards.getStyleClass().add("detached-notes-cards");
-        group.notes().forEach(note -> cards.getChildren().add(card(note)));
-
-        VBox view = new VBox(heading, cards);
-        view.getStyleClass().add("detached-notes-group");
-        return view;
-    }
-
-    private static Label wrapping(String text, String styleClass) {
-
-        Label label = new Label(text);
-        label.getStyleClass().add(styleClass);
-        label.setWrapText(true);
-        return label;
+        return DetachedDialog.group(boardName(group.chapter(), bookTitle), group.cause().label() + when,
+                group.notes().stream().map(note -> (Node) card(note)).toList(),
+                button("Restore to chapter", () -> restore(group)),
+                button("Restore to book", () -> restoreToBook(group)),
+                button("Delete permanently", () -> delete(group)));
     }
 
     /** A note as a small card in its colour: its text, and the name of its file under it. */
@@ -205,13 +138,6 @@ final class DetachedNotesDialog {
         return card;
     }
 
-    private static Region rule() {
-
-        Region rule = new Region();
-        rule.getStyleClass().add("detached-notes-rule");
-        return rule;
-    }
-
     // Restoring and deleting
 
     /** Asks which chapter's board the notes go to, their own chapter first if the book still has it. */
@@ -229,14 +155,14 @@ final class DetachedNotesDialog {
         if (chapter.isEmpty())
             return;
 
-        groupList.setDisable(true);
+        dialog.setBusy();
         restore.accept(group, chapter.get());
     }
 
     /** Puts the notes back on the book's own board, beside the notes it has; nothing is asked, as nothing is lost. */
     private void restoreToBook(OrphanGroup group) {
 
-        groupList.setDisable(true);
+        dialog.setBusy();
         restore.accept(group, NoteStore.BOOK);
     }
 
@@ -248,7 +174,7 @@ final class DetachedNotesDialog {
         if (choice.filter(deleteButton::equals).isEmpty())
             return;
 
-        groupList.setDisable(true);
+        dialog.setBusy();
         delete.accept(group);
     }
 
@@ -267,7 +193,7 @@ final class DetachedNotesDialog {
 
     private Window window() {
 
-        return dialog.getDialogPane().getScene().getWindow();
+        return dialog.window();
     }
 
     /** The name the author knows the board kept in {@code folder} by: the chapter's, or "Lorem (book notes)". */

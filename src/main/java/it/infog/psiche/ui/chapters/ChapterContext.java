@@ -13,6 +13,8 @@ import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.git.HistoryPane;
 import it.infog.psiche.ui.git.RevisionDialog;
+import it.infog.psiche.ui.media.DetachedImages;
+import it.infog.psiche.ui.media.MediaPane;
 import it.infog.psiche.ui.notes.DetachedNotes;
 import it.infog.psiche.ui.notes.NotesPane;
 import it.infog.psiche.ui.preview.PreviewPane;
@@ -56,6 +58,7 @@ public final class ChapterContext {
     private final PreviewPane preview;
     private final HistoryPane history;
     private final NotesPane notesPane;
+    private final MediaPane mediaPane;
     private final GitControls gitControls;
     private final StatusBar statusBar;
     private final ErrorReporter errors;
@@ -65,7 +68,7 @@ public final class ChapterContext {
     private final Exports exports;
     private final ChapterChanges changes;
     private final DeletedChapters deletedChapters;
-    private final DetachedNotes detachedNotes;
+    private final DetachedButtons detached;
     private final ChapterRevisions revisions;
     private final ChapterStatus status;
 
@@ -81,7 +84,7 @@ public final class ChapterContext {
      * @param rememberBookCounts told when the author opens or collapses them, to keep it for the next start
      */
     public ChapterContext(ChapterEditor chapterEditor, PreviewPane preview, HistoryPane history, NotesPane notesPane,
-                          GitControls gitControls, StatusBar statusBar, Exports exports,
+                          MediaPane mediaPane, GitControls gitControls, StatusBar statusBar, Exports exports,
                           ErrorReporter errors, Supplier<Window> window, boolean bookCountsShown,
                           Consumer<Boolean> rememberBookCounts) {
 
@@ -89,6 +92,7 @@ public final class ChapterContext {
         this.preview = preview;
         this.history = history;
         this.notesPane = notesPane;
+        this.mediaPane = mediaPane;
         this.gitControls = gitControls;
         this.statusBar = statusBar;
         this.exports = exports;
@@ -97,10 +101,12 @@ public final class ChapterContext {
 
         revisions = new ChapterRevisions(gitControls, chapterList::refresh);
         changes = new ChapterChanges(chapterEditor, notesPane, gitControls, statusBar, errors, window);
-        detachedNotes = new DetachedNotes(notesPane, statusBar, errors, window, () -> notes, this::chapterTitles);
+        detached = new DetachedButtons(
+                new DetachedNotes(notesPane, statusBar, errors, window, () -> notes, this::chapterTitles),
+                new DetachedImages(mediaPane, statusBar, errors, window, () -> book, this::chapterTitles));
         deletedChapters = new DeletedChapters(gitControls, errors, window,
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
-                detachedNotes::offerRestore, this::showChapter);
+                detached::offerRestore, this::showChapter);
         status = new ChapterStatus(chapterEditor, statusBar, bookCountsShown, rememberBookCounts);
         sidebar = buildSidebar();
 
@@ -117,12 +123,14 @@ public final class ChapterContext {
             if (change.wasRemoved())
                 countBook();
         });
-        notesPane.setOnBinned(detachedNotes::check);
+        notesPane.setOnBinned(detached::check);
+        mediaPane.setOnDetached(detached::check);
         notesPane.setChapters(this::chapterTitles);
     }
 
     /**
-     * The chapter list with New chapter above it, and the book's counts, Deleted chapters and Detached notes below.
+     * The chapter list with New chapter above it, and the book's counts, Deleted chapters, Detached notes and Detached
+     * images below.
      */
     public VBox sidebar() {
 
@@ -138,7 +146,7 @@ public final class ChapterContext {
         // One state for the book, shared, as the editor and the notes keep theirs in the same file.
         BookState state = BookState.of(book);
         Optional<BookProperties> properties = properties(book);
-        chapterEditor.setBookState(state);
+        chapterEditor.places().setBookState(state);
         notesPane.setBook(properties.map(BookProperties::title).orElse(book.title()), state);
         notesPane.show(notes, null);
         chapterEditor.hideWelcome();
@@ -159,11 +167,12 @@ public final class ChapterContext {
     public void clear() {
 
         chapterEditor.close();
-        chapterEditor.setBookState(null);
+        chapterEditor.places().setBookState(null);
         chapterEditor.showWelcome();
         history.show(null, null);
         notesPane.setBook(null, null);
         notesPane.show(null, null);
+        mediaPane.show(null, null);
 
         // Closing a saved chapter leaves the dirty flag unchanged, so its listener would not clear the status bar.
         status.clear();
@@ -174,7 +183,7 @@ public final class ChapterContext {
         notes = null;
         bookOpen.set(false);
         hasRepository.set(false);
-        detachedNotes.check();
+        detached.check();
         revisions.show(null);
         chapterEditor.setBookLanguage(null);
     }
@@ -205,7 +214,7 @@ public final class ChapterContext {
 
         chapterList.getItems().setAll(chapters);
         chapterEditor.chapter().filter(chapters::contains).ifPresent(chapterList.getSelectionModel()::select);
-        detachedNotes.check();
+        detached.check();
         revisions.check();
         countBook();
     }
@@ -280,16 +289,11 @@ public final class ChapterContext {
         Button deleted = button("Deleted chapters", () -> deletedChapters.show(book, repository));
         deleted.disableProperty().bind(hasRepository.not().or(gitControls.busyProperty()));
 
-        // Notes are not in Git, so their bin works without it; it is there only while it holds something.
-        Button detachedNotesButton = button("Detached notes", detachedNotes::show);
-        detachedNotesButton.visibleProperty().bind(detachedNotes.anyProperty());
-        detachedNotesButton.managedProperty().bind(detachedNotes.anyProperty());
-
         // The buttons span the column, inside the footer's padding.
         deleted.setMaxWidth(Double.MAX_VALUE);
-        detachedNotesButton.setMaxWidth(Double.MAX_VALUE);
 
-        VBox footer = new VBox(status.bookCounts(), deleted, detachedNotesButton);
+        VBox footer = new VBox(status.bookCounts(), deleted);
+        footer.getChildren().addAll(detached.buttons());
         footer.getStyleClass().add("sidebar-footer");
 
         VBox box = new VBox(header, chapterList, footer);
@@ -311,6 +315,7 @@ public final class ChapterContext {
             preview.render(chapterEditor.text(), book.chaptersDir());
             history.show(repository, chapter);
             notesPane.show(notes, chapter.title());
+            mediaPane.show(book, chapter);
             status.showChapter();
             status.countChapter();
         }
@@ -321,9 +326,9 @@ public final class ChapterContext {
 
         boolean wasOpen = chapterEditor.isOpen(chapter);
         if (wasOpen)
-            chapterEditor.rememberPlace();
+            chapterEditor.places().remember();
         changes.rename(book, repository, notes, chapter).ifPresent(renamed -> {
-            chapterEditor.placeRenamed(chapter, renamed);
+            chapterEditor.places().renamed(chapter, renamed);
             if (wasOpen)
                 showChapter(renamed);
             else
@@ -346,6 +351,7 @@ public final class ChapterContext {
         chapterEditor.close();
         history.show(repository, null);
         notesPane.show(notes, null);
+        mediaPane.show(null, null);
         status.showChapter();
         refresh();
         if (!chapterList.getItems().isEmpty())

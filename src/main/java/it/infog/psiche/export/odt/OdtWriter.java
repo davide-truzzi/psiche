@@ -3,7 +3,7 @@ package it.infog.psiche.export.odt;
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.common.Template;
 import it.infog.psiche.export.XmlText;
-import it.infog.psiche.export.document.Manuscript;
+import it.infog.psiche.export.document.WriteManuscript;
 import it.infog.psiche.export.document.Pictures;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.model.BookExport;
@@ -21,7 +21,7 @@ import java.util.Map;
  * <p>
  * The file is a zip ({@link OdtPackage}) of XML parts filled in from templates next to this class:
  * <ul>
- *     <li>{@code content.xml}: the text, written into an {@link OdtBody} by {@link Manuscript}, which only names
+ *     <li>{@code content.xml}: the text, written into an {@link OdtBody} by {@link WriteManuscript}, which only names
  *     styles;</li>
  *     <li>{@code styles.xml}: those styles, the A4 page and its header with the authors, title and page number;</li>
  *     <li>{@code meta.xml}: the title, authors and language a word processor shows in the file's properties;</li>
@@ -51,7 +51,7 @@ public final class OdtWriter {
 
         OdtBody body = new OdtBody();
         Pictures pictures = new Pictures(baseDirectory, PICTURES);
-        Manuscript.writeChapter(body, document, pictures);
+        WriteManuscript.writeChapter(body, document, pictures);
 
         write(body, pictures, title, header, book, target);
     }
@@ -67,7 +67,7 @@ public final class OdtWriter {
 
         OdtBody body = new OdtBody();
         Pictures pictures = new Pictures(book.baseDirectory(), PICTURES);
-        Manuscript.writeBook(body, book, pictures);
+        WriteManuscript.writeBook(body, book, pictures);
 
         write(body, pictures, book.properties().title(), header, book.properties(), target);
     }

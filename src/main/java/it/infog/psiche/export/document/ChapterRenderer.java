@@ -3,6 +3,8 @@ package it.infog.psiche.export.document;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.markdown.HtmlComments;
+import it.infog.psiche.markdown.ImageLines;
+import it.infog.psiche.markdown.PlainText;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.BlockQuote;
@@ -31,8 +33,8 @@ import java.util.Optional;
 /**
  * Writes a chapter's Markdown into a {@link DocumentBody}, in any format: headings, paragraphs, lists and spans that
  * only name their {@link Style}, so the look stays in the format's stylesheet. It follows the manuscript PDF: scene
- * breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, and a line break inside a
- * paragraph is kept.
+ * breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, a line break inside a
+ * paragraph is kept, and an image on a paragraph of its own is a centred figure with its caption under it.
  */
 final class ChapterRenderer extends AbstractVisitor {
 
@@ -75,18 +77,43 @@ final class ChapterRenderer extends AbstractVisitor {
     @Override
     public void visit(Paragraph paragraph) {
 
-        body.openParagraph(paragraphStyle(paragraph));
-        visitChildren(paragraph);
-        body.closeParagraph();
+        Optional<Image> figure = ImageLines.figure(paragraph);
+        if (figure.isPresent())
+            figure(figure.get());
+        else {
+            body.openParagraph(paragraphStyle());
+            visitChildren(paragraph);
+            body.closeParagraph();
+        }
 
         indentNext = true;
     }
 
-    /** A paragraph's style, from what it holds and where it is. */
-    private Style paragraphStyle(Paragraph paragraph) {
+    /**
+     * An image on a paragraph of its own: the image centred, and its caption under it, if it has one. An image that
+     * cannot be found or read is left out, with its caption.
+     */
+    private void figure(Image image) {
 
-        if (paragraph.getFirstChild() instanceof Image && paragraph.getFirstChild() == paragraph.getLastChild())
-            return Style.FIGURE;
+        Optional<Picture> found = pictures.find(image.getDestination());
+        if (found.isEmpty())
+            return;
+
+        String caption = PlainText.of(image);
+        body.openParagraph(Style.FIGURE);
+        body.image(found.get(), caption);
+        body.closeParagraph();
+        if (caption.isBlank())
+            return;
+
+        body.openParagraph(Style.CAPTION);
+        body.text(caption, false);
+        body.closeParagraph();
+    }
+
+    /** A paragraph's style, from where it is. */
+    private Style paragraphStyle() {
+
         if (quoteDepth > 0)
             return Style.QUOTATIONS;
         if (listDepth > 0)
@@ -283,20 +310,6 @@ final class ChapterRenderer extends AbstractVisitor {
         if (found.isEmpty())
             return;
 
-        body.image(found.get(), altText(image));
-    }
-
-    /** The plain text of an image's description, the part in square brackets. */
-    private static String altText(Image image) {
-
-        StringBuilder alt = new StringBuilder();
-        image.accept(new AbstractVisitor() {
-            @Override
-            public void visit(Text text) {
-                alt.append(text.getLiteral());
-            }
-        });
-
-        return alt.toString();
+        body.image(found.get(), PlainText.of(image));
     }
 }

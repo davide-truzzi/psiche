@@ -61,6 +61,9 @@ public final class Settings {
     private static final String WINDOW = "window.";
     private static final String BOOK_COUNTS_SHOWN = "sidebar.book-counts";
     private static final String OPENING_TAB = "tabs.opening";
+    private static final String MEDIA_PREVIEW_HEIGHT = "media.preview-height";
+    // The Media tab's preview until the author drags it taller or shorter, in pixels.
+    private static final double DEFAULT_MEDIA_PREVIEW_HEIGHT = 320;
     private static final String WEB_VIEW_FOLDER = "webview";
     private static final String OWN_WORDS_FILE = "words.txt";
 
@@ -202,6 +205,23 @@ public final class Settings {
     public void saveBookCountsShown(boolean shown) {
 
         update(settings -> settings.setProperty(BOOK_COUNTS_SHOWN, String.valueOf(shown)));
+    }
+
+    /** How tall the Media tab's preview is, in pixels, as the author last dragged it. */
+    public double mediaPreviewHeight() {
+
+        try {
+            double height = Double.parseDouble(read().getProperty(MEDIA_PREVIEW_HEIGHT, "").strip());
+            return Double.isFinite(height) && height > 0 ? height : DEFAULT_MEDIA_PREVIEW_HEIGHT;
+        } catch (NumberFormatException e) {
+            return DEFAULT_MEDIA_PREVIEW_HEIGHT;
+        }
+    }
+
+    /** Remembers how tall the Media tab's preview is, in pixels. */
+    public void saveMediaPreviewHeight(double height) {
+
+        update(settings -> settings.setProperty(MEDIA_PREVIEW_HEIGHT, String.valueOf(Math.round(height))));
     }
 
     /** The tab shown beside the chapter each time a book opens; the preview until the author pins another. */

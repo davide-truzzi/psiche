@@ -11,26 +11,28 @@ import java.util.TreeSet;
 
 /**
  * The style classes of the manuscript's text, which writer.css draws: its comments in grey, the ones the preview
- * leaves out, and its spelling mistakes with a dotted line under them; a mistake inside a comment, for the moment it
- * takes a check to see it is one, has both.
+ * leaves out, its spelling mistakes with a dotted line under them, and its images whose file is missing in orange; a
+ * mistake inside a comment, for the moment it takes a check to see it is one, has both.
  */
 final class TextStyles {
 
     static final String COMMENT = "comment";
     static final String MISTAKE = "misspelled";
+    static final String MISSING_IMAGE = "missing-image";
 
     private TextStyles() {
     }
 
     /**
-     * The styles of a text of {@code length} characters with {@code comments} and {@code mistakes}, each in order and
-     * none overlapping another of its kind; parts past the end are cut at it.
+     * The styles of a text of {@code length} characters with {@code comments}, {@code mistakes} and
+     * {@code missingImages}, each in order and none overlapping another of its kind; parts past the end are cut at it.
      */
-    static StyleSpans<Collection<String>> of(int length, List<TextRange> comments, List<TextRange> mistakes) {
+    static StyleSpans<Collection<String>> of(int length, List<TextRange> comments, List<TextRange> mistakes,
+                                             List<TextRange> missingImages) {
 
         //where a style starts or ends
         TreeSet<Integer> cuts = new TreeSet<>(List.of(0, length));
-        for (List<TextRange> parts : List.of(comments, mistakes))
+        for (List<TextRange> parts : List.of(comments, mistakes, missingImages))
             for (TextRange part : parts) {
                 cuts.add(Math.clamp(part.start(), 0, length));
                 cuts.add(Math.clamp(part.end(), 0, length));
@@ -40,13 +42,16 @@ final class TextStyles {
         StyleSpansBuilder<Collection<String>> spans = new StyleSpansBuilder<>();
         Cover inComment = new Cover(comments);
         Cover inMistake = new Cover(mistakes);
+        Cover inMissingImage = new Cover(missingImages);
         int from = 0;
         for (int cut : cuts.tailSet(0, false)) {
-            List<String> styles = new ArrayList<>(2);
+            List<String> styles = new ArrayList<>(3);
             if (inComment.covers(from))
                 styles.add(COMMENT);
             if (inMistake.covers(from))
                 styles.add(MISTAKE);
+            if (inMissingImage.covers(from))
+                styles.add(MISSING_IMAGE);
             spans.add(List.copyOf(styles), cut - from);
             from = cut;
         }

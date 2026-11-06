@@ -2,16 +2,15 @@ package it.infog.psiche.export;
 
 import it.infog.psiche.export.model.Contents;
 import it.infog.psiche.export.model.TitlePage;
+import it.infog.psiche.markdown.FigureRenderer;
 import it.infog.psiche.markdown.HtmlComments;
-import org.commonmark.node.AbstractVisitor;
-import org.commonmark.node.Code;
+import it.infog.psiche.markdown.PlainText;
 import org.commonmark.node.Heading;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.HtmlInline;
 import org.commonmark.node.Image;
 import org.commonmark.node.Link;
 import org.commonmark.node.Node;
-import org.commonmark.node.Text;
 import org.commonmark.node.ThematicBreak;
 import org.commonmark.renderer.NodeRenderer;
 import org.commonmark.renderer.html.HtmlNodeRendererContext;
@@ -26,7 +25,8 @@ import java.util.function.UnaryOperator;
 /**
  * Renders parsed Markdown as XHTML for the exports that lay out web pages, the PDF and the EPUB. Both render a
  * chapter as the author wrote it: raw HTML is printed as text but HTML comments are left out, a line break inside a
- * paragraph is kept, and links lead only out of the book. Both close each chapter title, a level-1 heading, with the
+ * paragraph is kept, links lead only out of the book, and an image on a paragraph of its own is a figure with its
+ * caption under it ({@link FigureRenderer}). Both close each chapter title, a level-1 heading, with the
  * Psiche mark, a Ψ hidden from screen readers, inside the heading so that the stylesheets' rules for the paragraph
  * after a heading still apply. They differ in two things:
  * <ul>
@@ -45,6 +45,10 @@ public final class XhtmlRenderer {
     // Styled here rather than in the book's stylesheet, which the author may have written before the mark existed.
     private static final String EBOOK_TITLE_MARK = "<span class=\"title-mark\" aria-hidden=\"true\" "
             + "style=\"display: block; margin-top: 0.3em; font-size: 0.9em; line-height: 1; color: #b8361f;\">Ψ</span>";
+    // An image and its caption, centred with room around them, styled here for the same reason.
+    private static final Map<String, String> EBOOK_FIGURE_STYLES = Map.of(
+            "figure", "margin: 1.5em 0; text-align: center; text-indent: 0;",
+            "figcaption", "margin-top: 0.5em; font-size: 0.9em; font-style: italic; text-align: center; text-indent: 0;");
 
     private final HtmlRenderer renderer;
 
@@ -63,9 +67,16 @@ public final class XhtmlRenderer {
                 .nodeRendererFactory(context -> new TitleMarkRenderer(context, titleMark));
 
         if (images == null)
-            builder.nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()));
+            builder.nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
+                    .nodeRendererFactory(context -> new FigureRenderer(context, image -> true));
         else
-            builder.nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images));
+            builder.nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images))
+                    .nodeRendererFactory(context -> new FigureRenderer(context,
+                            image -> images.href(image.getDestination()).isPresent()))
+                    .attributeProviderFactory(context -> (node, tagName, attributes) -> {
+                        if (EBOOK_FIGURE_STYLES.containsKey(tagName))
+                            attributes.put("style", EBOOK_FIGURE_STYLES.get(tagName));
+                    });
 
         renderer = builder.build();
     }
@@ -140,25 +151,6 @@ public final class XhtmlRenderer {
         return xhtml.append("</ol>\n</nav>\n").toString();
     }
 
-    /** The plain text inside {@code node}, emphasis and code included, as a reader sees it. */
-    public static String plainText(Node node) {
-
-        StringBuilder text = new StringBuilder();
-        node.accept(new AbstractVisitor() {
-            @Override
-            public void visit(Text literal) {
-                text.append(literal.getLiteral());
-            }
-
-            @Override
-            public void visit(Code code) {
-                text.append(code.getLiteral());
-            }
-        });
-
-        return text.toString();
-    }
-
     /**
      * An ebook's image, linked to its copy in the ebook with its description as alt text, for readers who cannot
      * see it. An image the ebook could not take is left out.
@@ -178,7 +170,7 @@ public final class XhtmlRenderer {
             images.href(image.getDestination()).ifPresent(href -> {
                 Map<String, String> attributes = new LinkedHashMap<>();
                 attributes.put("src", href);
-                attributes.put("alt", plainText(image));
+                attributes.put("alt", PlainText.of(image));
                 html.tag("img", attributes, true);
             });
         }

@@ -3,7 +3,10 @@ package it.infog.psiche.markdown;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,7 +54,24 @@ class MarkdownRendererTest {
 
         assertThat(page)
                 .contains("<base href=\"" + chaptersDir.toUri() + "\">")
-                .contains("<img src=\"../media/map.png\" alt=\"Map\" />");
+                .contains("<img src=\"../media/map.png?v=0\" alt=\"Map\" />");
+    }
+
+    @Test
+    void asksForAnImageWithWhenItsFileLastChanged() throws IOException {
+        Path chapters = Files.createDirectories(chaptersDir.resolve("chapters"));
+        Path map = Files.createDirectories(chaptersDir.resolve("media")).resolve("map.png");
+        Files.write(map, new byte[]{1});
+        Files.setLastModifiedTime(map, FileTime.fromMillis(1_700_000_000_000L));
+
+        assertThat(renderer.renderArticle("![Map](../media/map.png)", chapters))
+                .contains("<img src=\"../media/map.png?v=1700000000000\"");
+    }
+
+    @Test
+    void asksForAnImageOnTheWebAsWritten() {
+        assertThat(renderer.renderArticle("![Map](https://example.org/map.png)", chaptersDir))
+                .contains("<img src=\"https://example.org/map.png\"");
     }
 
     @Test
@@ -65,5 +85,12 @@ class MarkdownRendererTest {
 
         assertThat(page.indexOf("<style>body { font-size: 22px; }</style>"))
                 .isGreaterThan(page.indexOf("<style>p { text-indent: 1.6em; }</style>"));
+    }
+
+    @Test
+    void showsAnImageAloneAsAFigureThatKeepsWhereItIsInTheText() {
+        assertThat(renderer.renderArticle("Text.\n\n![The salt road](https://example.org/map.png)\n", chaptersDir))
+                .contains("<figure data-start=\"7\" data-end=\"52\"><img src=\"https://example.org/map.png\" "
+                        + "alt=\"The salt road\" /><figcaption>The salt road</figcaption></figure>");
     }
 }

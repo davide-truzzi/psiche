@@ -31,6 +31,14 @@ class ProseWordsTest {
     }
 
     @Test
+    void checksAnImageLinesCaptionAsTheBookPrintsItButNeverItsFile() {
+
+        assertThat(words("Prima.\n\n![Eye of Sauron](../media/01-lorem/2025-07-23_15-24-36_pp.png)\n\n"
+                + "![](../media/01-lorem/vecchia_mappa.png)\n\n![Mappa](<../media/01 lorem/my_map.png>)\n"))
+                .containsExactly("Prima", "Eye", "of", "Sauron", "Mappa");
+    }
+
+    @Test
     void checksALinksTextButNotWhereItGoes() {
 
         assertThat(words("See [the map](media/mappa-vecchia.png) and ![a castle](media/castello.jpg).\n"))

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+     stroke="#d9a441" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A warning triangle with an exclamation mark: an image that will look poor in the exports. The app reads only
+       the paths; .quality-warning-icon in writer.css gives the amber ink and size. -->
+  <path d="M12 3 L22 20 H2 Z"/>
+  <path d="M12 10 v4"/>
+  <path d="M12 17 v0.5"/>
+</svg>

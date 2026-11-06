@@ -5,6 +5,7 @@ public enum ChapterTab {
 
     PREVIEW("Preview"),
     NOTES("Notes"),
+    MEDIA("Media"),
     HISTORY("History");
 
     private final String label;
@@ -14,7 +15,7 @@ public enum ChapterTab {
         this.label = label;
     }
 
-    /** The tab's name, without the count the Notes tab adds. */
+    /** The tab's name, without the count the Notes and Media tabs add. */
     public String label() {
 
         return label;

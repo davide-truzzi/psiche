@@ -4,6 +4,7 @@ import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.DictionaryMark;
+import it.infog.psiche.ui.common.ImageFilter;
 import it.infog.psiche.ui.common.LanguageChoice;
 
 import javafx.beans.binding.Bindings;
@@ -26,7 +27,6 @@ import javafx.stage.Window;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.Year;
-import java.util.Arrays;
 import java.util.Optional;
 
 /** A form for the book's properties and its cover, everything an ebook of the book needs besides the chapters. */
@@ -170,8 +170,7 @@ public final class BookPropertiesDialog {
 
             FileChooser chooser = new FileChooser();
             chooser.setTitle("Choose the cover image");
-            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JPEG or PNG images",
-                    Arrays.asList("*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG")));
+            chooser.getExtensionFilters().add(ImageFilter.jpegOrPng());
             chosen.map(Path::getParent).map(Path::toFile).filter(File::isDirectory).ifPresent(chooser::setInitialDirectory);
 
             File file = chooser.showOpenDialog(owner);

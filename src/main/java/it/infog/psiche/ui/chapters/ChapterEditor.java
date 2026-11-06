@@ -1,10 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
-import it.infog.psiche.book.BookState;
 import it.infog.psiche.book.Chapter;
-import it.infog.psiche.book.model.ChapterPlace;
-import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -34,15 +31,12 @@ public final class ChapterEditor {
     private final Drafts drafts = new Drafts();
     private final StatusBar statusBar;
     private final ErrorReporter errors;
-    private final Supplier<Set<String>> ownWords;
-    private final Consumer<String> addOwnWord;
-    private final Spelling spelling = new Spelling(this::checkSpelling);
-    private Optional<SpellChecker> checker = Optional.empty();
-    private boolean strictSpelling;
+    private final ChapterSpelling spelling;
+    private final ChapterPlaces places;
+    private final ChapterEdits edits;
+    private Runnable insertImage = () -> {};
 
     private BookFolder book;
-    // Where the open book's chapters were left; read as the book's first chapter opens.
-    private BookState state;
     private Chapter chapter;
     private String savedText = "";
 
@@ -56,12 +50,14 @@ public final class ChapterEditor {
 
         this.statusBar = statusBar;
         this.errors = errors;
-        this.ownWords = ownWords;
-        this.addOwnWord = addOwnWord;
 
         manuscript = new Manuscript(welcome, statusBar::showRepetitions);
+        spelling = new ChapterSpelling(manuscript, statusBar, ownWords, addOwnWord);
+        places = new ChapterPlaces(manuscript, () -> chapter);
+        edits = new ChapterEdits(manuscript, this::isOpen);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
-        SpellingMenu.attach(FormattingMenu.attach(manuscript), manuscript, this::makeRight);
+        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run()), manuscript,
+                spelling::makeRight);
     }
 
     public Node node() {
@@ -69,12 +65,12 @@ public final class ChapterEditor {
         return manuscript.node();
     }
 
-    ObservableValue<String> textProperty() {
+    public ObservableValue<String> textProperty() {
 
         return manuscript.textProperty();
     }
 
-    String text() {
+    public String text() {
 
         return manuscript.text();
     }
@@ -130,11 +126,7 @@ public final class ChapterEditor {
      */
     public void setSpelling(boolean on, boolean strict) {
 
-        boolean strictChanged = strict != strictSpelling;
-        strictSpelling = strict;
-        spelling.setOn(on);
-        if (strictChanged)
-            checkSpelling(checker);
+        spelling.setOn(on, strict);
     }
 
     /** Shows, or not, as Preferences asks, the other places of the word the author is at, and how many there are. */
@@ -178,14 +170,38 @@ public final class ChapterEditor {
     }
 
     /** The chapter being edited; empty while no chapter is open. */
-    Optional<Chapter> chapter() {
+    public Optional<Chapter> chapter() {
 
         return Optional.ofNullable(chapter);
     }
 
-    boolean isOpen(Chapter candidate) {
+    /** The book whose chapter is edited; empty while no chapter is open. */
+    public Optional<BookFolder> book() {
+
+        return chapter().map(open -> book);
+    }
+
+    public boolean isOpen(Chapter candidate) {
 
         return candidate.equals(chapter);
+    }
+
+    /** Changes made to the open chapter from outside its text, as the Media tab makes them. */
+    public ChapterEdits edits() {
+
+        return edits;
+    }
+
+    /** Takes the author to {@code position} in the open chapter, with the caret and the focus there. */
+    public void reveal(int position) {
+
+        manuscript.reveal(position);
+    }
+
+    /** Runs {@code action} when the author asks to insert an image, from the manuscript's right-click menu. */
+    public void setOnInsertImage(Runnable action) {
+
+        insertImage = action;
     }
 
     /**
@@ -204,44 +220,24 @@ public final class ChapterEditor {
             return false;
         }
 
-        rememberPlace();
+        places.remember();
         this.book = book;
         this.chapter = chapter;
         savedText = text;
 
+        manuscript.setChaptersDir(book.chaptersDir());
         manuscript.setText(drafts.text(chapter).orElse(text));
         // setText does not fire a change when the new text equals the old, so recompute the state explicitly.
         trackDraft();
-        manuscript.startEditing(Optional.ofNullable(state).flatMap(kept -> kept.place(chapter))
-                .orElse(ChapterPlace.START));
+        manuscript.startEditing(places.of(chapter));
 
         return true;
     }
 
-    /**
-     * Remembers where the author is in the open chapter, in the book's {@value BookState#FILE}, to show it there when
-     * it opens again; nothing if no chapter is open, or it is gone.
-     */
-    void rememberPlace() {
+    /** Where the author left each chapter of the open book, where it opens again. */
+    ChapterPlaces places() {
 
-        if (chapter != null && state != null)
-            state.savePlace(chapter, manuscript.place());
-    }
-
-    /**
-     * Takes {@code state}, the open book's, where the places chapters were left in are kept; the Notes tab keeps its
-     * own there too, so the two share it. {@code null} as the book closes.
-     */
-    void setBookState(BookState state) {
-
-        this.state = state;
-    }
-
-    /** Moves where {@code from} was left to {@code to}, the name it was just renamed to. */
-    void placeRenamed(Chapter from, Chapter to) {
-
-        if (state != null)
-            state.rename(from, to);
+        return places;
     }
 
     /**
@@ -268,11 +264,12 @@ public final class ChapterEditor {
     /** Empties the editor and makes it read-only, discarding every draft. */
     void close() {
 
-        rememberPlace();
+        places.remember();
         drafts.clear();
         book = null;
         chapter = null;
         savedText = "";
+        manuscript.setChaptersDir(null);
         manuscript.clear();
         dirty.set(false);
     }
@@ -364,20 +361,6 @@ public final class ChapterEditor {
             manuscript.setText(savedText);
             trackDraft();
         }
-    }
-
-    /** Makes {@code word} right in every book, and checks the text again, where it is right at once. */
-    private void makeRight(String word) {
-
-        addOwnWord.accept(word);
-        checkSpelling(checker);
-        statusBar.info("\"%s\" will not be marked as a mistake again, in any book".formatted(word));
-    }
-
-    private void checkSpelling(Optional<SpellChecker> checker) {
-
-        this.checker = checker;
-        manuscript.checkSpelling(checker.orElse(null), checker.isPresent() ? ownWords.get() : Set.of(), strictSpelling);
     }
 
     /** Records the open chapter's text as a draft while it differs from disk, and forgets it once it matches. */

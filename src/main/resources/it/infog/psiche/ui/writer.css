@@ -13,6 +13,8 @@
     -red-pencil: #e04a2f;
     -brass: #c8a35a;
     -sage: #8fae6b;
+    -amber: #d9a441;
+    -orange: #e8772e;
 
     -fx-font-family: "Courier Prime";
     -fx-font-size: 13px;
@@ -300,6 +302,12 @@
     -fx-fill: -graphite;
 }
 
+/* An image whose file is missing, deleted, renamed or not brought back with a past version of the chapter: an error,
+   in attention orange. */
+.manuscript .paragraph-text .text.missing-image {
+    -fx-fill: -orange;
+}
+
 /* A spelling mistake: a dotted red line under the word, as a proofreader marks it. */
 .manuscript .paragraph-text .text.misspelled {
     -rtfx-underline-color: -red-pencil;
@@ -495,56 +503,56 @@
     -fx-pref-height: 280;
 }
 
-/* Detached notes: a group of notes under each line, the notes as small cards in their colours, with the darker layer
-   a note on the board has. */
-.detached-notes .scroll-pane,
-.detached-notes .scroll-pane > .viewport {
+/* Detached notes and images: a group under each line, the notes as small cards in their colours, with the darker
+   layer a note on the board has, the images as small pictures. */
+.detached .scroll-pane,
+.detached .scroll-pane > .viewport {
     -fx-background-color: transparent;
 }
 
-.detached-notes .scroll-pane {
+.detached .scroll-pane {
     -fx-pref-width: 700;
     -fx-pref-height: 420;
 }
 
-.detached-notes-groups {
+.detached-groups {
     -fx-spacing: 18;
     -fx-padding: 16 20;
 }
 
-.detached-notes-group {
+.detached-group {
     -fx-spacing: 8;
 }
 
-.detached-notes-heading {
+.detached-heading {
     -fx-spacing: 10;
 }
 
-.detached-notes-source {
+.detached-source {
     -fx-spacing: 2;
 }
 
-.detached-notes-heading .button {
+.detached-heading .button {
     -fx-font-size: 12px;
     -fx-padding: 4 10;
 }
 
-.detached-notes-chapter {
+.detached-chapter {
     -fx-text-fill: -paper;
 }
 
-.detached-notes-details {
+.detached-details {
     -fx-text-fill: -graphite;
     -fx-font-size: 12px;
 }
 
-.detached-notes-rule {
+.detached-rule {
     -fx-min-height: 1;
     -fx-max-height: 1;
     -fx-background-color: -desk-edge;
 }
 
-.detached-notes-cards {
+.detached-cards {
     -fx-hgap: 10;
     -fx-vgap: 10;
 }
@@ -571,6 +579,62 @@
 .deleted-note-file {
     -fx-font-size: 10px;
     -fx-text-fill: rgba(42, 34, 25, 0.7);
+}
+
+.small-image {
+    -fx-spacing: 4;
+    -fx-alignment: top-center;
+    -fx-pref-width: 130;
+    -fx-max-width: 130;
+}
+
+.small-image-picture {
+    -fx-min-height: 88;
+    -fx-pref-height: 88;
+    -fx-max-height: 88;
+    -fx-padding: 4;
+    -fx-background-color: -desk;
+    -fx-background-radius: 3;
+}
+
+.small-image-name {
+    -fx-font-size: 10px;
+    -fx-text-fill: -paper-dim;
+}
+
+.small-image-warning {
+    -fx-font-size: 10px;
+    -fx-text-fill: -amber;
+}
+
+/* Insert image, with images of the chapter its text does not show: those images as small cards to pick from, brass
+   under the pointer. */
+.unshown-images {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+    -fx-pref-width: 600;
+}
+
+.unshown-images-intro {
+    -fx-text-fill: -paper-dim;
+}
+
+.unshown-images-cards {
+    -fx-hgap: 10;
+    -fx-vgap: 10;
+}
+
+.unshown-image {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-radius: 4;
+    -fx-padding: 6;
+    -fx-cursor: hand;
+}
+
+.unshown-image:hover,
+.unshown-image:focused {
+    -fx-border-color: -brass;
 }
 
 /* Importing notes: what the import is doing, above a thin bar in red pencil */
@@ -1377,6 +1441,243 @@
 .scroll-bar .decrement-arrow {
     -fx-shape: " ";
     -fx-padding: 0;
+}
+
+/* Images */
+
+.insert-image-content {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+}
+
+.insert-image-content > .h-box {
+    -fx-spacing: 16;
+}
+
+.insert-image-preview {
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+    -fx-padding: 8;
+}
+
+.insert-image-about {
+    -fx-spacing: 8;
+    -fx-pref-width: 300;
+}
+
+.insert-image-name {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+    -fx-wrap-text: true;
+}
+
+.insert-image-details,
+.insert-image-hint {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 12px;
+}
+
+.insert-image-caption {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 15px;
+}
+
+.quality-warning {
+    -fx-background-color: derive(-amber, -78%);
+    -fx-border-color: -amber;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-padding: 7 8;
+    -fx-spacing: 5;
+}
+
+.quality-warning-heading {
+    -fx-text-fill: -amber;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-graphic-text-gap: 6;
+}
+
+.quality-warning-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -amber;
+    -fx-stroke-width: 2;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-scale-x: 0.6;
+    -fx-scale-y: 0.6;
+}
+
+.quality-warning-title {
+    -fx-text-fill: -paper;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+}
+
+.quality-warning-detail {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 11px;
+}
+
+/* The Media tab: the selected image large above the cards of all the chapter's images, then their count and Add
+   image. A red band for an image the text does not show, an amber one for one that will look poor in the exports. */
+
+.chapter-tabs .tab.media-not-in-chapter .tab-label {
+    -fx-text-fill: -red-pencil;
+}
+
+.media-pane {
+    -fx-background-color: -desk-raised;
+}
+
+/* As tall as the author drags the divider under it, never shorter than the details beside the picture. */
+.media-preview {
+    -fx-spacing: 12;
+    -fx-padding: 12;
+}
+
+.media-preview-frame {
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+    -fx-padding: 12;
+    -fx-cursor: hand;
+}
+
+.media-preview-about {
+    -fx-spacing: 6;
+    -fx-pref-width: 240;
+    -fx-min-width: 240;
+}
+
+.media-split {
+    -fx-background-color: transparent;
+}
+
+/* The band the author drags to make the preview taller or shorter: 12 px to grab between two edges, which turn
+   brass under the pointer. The split takes a divider's thickness from its left and right padding, whichever way it
+   runs: 6 + 6 here makes it 12 px tall. */
+.media-split > .split-pane-divider {
+    -fx-background-color: -desk-edge, -desk-raised;
+    -fx-background-insets: 0, 1 0 1 0;
+    -fx-padding: 0 6 0 6;
+    -fx-cursor: v-resize;
+}
+
+.media-split > .split-pane-divider:hover {
+    -fx-background-color: -brass, -desk-raised;
+}
+
+.media-preview-caption {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 17px;
+    -fx-text-fill: -paper;
+}
+
+.media-preview-caption.unnamed,
+.media-card-caption.unnamed {
+    -fx-text-fill: -graphite;
+    -fx-font-style: italic;
+}
+
+.media-preview-name {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+}
+
+.media-preview-tag {
+    -fx-background-color: -red-pencil;
+    -fx-text-fill: -desk;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 6;
+    -fx-background-radius: 2;
+}
+
+.media-preview-details {
+    -fx-hgap: 8;
+    -fx-vgap: 3;
+    -fx-padding: 4 0 0 0;
+}
+
+.media-preview-key {
+    -fx-text-fill: -graphite;
+    -fx-font-size: 12px;
+    -fx-min-width: 64;
+}
+
+.media-preview-value {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+}
+
+.media-preview-value.not-in-chapter {
+    -fx-text-fill: -red-pencil;
+}
+
+.media-cards-scroll,
+.media-cards-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.media-cards {
+    -fx-padding: 12;
+}
+
+.media-card {
+    -fx-padding: 0;
+    -fx-background-color: -desk;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+}
+
+.media-card:selected {
+    -fx-border-color: -brass;
+    -fx-border-width: 2;
+}
+
+.media-card-band {
+    -fx-min-height: 20;
+    -fx-pref-height: 20;
+    -fx-padding: 0 4;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -desk;
+    -fx-background-color: derive(-desk-edge, -20%);
+}
+
+.media-card-band.not-in-chapter {
+    -fx-background-color: -red-pencil;
+}
+
+.media-card-band.low-quality {
+    -fx-background-color: -amber;
+}
+
+.media-card-caption {
+    -fx-font-family: "Libertinus Serif";
+    -fx-font-size: 14px;
+    -fx-text-fill: -paper;
+    -fx-padding: 7 8 9 8;
+    -fx-pref-height: 52;
+    -fx-max-height: 52;
+}
+
+.media-footer {
+    -fx-alignment: center-left;
+    -fx-padding: 8 12;
+    -fx-border-color: -desk-edge transparent transparent transparent;
+}
+
+.media-summary {
+    -fx-text-fill: -paper-dim;
+    -fx-font-size: 12px;
+}
+
+.media-empty {
+    -fx-text-fill: -graphite;
+    -fx-text-alignment: center;
+    -fx-padding: 24;
 }
 
 /* Alerts */

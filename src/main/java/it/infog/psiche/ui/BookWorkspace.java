@@ -4,6 +4,7 @@ import it.infog.psiche.book.Chapter;
 import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.markdown.MarkdownRenderer;
+import it.infog.psiche.media.ChapterMedia;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.ChapterTab;
@@ -21,6 +22,8 @@ import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.git.HistoryPane;
+import it.infog.psiche.ui.media.ImageInsertion;
+import it.infog.psiche.ui.media.MediaPane;
 import it.infog.psiche.ui.notes.NotesPane;
 import it.infog.psiche.ui.notes.NotesTransfer;
 import it.infog.psiche.ui.preferences.PreferencesDialog;
@@ -76,6 +79,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     private final GitControls gitControls;
     private final NotesPane notes;
     private final NotesTransfer notesTransfer;
+    private final ImageInsertion images;
+    private final MediaPane media;
     private final ProjectTransfer projectTransfer;
     private final Exports exports;
     private final ChapterContext chapters;
@@ -110,10 +115,15 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
                 "Notes are kept out of Git");
         notes = new NotesPane(statusBar, this::reportError, keepNotesOutOfGit::run, browser);
         notesTransfer = new NotesTransfer(notes, statusBar, this::reportError, this::window, keepNotesOutOfGit);
+        images = new ImageInsertion(chapterEditor, statusBar, this::reportError, this::window,
+                () -> gitControls.ignoreQuietly(ChapterMedia.GIT_IGNORE, "Keep chapter images out of Git"));
+        chapterEditor.setOnInsertImage(images::insert);
+        media = new MediaPane(chapterEditor, images, statusBar, this::reportError, this::window,
+                settings.mediaPreviewHeight(), settings::saveMediaPreviewHeight);
         projectTransfer = new ProjectTransfer(statusBar, this::reportError, this::window, notes::settle);
         exports = new Exports(chapter -> chapterEditor.unsavedChapters().contains(chapter), unsavedChanges::settle,
                 statusBar, this::reportError, this::window);
-        chapters = new ChapterContext(chapterEditor, preview, history, notes, gitControls, statusBar,
+        chapters = new ChapterContext(chapterEditor, preview, history, notes, media, gitControls, statusBar,
                 exports, this::reportError, this::window, settings.bookCountsShown(), settings::saveBookCountsShown);
         chapterTabs = chapterTabs();
         openingTab = new OpeningTab(chapterTabs, settings, statusBar);
@@ -169,9 +179,9 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     /**
-     * Keeps the book from changing while a Psiche project is exported or imported: the chapter list, the notes, and
-     * Commit and Push are disabled, and the open chapter can be read but not edited. The Book menu waits too; see
-     * {@link #bookMenuButton}.
+     * Keeps the book from changing while a Psiche project is exported or imported: the chapter list, the notes, the
+     * images, and Commit and Push are disabled, and the open chapter can be read but not edited. The Book menu waits
+     * too; see {@link #bookMenuButton}.
      */
     private void freezeWhileTransferring() {
 
@@ -181,6 +191,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         transferring.addListener((obs, was, frozen) -> {
             chapterEditor.setFrozen(frozen);
             notes.setFrozen(frozen);
+            media.setFrozen(frozen);
         });
     }
 
@@ -262,8 +273,9 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     /**
-     * The preview of the open chapter, its notes, and its commit history, each knowing which {@link ChapterTab} it is;
-     * which shows as a book opens is pinned from their right-click menus, see {@link OpeningTab}.
+     * The preview of the open chapter, its notes, its images, and its commit history, each knowing which
+     * {@link ChapterTab} it is; which shows as a book opens is pinned from their right-click menus, see
+     * {@link OpeningTab}.
      */
     private TabPane chapterTabs() {
 
@@ -284,11 +296,24 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
                 notesTab.getStyleClass().remove("notes-duplicates");
         });
 
+        // "Media (5)", in red-pencil while the chapter's folder holds an image its text does not show.
+        Tab mediaTab = new Tab("Media", media);
+        mediaTab.setUserData(ChapterTab.MEDIA);
+        media.showingProperty().bind(mediaTab.selectedProperty());
+        mediaTab.textProperty().bind(media.titleProperty());
+        mediaTab.disableProperty().bind(media.availableProperty().not());
+        media.notInChapterProperty().addListener((obs, had, has) -> {
+            if (has)
+                mediaTab.getStyleClass().add("media-not-in-chapter");
+            else
+                mediaTab.getStyleClass().remove("media-not-in-chapter");
+        });
+
         Tab historyTab = new Tab("History", history);
         historyTab.setUserData(ChapterTab.HISTORY);
         history.showingProperty().bind(historyTab.selectedProperty());
 
-        TabPane tabs = new TabPane(previewTab, notesTab, historyTab);
+        TabPane tabs = new TabPane(previewTab, notesTab, mediaTab, historyTab);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add("chapter-tabs");
 
@@ -365,6 +390,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         books.close();
         notes.shutdown();
         notesTransfer.shutdown();
+        images.shutdown();
+        media.shutdown();
         projectTransfer.shutdown();
         gitControls.shutdown();
         history.shutdown();
