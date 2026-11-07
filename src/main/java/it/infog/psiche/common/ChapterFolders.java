@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
  */
 public final class ChapterFolders {
 
+    /** What a chapter's file name ends with, after the chapter's name. */
+    public static final String CHAPTER_EXTENSION = ".md";
     public static final String DELETED_MARK = "-del-";
     public static final String DELETED_FILE = "deleted.properties";
 

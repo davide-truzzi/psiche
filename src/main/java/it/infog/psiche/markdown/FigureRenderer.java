@@ -78,20 +78,10 @@ public final class FigureRenderer implements NodeRenderer {
             html.line();
             html.tag("p", context.extendAttributes(paragraph, "p", Map.of()));
         }
-        renderChildren(paragraph);
+        HtmlChildren.render(context, paragraph);
         if (!tight) {
             html.tag("/p");
             html.line();
-        }
-    }
-
-    private void renderChildren(Node parent) {
-
-        Node child = parent.getFirstChild();
-        while (child != null) {
-            Node next = child.getNext();
-            context.render(child);
-            child = next;
         }
     }
 }

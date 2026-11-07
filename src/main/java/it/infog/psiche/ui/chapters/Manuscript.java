@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.ChapterPlace;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
@@ -24,12 +25,13 @@ import org.fxmisc.richtext.StyleClassedTextArea;
 import org.fxmisc.richtext.model.TwoDimensional.Bias;
 import org.fxmisc.richtext.util.UndoUtils;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 
@@ -51,6 +53,7 @@ final class Manuscript {
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
     private final TextMarks marks = new TextMarks(area);
+    private final LinkHover linkHover = new LinkHover(area);
     private final Repetitions repetitions;
     // The page that stacks the text over the welcome's logo, and the marks' dots over the text.
     private final StackPane page = new StackPane(scrolled);
@@ -72,8 +75,9 @@ final class Manuscript {
         area.getStyleClass().add("manuscript");
         scrolled.getStyleClass().add("manuscript-scroll");
         page.getStyleClass().add("manuscript-page");
-        // The dots in the margin, over the text.
+        // The dots in the margin, and the tip over a link, over the text.
         page.getChildren().addAll(marks.layers());
+        page.getChildren().add(linkHover.layer());
         area.setWrapText(true);
         area.setEditable(false);
         // Undo takes back what the author typed, not the comments' colour and the mistakes' lines that follow it.
@@ -90,7 +94,7 @@ final class Manuscript {
                 ? area.getCaretPosition()
                 : area.hit(event.getX(), event.getY()).getInsertionIndex());
         this.welcome = new Welcome(area, page, welcome);
-        this.welcome.show();
+        showWelcome();
 
         //where the text starts: the text's left edge, inside its padding
         Runnable measure = () -> textMargin.set(area.localToScene(0, 0).getX() + area.getPadding().getLeft());
@@ -164,10 +168,19 @@ final class Manuscript {
 
     // The welcome, while no book is open
 
-    /** Shows the welcome and its logo on the empty page, as when the app starts, once the book closes. */
-    void showWelcome() { welcome.show(); }
-    /** Takes the welcome and its logo away while a book is open; see {@link Welcome}. */
-    void hideWelcome() { welcome.hide(); }
+    /** Shows the welcome as the text, read-only, and its logo, as when the app starts, once the book closes. */
+    void showWelcome() {
+
+        setText(welcome.text());
+        welcome.show();
+    }
+
+    /** Takes the welcome and its logo away while a book is open, for its chapters; see {@link Welcome}. */
+    void hideWelcome() {
+
+        welcome.hide();
+        setText("");
+    }
 
     // Where the author is
 
@@ -233,7 +246,7 @@ final class Manuscript {
         repetitions.setOn(on);
     }
 
-    // Its marks: spelling mistakes and missing images
+    // Its marks: spelling mistakes, missing images and links
 
     /**
      * Checks the text's spelling with {@code checker} from now on, {@code ownWords} being right too, and the words that
@@ -256,10 +269,19 @@ final class Manuscript {
         return marks.suggestions(word);
     }
 
-    /** Looks for the text's images from {@code chaptersDir}, where the chapter's file is; none with {@code null}. */
-    void setChaptersDir(Path chaptersDir) {
+    /** Looks for the text's images and links as those of {@code chapter}; none with {@code null}. */
+    void setChapter(Chapter chapter) {
 
-        marks.setChaptersDir(chaptersDir);
+        marks.setChapter(chapter);
+    }
+
+    /** Opens with {@code open} a link the author Ctrl-clicks, if {@code opens} says it leads somewhere. */
+    void setLinkOpening(Predicate<String> opens, Consumer<String> open) { linkHover.setOpening(opens, open); }
+
+    /** Checks the links to other chapters against {@code anchors}, each chapter's; none is broken with {@code null}. */
+    void setBookAnchors(Map<String, Set<String>> anchors) {
+
+        marks.setBookAnchors(anchors);
     }
 
     // Editing, for the formatting menu

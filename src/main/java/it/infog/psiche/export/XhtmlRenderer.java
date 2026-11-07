@@ -1,8 +1,12 @@
 package it.infog.psiche.export;
 
 import it.infog.psiche.export.model.Contents;
+import it.infog.psiche.export.model.ExportedChapter;
+import it.infog.psiche.export.model.LinkPlace;
 import it.infog.psiche.export.model.TitlePage;
 import it.infog.psiche.markdown.FigureRenderer;
+import it.infog.psiche.markdown.HeadingAnchors;
+import it.infog.psiche.markdown.HtmlChildren;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.PlainText;
 import org.commonmark.node.Heading;
@@ -19,29 +23,33 @@ import org.commonmark.renderer.html.HtmlWriter;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
  * Renders parsed Markdown as XHTML for the exports that lay out web pages, the PDF and the EPUB. Both render a
  * chapter as the author wrote it: raw HTML is printed as text but HTML comments are left out, a line break inside a
- * paragraph is kept, links lead only out of the book, and an image on a paragraph of its own is a figure with its
- * caption under it ({@link FigureRenderer}). Both close each chapter title, a level-1 heading, with the
- * Psiche mark, a Ψ hidden from screen readers, inside the heading so that the stylesheets' rules for the paragraph
- * after a heading still apply. They differ in two things:
+ * paragraph is kept, and an image on a paragraph of its own is a figure with its caption under it
+ * ({@link FigureRenderer}). Each heading has its id from {@link LinkTargets#headingId}; web and mail links stay links,
+ * a link to a chapter or a heading of the export leads there, and any other link is its text alone. Both close each
+ * chapter title, a level-1 heading, with the Psiche mark, a Ψ hidden from screen readers, inside the heading so that
+ * the stylesheets' rules for the paragraph after a heading still apply. They differ in two things:
  * <ul>
- *     <li>the manuscript, for the PDF, prints a scene break as a centred {@code * * *} and shows images where the
- *     chapter links them;</li>
+ *     <li>the manuscript, for the PDF, prints a scene break as a centred {@code * * *}, shows images where the
+ *     chapter links them, and links a place of the book within its one document;</li>
  *     <li>the ebook keeps a scene break a real {@code <hr />}, which the book's stylesheet draws and screen readers
- *     announce, and links each image to its copy in the ebook, through {@link ImageLinks}.</li>
+ *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, and a place of the book on the
+ *     page of its chapter.</li>
  * </ul>
  */
 public final class XhtmlRenderer {
 
     private static final String SCENE_BREAK = "* * *";
     // The manuscript's stylesheet styles the mark.
-    private static final XhtmlRenderer MANUSCRIPT =
-            new XhtmlRenderer(null, "<span class=\"title-mark\" aria-hidden=\"true\">Ψ</span>");
+    private static final XhtmlRenderer MANUSCRIPT = new XhtmlRenderer(null,
+            "<span class=\"title-mark\" aria-hidden=\"true\">Ψ</span>", place -> "#" + place.elementId());
     // Styled here rather than in the book's stylesheet, which the author may have written before the mark existed.
     private static final String EBOOK_TITLE_MARK = "<span class=\"title-mark\" aria-hidden=\"true\" "
             + "style=\"display: block; margin-top: 0.3em; font-size: 0.9em; line-height: 1; color: #b8361f;\">Ψ</span>";
@@ -50,21 +58,52 @@ public final class XhtmlRenderer {
             "figure", "margin: 1.5em 0; text-align: center; text-indent: 0;",
             "figcaption", "margin-top: 0.5em; font-size: 0.9em; font-style: italic; text-align: center; text-indent: 0;");
 
-    private final HtmlRenderer renderer;
+    private final ImageLinks images;
+    private final String titleMark;
+    private final Function<LinkPlace, String> hrefs;
 
     /**
      * @param images    where the ebook's images are; null for the manuscript
      * @param titleMark the XHTML that ends each chapter title
+     * @param hrefs     the address of a place of the book, from a page of a chapter
      */
-    private XhtmlRenderer(ImageLinks images, String titleMark) {
+    private XhtmlRenderer(ImageLinks images, String titleMark, Function<LinkPlace, String> hrefs) {
+
+        this.images = images;
+        this.titleMark = titleMark;
+        this.hrefs = hrefs;
+    }
+
+    /** {@code chapter} as an XHTML fragment for a manuscript page, the PDF's body, its links led by {@code links}. */
+    public static String render(ExportedChapter chapter, LinkTargets links) {
+
+        return MANUSCRIPT.toXhtml(chapter, links);
+    }
+
+    /**
+     * A renderer for ebook pages, which finds the chapters' images through {@code images}, and writes the address of a
+     * place of the book, from a chapter's page, with {@code hrefs}.
+     */
+    public static XhtmlRenderer ebook(ImageLinks images, Function<LinkPlace, String> hrefs) {
+
+        return new XhtmlRenderer(images, EBOOK_TITLE_MARK, hrefs);
+    }
+
+    /** {@code chapter} as an XHTML fragment, for the body of a page, its links led by {@code links}. */
+    public String toXhtml(ExportedChapter chapter, LinkTargets links) {
 
         // Raw HTML is escaped, since the PDF renderer and e-readers only read well-formed XHTML.
+        Function<Heading, String> anchors = HeadingAnchors.namer();
         HtmlRenderer.Builder builder = HtmlRenderer.builder()
                 .escapeHtml(true)
                 .softbreak("<br />")
-                .nodeRendererFactory(LocalLinkRenderer::new)
+                .nodeRendererFactory(context -> new LinkRenderer(context, chapter, links, hrefs))
                 .nodeRendererFactory(context -> new RawHtmlRenderer(context.getWriter()))
-                .nodeRendererFactory(context -> new TitleMarkRenderer(context, titleMark));
+                .nodeRendererFactory(context -> new TitleMarkRenderer(context, titleMark))
+                .attributeProviderFactory(context -> (node, tagName, attributes) -> {
+                    if (node instanceof Heading heading)
+                        attributes.put("id", LinkTargets.headingId(chapter.id(), anchors.apply(heading)));
+                });
 
         if (images == null)
             builder.nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
@@ -78,25 +117,7 @@ public final class XhtmlRenderer {
                             attributes.put("style", EBOOK_FIGURE_STYLES.get(tagName));
                     });
 
-        renderer = builder.build();
-    }
-
-    /** {@code document} as an XHTML fragment for a manuscript page, the body of the PDF. */
-    public static String render(Node document) {
-
-        return MANUSCRIPT.toXhtml(document);
-    }
-
-    /** A renderer for ebook pages, which finds the chapters' images through {@code images}. */
-    public static XhtmlRenderer ebook(ImageLinks images) {
-
-        return new XhtmlRenderer(images, EBOOK_TITLE_MARK);
-    }
-
-    /** {@code document} as an XHTML fragment, for the body of a page. */
-    public String toXhtml(Node document) {
-
-        return renderer.render(document);
+        return builder.build().render(chapter.document());
     }
 
     /**
@@ -194,8 +215,7 @@ public final class XhtmlRenderer {
 
             html.line();
             html.tag(tag, context.extendAttributes(heading, tag, Map.of()));
-            for (Node child = heading.getFirstChild(); child != null; child = child.getNext())
-                context.render(child);
+            HtmlChildren.render(context, heading);
             if (heading.getLevel() == 1)
                 html.raw(mark);
             html.tag("/" + tag);
@@ -256,10 +276,11 @@ public final class XhtmlRenderer {
     }
 
     /**
-     * Keeps web and mail links. A link to one of the book's own files, such as another chapter, would lead nowhere
-     * once the text is out of the book, so only its text is rendered.
+     * Keeps web and mail links, and a link to a place of the export, led there by {@code links}; any other link, as
+     * one to a chapter left out, would lead nowhere, so only its text is rendered.
      */
-    private record LocalLinkRenderer(HtmlNodeRendererContext context) implements NodeRenderer {
+    private record LinkRenderer(HtmlNodeRendererContext context, ExportedChapter chapter, LinkTargets links,
+                                Function<LinkPlace, String> hrefs) implements NodeRenderer {
 
         @Override
         public Set<Class<? extends Node>> getNodeTypes() {
@@ -272,17 +293,14 @@ public final class XhtmlRenderer {
 
             Link link = (Link) node;
             HtmlWriter html = context.getWriter();
-            boolean external = link.getDestination().matches("(?i)(https?|mailto):.*");
+            String destination = link.getDestination();
+            Optional<String> href = LinkTargets.isWeb(destination)
+                    ? Optional.of(context.encodeUrl(destination))
+                    : links.place(chapter, destination).map(hrefs);
 
-            if (external)
-                html.tag("a", Map.of("href", context.encodeUrl(link.getDestination())));
-            Node child = link.getFirstChild();
-            while (child != null) {
-                Node next = child.getNext();
-                context.render(child);
-                child = next;
-            }
-            if (external)
+            href.ifPresent(address -> html.tag("a", Map.of("href", address)));
+            HtmlChildren.render(context, link);
+            if (href.isPresent())
                 html.tag("/a");
         }
     }

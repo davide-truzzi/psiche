@@ -35,9 +35,10 @@ public final class BookExporter {
         body.append(XhtmlRenderer.contents(book.contents(), id -> "#" + id, " id=\"toc\""));
 
         //chapters
+        LinkTargets links = LinkTargets.of(book.chapters());
         for (ExportedChapter chapter : book.chapters())
             body.append("<section class=\"chapter\" id=\"%s\">\n".formatted(chapter.id()))
-                    .append(XhtmlRenderer.render(chapter.document()))
+                    .append(XhtmlRenderer.render(chapter, links))
                     .append("</section>\n");
 
         //book properties

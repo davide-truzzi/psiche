@@ -17,9 +17,6 @@ import java.util.Map;
  */
 final class OdtBody implements DocumentBody {
 
-    // What a contents line's page field shows until a word processor works the page out, when it lays the book out.
-    private static final String UNKNOWN_PAGE = "?";
-
     private final StringBuilder xml = new StringBuilder();
     // Each automatic style's name and definition, written once however many paragraphs use it.
     private final Map<String, String> automaticStyles = new LinkedHashMap<>();
@@ -57,11 +54,12 @@ final class OdtBody implements DocumentBody {
     }
 
     @Override
-    public void openHeading(Style style, int outlineLevel) {
+    public void openHeading(Style style, int outlineLevel, String bookmark) {
 
         xml.append("<text:h text:style-name=\"%s\" text:outline-level=\"%d\">"
                 .formatted(styleName(style), outlineLevel));
         appendBookmark();
+        appendBookmark(bookmark);
     }
 
     @Override
@@ -86,6 +84,12 @@ final class OdtBody implements DocumentBody {
     public void openLink(String address) {
 
         xml.append("<text:a xlink:type=\"simple\" xlink:href=\"%s\">".formatted(XmlText.escape(address)));
+    }
+
+    @Override
+    public void openInternalLink(String bookmark) {
+
+        openLink("#" + bookmark);
     }
 
     @Override
@@ -147,8 +151,8 @@ final class OdtBody implements DocumentBody {
     }
 
     /**
-     * The chapter's title, then past dot leaders a field holding the page its bookmark is on, which a word processor
-     * works out when it lays the book out, and again whenever the text changes.
+     * The chapter's title, linked to its bookmark. An ODT shows no page, as a DOCX: LibreOffice only works out a page
+     * field when asked to, and would show the field's placeholder on opening.
      */
     @Override
     public void contentsLine(String title, String bookmark) {
@@ -160,9 +164,7 @@ final class OdtBody implements DocumentBody {
         xml.append("<text:a xlink:type=\"simple\" xlink:href=\"#%s\" text:style-name=\"%s\" "
                 .formatted(name, link) + "text:visited-style-name=\"%s\">".formatted(link));
         text(title, false);
-        xml.append("</text:a><text:tab/>");
-        xml.append("<text:bookmark-ref text:reference-format=\"page\" text:ref-name=\"%s\">%s</text:bookmark-ref>"
-                .formatted(name, UNKNOWN_PAGE));
+        xml.append("</text:a>");
         closeParagraph();
     }
 
@@ -218,12 +220,19 @@ final class OdtBody implements DocumentBody {
                 """.formatted(name, style.odtName(), master, properties);
     }
 
+    /** Marks the paragraph or heading starting the page started last with its bookmark, if it has one. */
     private void appendBookmark() {
 
         if (bookmark == null)
             return;
 
-        xml.append("<text:bookmark text:name=\"%s\"/>".formatted(XmlText.escape(bookmark)));
+        appendBookmark(bookmark);
         bookmark = null;
+    }
+
+    /** Marks the place written next with the bookmark {@code name}, which links lead to. */
+    private void appendBookmark(String name) {
+
+        xml.append("<text:bookmark text:name=\"%s\"/>".formatted(XmlText.escape(name)));
     }
 }

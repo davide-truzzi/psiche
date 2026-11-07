@@ -171,6 +171,12 @@ a {
     color: var(--red-pencil);
 }
 
+/* A link that leads nowhere, to a chapter or heading that is not there or to a malformed address: its text alone, in
+   attention orange, as the editor shows it. */
+.broken-link {
+    color: var(--orange);
+}
+
 code, pre {
     font-family: "Courier Prime", monospace;
     font-size: 0.9em;

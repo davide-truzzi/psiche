@@ -46,6 +46,13 @@ class ProseWordsTest {
     }
 
     @Test
+    void checksAChapterLinksTextButNotTheChapterOrHeadingItLeadsTo() {
+
+        assertThat(words("Back to [the storm](<02 la tempestta.md#la-tempestta>) and [here](#unna-scena).\n"))
+                .containsExactly("Back", "to", "the", "storm", "and", "here");
+    }
+
+    @Test
     void leavesOutAddressesEntitiesAndWordsWithDigits() {
 
         assertThat(words("Mail me@example.com or see www.example.com, <https://psiche.org/a> &amp; the B2 mp3.\n"))

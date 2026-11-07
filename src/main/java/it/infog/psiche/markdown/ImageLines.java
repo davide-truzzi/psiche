@@ -2,12 +2,10 @@ package it.infog.psiche.markdown;
 
 import it.infog.psiche.markdown.model.ImageLine;
 import it.infog.psiche.markdown.model.TextEdit;
-import it.infog.psiche.markdown.model.TextRange;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Image;
 import org.commonmark.node.Paragraph;
-import org.commonmark.node.SourceSpan;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
@@ -15,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -24,10 +21,6 @@ import java.util.regex.Pattern;
  */
 public final class ImageLines {
 
-    // Characters a caption escapes, so they stay text: the brackets that would end it, and the backslash itself.
-    private static final Pattern CAPTION_SPECIAL = Pattern.compile("[\\\\\\[\\]]");
-    // Characters that make a destination need angle brackets around it.
-    private static final Pattern DESTINATION_SPECIAL = Pattern.compile("[\\s()]");
     // A destination with a scheme, as https: or data:, which is no file of the book.
     private static final Pattern WEB_ADDRESS = Pattern.compile("[a-zA-Z][a-zA-Z0-9+.-]*:");
     private static final String PARAGRAPH_BREAK = "\n\n";
@@ -47,7 +40,7 @@ public final class ImageLines {
 
                 if (!paragraph.getSourceSpans().isEmpty())
                     figure(paragraph).ifPresent(image ->
-                            lines.add(new ImageLine(range(paragraph), PlainText.of(image), image.getDestination())));
+                            lines.add(new ImageLine(TextLinks.range(paragraph), PlainText.of(image), image.getDestination())));
             }
         });
 
@@ -77,11 +70,7 @@ public final class ImageLines {
     /** The Markdown of an image with {@code caption}, found at {@code destination}. */
     public static String markdown(String caption, String destination) {
 
-        String escaped = CAPTION_SPECIAL.matcher(caption.strip())
-                .replaceAll(match -> Matcher.quoteReplacement("\\" + match.group()));
-        String where = DESTINATION_SPECIAL.matcher(destination).find() ? "<" + destination + ">" : destination;
-
-        return "![" + escaped + "](" + where + ")";
+        return "!" + TextLinks.markdown(caption, destination);
     }
 
     /**
@@ -197,13 +186,5 @@ public final class ImageLines {
             count++;
 
         return count;
-    }
-
-    private static TextRange range(Paragraph paragraph) {
-
-        List<SourceSpan> spans = paragraph.getSourceSpans();
-        SourceSpan last = spans.getLast();
-
-        return new TextRange(spans.getFirst().getInputIndex(), last.getInputIndex() + last.getLength());
     }
 }

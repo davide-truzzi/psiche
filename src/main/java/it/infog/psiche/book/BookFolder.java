@@ -2,6 +2,7 @@ package it.infog.psiche.book;
 
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.book.model.enums.PageMeasure;
+import it.infog.psiche.common.ChapterFolders;
 import it.infog.psiche.common.FileErrors;
 import it.infog.psiche.common.SafeFiles;
 
@@ -36,7 +37,7 @@ public final class BookFolder {
     static final String CHAPTERS_DIR = "chapters";
     static final String MEDIA_DIR = "media";
     static final String NOTES_DIR = "notes";
-    static final String CHAPTER_EXTENSION = ".md";
+    static final String CHAPTER_EXTENSION = ChapterFolders.CHAPTER_EXTENSION;
 
     private static final Logger log = LoggerFactory.getLogger(BookFolder.class);
 

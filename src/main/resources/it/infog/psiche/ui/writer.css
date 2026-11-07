@@ -15,6 +15,7 @@
     -sage: #8fae6b;
     -amber: #d9a441;
     -orange: #e8772e;
+    -teal: #63b8b3;
 
     -fx-font-family: "Courier Prime";
     -fx-font-size: 13px;
@@ -283,8 +284,8 @@
     -fx-background-color: rgba(10, 8, 6, 0.5);
 }
 
-/* The chapter's text only, not the welcome's, which is a label's text in the same area. RichTextFX draws its text
-   with LCD smoothing, which fringes the letters with colour; a text area's is grey. */
+/* The text, a chapter's or the welcome's. RichTextFX draws its text with LCD smoothing, which fringes the letters
+   with colour; a text area's is grey. */
 .manuscript .paragraph-text .text {
     -fx-fill: #e7dcc6;
     -fx-font-smoothing-type: gray;
@@ -297,6 +298,11 @@
     -fx-padding: 0;
 }
 
+/* The welcome, the text while no book is open, in grey, its links still in teal: this rule comes before theirs. */
+.manuscript:welcoming .paragraph-text .text {
+    -fx-fill: -graphite;
+}
+
 /* The comments, which the preview and the exports leave out, in the welcome's grey. */
 .manuscript .paragraph-text .text.comment {
     -fx-fill: -graphite;
@@ -305,6 +311,22 @@
 /* An image whose file is missing, deleted, renamed or not brought back with a past version of the chapter: an error,
    in attention orange. */
 .manuscript .paragraph-text .text.missing-image {
+    -fx-fill: -orange;
+}
+
+/* Ctrl held over a link that leads somewhere: a hand, as a click opens it. */
+.manuscript:over-link {
+    -fx-cursor: hand;
+}
+
+/* A link, in the teal word processors give links, without their underline, which here marks a spelling mistake. */
+.manuscript .paragraph-text .text.link {
+    -fx-fill: -teal;
+}
+
+/* A link that leads nowhere, to a chapter or heading that is not there or to a malformed address: an error, in
+   attention orange, as a missing image. */
+.manuscript .paragraph-text .text.broken-link {
     -fx-fill: -orange;
 }
 
@@ -388,11 +410,6 @@
 .manuscript-scroll > .scroll-bar:vertical {
     -fx-pref-width: 13;
     -fx-padding: 0 1;
-}
-
-/* The welcome, shown on the empty page until a book opens. */
-.manuscript-welcome {
-    -fx-text-fill: -graphite;
 }
 
 .welcome-logo .logo-stroke {
@@ -1441,6 +1458,19 @@
 .scroll-bar .decrement-arrow {
     -fx-shape: " ";
     -fx-padding: 0;
+}
+
+/* Links */
+
+/* The link dialog: its groups of fields one under the other, the web's or the chapter's shown as the link leads. */
+.link-dialog-content {
+    -fx-spacing: 10;
+    -fx-padding: 16 20 4 20;
+}
+
+/* An address that is no web or mail address: an error, in attention orange. */
+.link-dialog-content .form-hint.wrong-address {
+    -fx-text-fill: -orange;
 }
 
 /* Images */

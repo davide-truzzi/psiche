@@ -71,6 +71,7 @@ public final class ChapterContext {
     private final DetachedButtons detached;
     private final ChapterRevisions revisions;
     private final ChapterStatus status;
+    private final BookReading reading;
 
     private final BooleanProperty bookOpen = new SimpleBooleanProperty();
     private final BooleanProperty hasRepository = new SimpleBooleanProperty();
@@ -108,6 +109,7 @@ public final class ChapterContext {
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
                 detached::offerRestore, this::showChapter);
         status = new ChapterStatus(chapterEditor, statusBar, bookCountsShown, rememberBookCounts);
+        reading = new BookReading(status::showBookCount, chapterEditor.links()::takeHeadings);
         sidebar = buildSidebar();
 
         // listeners
@@ -116,16 +118,22 @@ public final class ChapterContext {
                 (obs, old, position) -> preview.followPosition(position.intValue(), chapterEditor.isReading()));
         chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> status.showChapter());
         // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft; a
-        // chapter loses it when saved, which can bring it back to its last revision and changes the book's counts.
+        // chapter loses it when saved, which can bring it back to its last revision and changes the book's counts and
+        // headings.
         chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> {
             chapterList.refresh();
             revisions.check();
             if (change.wasRemoved())
-                countBook();
+                readBook();
         });
         notesPane.setOnBinned(detached::check);
         mediaPane.setOnDetached(detached::check);
         notesPane.setChapters(this::chapterTitles);
+        // The preview shows the links that lead nowhere as the editor does, and opens links as the editor does.
+        preview.setLinkCheck(chapterEditor.links()::brokenCheck);
+        chapterEditor.links().setChapters(chapterList::getItems, chapterList.getSelectionModel()::select);
+        preview.setOnLink(chapterEditor.links()::follow);
+        chapterEditor.links().setOnChecked(() -> followEditor(chapterEditor.text()));
     }
 
     /**
@@ -175,6 +183,7 @@ public final class ChapterContext {
         mediaPane.show(null, null);
 
         // Closing a saved chapter leaves the dirty flag unchanged, so its listener would not clear the status bar.
+        reading.clear();
         status.clear();
         chapterList.getItems().clear();
 
@@ -216,7 +225,7 @@ public final class ChapterContext {
         chapterEditor.chapter().filter(chapters::contains).ifPresent(chapterList.getSelectionModel()::select);
         detached.check();
         revisions.check();
-        countBook();
+        readBook();
     }
 
     /** Reads again which chapters changed since the last revision, after a commit, in the app or outside it. */
@@ -388,10 +397,10 @@ public final class ChapterContext {
         status.countLater();
     }
 
-    /** Counts the book's chapters again, as they are saved. */
-    private void countBook() {
+    /** Reads the book's chapters again, as saved, for its counts and for the headings its links lead to. */
+    private void readBook() {
 
         if (book != null)
-            status.countBook(book, chapterList.getItems());
+            reading.read(book, chapterList.getItems());
     }
 }

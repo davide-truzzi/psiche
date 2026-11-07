@@ -55,13 +55,15 @@ class BookDocxTest {
                         + "<w:rStyle w:val=\"IndexLink\"/></w:rPr>" + TEXT + "02-vuoto</w:t></w:r></w:hyperlink></w:p>",
                 // the front matter's section ends with the last line of the contents, without the header
                 "<w:pStyle w:val=\"TOC1\"/><w:sectPr><w:pgSz ",
-                // the first chapter starts the next section, the others a new page, each at its bookmark
+                // the first chapter starts the next section, the others a new page, each at its bookmark; a heading
+                // carries its own after it, which links to the heading lead to
                 "<w:pStyle w:val=\"Heading1\"/></w:pPr><w:bookmarkStart w:id=\"2\" w:name=\"_Bookmark2\"/>"
-                        + "<w:bookmarkEnd w:id=\"2\"/><w:r>" + TEXT + "Alba",
+                        + "<w:bookmarkEnd w:id=\"2\"/><w:bookmarkStart w:id=\"3\" w:name=\"_Bookmark5\"/>"
+                        + "<w:bookmarkEnd w:id=\"3\"/><w:r>" + TEXT + "Alba",
                 "<w:pStyle w:val=\"Heading1\"/><w:pageBreakBefore/></w:pPr>"
-                        + "<w:bookmarkStart w:id=\"3\" w:name=\"_Bookmark3\"/>",
+                        + "<w:bookmarkStart w:id=\"4\" w:name=\"_Bookmark3\"/>",
                 "<w:pStyle w:val=\"FirstParagraph\"/><w:pageBreakBefore/></w:pPr>"
-                        + "<w:bookmarkStart w:id=\"4\" w:name=\"_Bookmark4\"/><w:bookmarkEnd w:id=\"4\"/><w:r>"
+                        + "<w:bookmarkStart w:id=\"6\" w:name=\"_Bookmark4\"/><w:bookmarkEnd w:id=\"6\"/><w:r>"
                         + TEXT + "Senza titolo, una riga.",
                 // the chapters' section, with the header, numbered from 1
                 "<w:sectPr><w:headerReference w:type=\"default\" r:id=\"header\"/>",
@@ -84,5 +86,27 @@ class BookDocxTest {
         assertThat(entry(target, DOCUMENT)).contains("<w:pStyle w:val=\"Cover\"/></w:pPr><w:r><w:drawing>",
                 "cy=\"4680000\"", "descr=\"La strada del sale\"");
         assertThat(entry(target, "word/_rels/document.xml.rels")).contains("Target=\"media/image1.png\"");
+    }
+
+    @Test
+    void linksToAChapterOrHeadingLeadToItsBookmarkInTheLinksStyle() throws Exception {
+        Path target = tempDir.resolve("links.docx");
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir, List.of(
+                new ChapterText("01-alba", "# Alba\n\n[la tempesta](02-due.md#la-tempesta), [niente](03-niente.md)"),
+                new ChapterText("02-due", "# Due\n\n## La tempesta\n")), EmptyChapters.SKIP);
+
+        exporter.manuscriptDocx(book, target);
+
+        String document = entry(target, DOCUMENT);
+        parse(document);
+        // The contents name the chapters' bookmarks first, 2 and 3; Alba's heading takes 4, the link 5, which Due's
+        // heading carries, as the document's sixth bookmark.
+        assertThat(document).contains(
+                "<w:hyperlink w:anchor=\"_Bookmark5\" w:history=\"1\"><w:r><w:rPr><w:rStyle w:val=\"Hyperlink\"/>"
+                        + "</w:rPr>" + TEXT + "la tempesta</w:t></w:r></w:hyperlink>",
+                TEXT + "niente</w:t>",
+                "<w:bookmarkStart w:id=\"6\" w:name=\"_Bookmark5\"/><w:bookmarkEnd w:id=\"6\"/><w:r>" + TEXT
+                        + "La tempesta");
+        assertThat(document).doesNotContain("03-niente");
     }
 }

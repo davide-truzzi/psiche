@@ -101,7 +101,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         this.browser = browser;
         Preferences preferences = settings.preferences();
         preview = new PreviewPane(renderers, preferences.previewTheme(), preferences.previewFontSize(),
-                settings.webViewFolder(), browser);
+                settings.webViewFolder());
         history = new HistoryPane(this::reportError, this::showRevision);
         chapterEditor = new ChapterEditor(statusBar, this::reportError, welcome, settings::ownWords,
                 settings::addOwnWord);
@@ -118,6 +118,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         images = new ImageInsertion(chapterEditor, statusBar, this::reportError, this::window,
                 () -> gitControls.ignoreQuietly(ChapterMedia.GIT_IGNORE, "Keep chapter images out of Git"));
         chapterEditor.setOnInsertImage(images::insert);
+        chapterEditor.setBrowser(browser);
         media = new MediaPane(chapterEditor, images, statusBar, this::reportError, this::window,
                 settings.mediaPreviewHeight(), settings::saveMediaPreviewHeight);
         projectTransfer = new ProjectTransfer(statusBar, this::reportError, this::window, notes::settle);

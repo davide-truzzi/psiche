@@ -1,14 +1,12 @@
 package it.infog.psiche.ui.chapters;
 
-import it.infog.psiche.book.BookFolder;
-import it.infog.psiche.book.Chapter;
 import it.infog.psiche.markdown.TextCounter;
+import it.infog.psiche.markdown.model.TextCount;
 import it.infog.psiche.ui.common.StatusBar;
 import javafx.animation.PauseTransition;
 import javafx.scene.Node;
 import javafx.util.Duration;
 
-import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -64,10 +62,10 @@ final class ChapterStatus {
             statusBar.showCount(TextCounter.count(chapterEditor.text()));
     }
 
-    /** Counts {@code chapters} of {@code book} again for the book's counts, as they are saved. */
-    void countBook(BookFolder book, List<Chapter> chapters) {
+    /** Shows {@code counted}, the whole book's characters and words as saved, in the book's counts. */
+    void showBookCount(TextCount counted) {
 
-        bookCounts.count(book, List.copyOf(chapters));
+        bookCounts.show(counted);
     }
 
     /** Shows the open chapter's title and whether it is saved, or clears the chapter's part with none open. */

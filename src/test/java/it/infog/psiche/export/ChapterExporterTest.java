@@ -139,7 +139,8 @@ class ChapterExporterTest {
 
         String content = entry(target, "content.xml");
         assertThat(content).contains(
-                "<text:h text:style-name=\"Heading_20_1\" text:outline-level=\"1\">Alba</text:h>",
+                "<text:h text:style-name=\"Heading_20_1\" text:outline-level=\"1\">"
+                        + "<text:bookmark text:name=\"chapter--alba\"/>Alba</text:h>",
                 "<text:p text:style-name=\"First_20_Paragraph\">È così — "
                         + "<text:span text:style-name=\"Emphasis\">piano</text:span>, "
                         + "<text:span text:style-name=\"Strong_20_Emphasis\">forte</text:span>.</text:p>",

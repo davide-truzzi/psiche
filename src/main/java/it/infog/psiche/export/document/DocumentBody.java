@@ -24,8 +24,11 @@ public interface DocumentBody {
 
     void closeParagraph();
 
-    /** Opens a heading of {@code style} at {@code outlineLevel}, from 1 to 4, which a navigator lists it at. */
-    void openHeading(Style style, int outlineLevel);
+    /**
+     * Opens a heading of {@code style} at {@code outlineLevel}, from 1 to 4, which a navigator lists it at, marked with
+     * a bookmark named {@code bookmark}, which links lead to.
+     */
+    void openHeading(Style style, int outlineLevel, String bookmark);
 
     void closeHeading();
 
@@ -36,6 +39,9 @@ public interface DocumentBody {
 
     /** Opens a link to the web or mail address {@code address}. */
     void openLink(String address);
+
+    /** Opens a link to the bookmark named {@code bookmark}, a place of the document; {@link #closeLink} closes it. */
+    void openInternalLink(String bookmark);
 
     void closeLink();
 

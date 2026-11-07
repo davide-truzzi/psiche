@@ -2,22 +2,22 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.ui.common.Logo;
 
-import javafx.beans.binding.Bindings;
-import javafx.geometry.Pos;
-import javafx.scene.control.Label;
+import javafx.css.PseudoClass;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.richtext.StyleClassedTextArea;
 
 /**
- * The welcome on the manuscript's empty page while no book is open, with the app's logo behind it. The welcome is the
- * text's placeholder, which shows whenever the text is empty, so it is taken away while a book is open: it would
- * otherwise fill every empty or new chapter as if it were the chapter's text.
+ * The welcome on the manuscript's page while no book is open, with the app's logo behind it. The welcome is the
+ * manuscript's own text, read-only and in grey, so its links are teal and open on Ctrl+click as a chapter's do; a
+ * chapter opened takes its place, and an empty one shows empty.
  */
 final class Welcome {
 
+    private static final PseudoClass WELCOMING = PseudoClass.getPseudoClass("welcoming");
+
     private final StyleClassedTextArea area;
     private final StackPane page;
-    private final Label text;
+    private final String text;
     private final StackPane logo = new StackPane();
 
     /** @param page the page that stacks the text over the logo; the logo goes at the back of it */
@@ -25,7 +25,7 @@ final class Welcome {
 
         this.area = area;
         this.page = page;
-        this.text = label(text);
+        this.text = text;
 
         //the logo, sized to the page and never in the way of the page's own size or the mouse
         logo.getChildren().add(Logo.lockup(logo, 0.6));
@@ -35,38 +35,25 @@ final class Welcome {
         logo.setMouseTransparent(true);
     }
 
-    /** Shows the welcome and its logo on the empty page, as when the app starts, or once the book closes. */
+    /** The welcome, the Markdown the manuscript shows while no book is open. */
+    String text() {
+
+        return text;
+    }
+
+    /** Shows the logo behind the text, and the text in the welcome's grey and read-only, as the app starts. */
     void show() {
 
-        area.setPlaceholder(text, Pos.TOP_LEFT);
-        // The placeholder hides while the text has the focus, so the welcome takes no click nor Tab until it goes.
-        area.setMouseTransparent(true);
-        area.setFocusTraversable(false);
-        // The text kept the focus it had while a chapter was open, which would hide the welcome.
-        if (area.isFocused())
-            page.requestFocus();
+        area.setEditable(false);
+        area.pseudoClassStateChanged(WELCOMING, true);
         if (!page.getChildren().contains(logo))
             page.getChildren().addFirst(logo);
     }
 
-    /** Takes the welcome and its logo away, while a book is open. */
+    /** Takes the logo and the welcome's grey away, while a book is open. */
     void hide() {
 
-        area.setPlaceholder(null);
-        area.setMouseTransparent(false);
-        area.setFocusTraversable(true);
+        area.pseudoClassStateChanged(WELCOMING, false);
         page.getChildren().remove(logo);
-    }
-
-    /** The welcome, wrapped to the page's width inside its padding, in the placeholder's colour. */
-    private Label label(String text) {
-
-        Label label = new Label(text);
-        label.getStyleClass().add("manuscript-welcome");
-        label.setWrapText(true);
-        label.maxWidthProperty().bind(Bindings.createDoubleBinding(
-                () -> area.getWidth() - area.getPadding().getLeft() - area.getPadding().getRight(),
-                area.widthProperty(), area.paddingProperty()));
-        return label;
     }
 }
