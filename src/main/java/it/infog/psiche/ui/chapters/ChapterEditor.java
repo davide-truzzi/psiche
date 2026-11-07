@@ -2,6 +2,7 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -108,6 +109,8 @@ public final class ChapterEditor {
     public void setSpelling(boolean on, boolean strict) { spelling.setOn(on, strict); }
     /** Shows, or not, as Preferences asks, the other places of the word the author is at, and how many there are. */
     public void setHighlightRepetitions(boolean on) { manuscript.highlightRepetitions(on); }
+    /** Shows the Markdown receding, in {@link EditorMode#DEFAULT}, or as written, as Preferences asks. */
+    public void setEditorMode(EditorMode mode) { manuscript.setMode(mode); }
     /** Checks the spelling in the open book's language, a BCP 47 tag; none with {@code null} while no book is open. */
     void setBookLanguage(String tag) { spelling.setBookLanguage(tag); }
 

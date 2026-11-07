@@ -24,6 +24,8 @@ public final class HtmlComments {
 
     // A comment left open runs to the end, as it does in a browser.
     private static final Pattern COMMENT = Pattern.compile("<!--.*?(?:-->|\\z)", Pattern.DOTALL);
+    private static final String OPENING = "<!--";
+    private static final String CLOSING = "-->";
     private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES)
             .build();
 
@@ -53,6 +55,22 @@ public final class HtmlComments {
         });
 
         return ranges;
+    }
+
+    /**
+     * Where the marks of {@code comment}, one of {@link #ranges} in {@code markdown}, are written: its opening
+     * {@code <!--}, and its closing {@code -->} unless it is left open.
+     */
+    public static List<TextRange> markers(String markdown, TextRange comment) {
+
+        TextRange opening = new TextRange(comment.start(), comment.start() + OPENING.length());
+        // At least <!---->: in an open <!-->, the dashes that seem to close it are its opening's.
+        boolean closed = comment.end() - comment.start() >= OPENING.length() + CLOSING.length()
+                && markdown.startsWith(CLOSING, comment.end() - CLOSING.length());
+        if (!closed)
+            return List.of(opening);
+
+        return List.of(opening, new TextRange(comment.end() - CLOSING.length(), comment.end()));
     }
 
     /** Adds the comments in the HTML {@code node} to {@code ranges}; one left open ends with the node. */

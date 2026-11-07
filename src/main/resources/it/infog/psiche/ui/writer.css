@@ -335,6 +335,32 @@
     -fx-fill: -orange;
 }
 
+/* Default mode, from Preferences, lets the Markdown recede; Advanced shows it as written. The markers, a link's [
+   and ](address), an image's ![ and ](file), a comment's <!-- and -->, are their element's colour, faded. */
+.manuscript:default-mode .paragraph-text .text.marker {
+    -fx-opacity: 0.22;
+}
+
+/* The comments on their own grey, -graphite, faint. */
+.manuscript:default-mode .paragraph-text .text.comment {
+    -rtfx-background-color: rgba(125, 115, 102, 0.2);
+}
+
+/* A link and an image line on a faint tint of their colour, -teal and -sage. */
+.manuscript:default-mode .paragraph-text .text.link {
+    -rtfx-background-color: rgba(99, 184, 179, 0.13);
+}
+
+.manuscript:default-mode .paragraph-text .text.image {
+    -rtfx-background-color: rgba(143, 174, 107, 0.13);
+}
+
+/* An error, a link that leads nowhere or a missing image, on a tint of -orange, a little stronger than the others. */
+.manuscript:default-mode .paragraph-text .text.broken-link,
+.manuscript:default-mode .paragraph-text .text.missing-image {
+    -rtfx-background-color: rgba(232, 119, 46, 0.16);
+}
+
 /* A spelling mistake: a dotted red line under the word, as a proofreader marks it. */
 .manuscript .paragraph-text .text.misspelled {
     -rtfx-underline-color: -red-pencil;

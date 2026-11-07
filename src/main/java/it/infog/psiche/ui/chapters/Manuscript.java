@@ -2,6 +2,7 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
 import javafx.application.Platform;
@@ -10,7 +11,9 @@ import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
 import javafx.beans.value.ObservableValue;
+import javafx.css.PseudoClass;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.ScrollBar;
@@ -48,6 +51,8 @@ final class Manuscript {
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %dpx;";
     // The lines of text left above a paragraph the author is taken to, as from the Media tab.
     private static final int REVEAL_CONTEXT = 3;
+    // Default mode, which writer.css draws: the text keeps its styles in both modes, so a switch moves nothing.
+    private static final PseudoClass DEFAULT_MODE = PseudoClass.getPseudoClass("default-mode");
 
     private final StyleClassedTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
@@ -238,6 +243,20 @@ final class Manuscript {
     void setFontSize(int fontSize) {
 
         area.setStyle(FONT_SIZE_STYLE.formatted(fontSize));
+    }
+
+    /** Lets the Markdown recede, in {@link EditorMode#DEFAULT}, or shows it as written, as Preferences asks. */
+    void setMode(EditorMode mode) {
+
+        boolean on = mode == EditorMode.DEFAULT;
+        if (area.getPseudoClassStates().contains(DEFAULT_MODE) == on)
+            return;
+
+        area.pseudoClassStateChanged(DEFAULT_MODE, on);
+        // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will be.
+        for (Node paragraph : area.lookupAll(".paragraph-text"))
+            if (paragraph instanceof Parent text)
+                text.requestLayout();
     }
 
     /** Shows the other places of the word the author is at, as Preferences asks, or none. */

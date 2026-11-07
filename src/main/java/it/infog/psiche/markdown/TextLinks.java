@@ -76,7 +76,7 @@ public final class TextLinks {
 
                 TextRange range = range(link);
                 if (isInline(text, range))
-                    links.add(new TextLink(range, label(link, range), PlainText.of(link), link.getDestination(),
+                    links.add(new TextLink(range, label(link, "["), PlainText.of(link), link.getDestination(),
                             link.getTitle() == null ? "" : link.getTitle()));
             }
 
@@ -306,13 +306,18 @@ public final class TextLinks {
         return text.charAt(range.start()) == '[' && text.charAt(range.end() - 1) == ')';
     }
 
-    /** Where the text of {@code link}, which spans {@code range}, is written, between its brackets. */
-    private static TextRange label(Link link, TextRange range) {
+    /**
+     * Where the text of {@code node}, a link or an image, is written, between its brackets; with none, right after
+     * {@code opening}, which starts it, {@code [} or {@code ![}.
+     */
+    static TextRange label(Node node, String opening) {
 
-        if (link.getFirstChild() == null)
-            return new TextRange(range.start() + 1, range.start() + 1);
+        if (node.getFirstChild() == null) {
+            int empty = range(node).start() + opening.length();
+            return new TextRange(empty, empty);
+        }
 
-        return new TextRange(range(link.getFirstChild()).start(), range(link.getLastChild()).end());
+        return new TextRange(range(node.getFirstChild()).start(), range(node.getLastChild()).end());
     }
 
     /** Where {@code node}, parsed with its source spans, is written in the text. */

@@ -7,6 +7,7 @@ import it.infog.psiche.markdown.model.TextRange;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,7 +22,7 @@ class ImageLinesTest {
 
         int start = text.indexOf(MAP);
         assertThat(ImageLines.of(text)).containsExactly(new ImageLine(new TextRange(start, start + MAP.length()),
-                "Map of the coast", "../media/01-departure/map.png"));
+                new TextRange(start + 2, start + 18), "Map of the coast", "../media/01-departure/map.png"));
     }
 
     @Test
@@ -41,6 +42,17 @@ class ImageLinesTest {
             assertThat(line.caption()).isEqualTo("The [old] harbour \\ dawn");
             assertThat(line.destination()).isEqualTo("../media/03-harbour/old harbour.jpg");
         });
+    }
+
+    @Test
+    void theMarkersAreTheMarkdownAroundTheCaptionAsWritten() {
+
+        String text = "Before.\n\n![The *old* harbour](<../media/03-harbour/old harbour.jpg>)\n\n![](map.png)\n";
+
+        assertThat(ImageLines.of(text)).satisfiesExactly(
+                line -> assertThat(written(text, line.markers()))
+                        .containsExactly("![", "](<../media/03-harbour/old harbour.jpg>)"),
+                line -> assertThat(written(text, line.markers())).containsExactly("![", "](map.png)"));
     }
 
     @Test
@@ -145,5 +157,10 @@ class ImageLinesTest {
     void anImageOnTheWebIsNoFile() {
 
         assertThat(ImageLines.file(Path.of("/books/Lantern/chapters"), "https://example.com/map.png")).isEmpty();
+    }
+
+    private static List<String> written(String text, List<TextRange> ranges) {
+
+        return ranges.stream().map(range -> text.substring(range.start(), range.end())).toList();
     }
 }

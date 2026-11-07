@@ -29,7 +29,8 @@ public final class ImageLines {
     // How every image's Markdown starts: a text without it has none, and need not be parsed.
     private static final String IMAGE_START = "![";
 
-    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
+    private static final Parser PARSER =
+            Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES).build();
 
     private ImageLines() {
     }
@@ -46,8 +47,8 @@ public final class ImageLines {
             public void visit(Paragraph paragraph) {
 
                 if (!paragraph.getSourceSpans().isEmpty())
-                    figure(paragraph).ifPresent(image ->
-                            lines.add(new ImageLine(TextLinks.range(paragraph), PlainText.of(image), image.getDestination())));
+                    figure(paragraph).ifPresent(image -> lines.add(new ImageLine(TextLinks.range(paragraph),
+                            TextLinks.label(image, IMAGE_START), PlainText.of(image), image.getDestination())));
             }
         });
 
