@@ -116,12 +116,13 @@ public final class ChapterContext {
                 (obs, old, position) -> preview.followPosition(position.intValue(), chapterEditor.isReading()));
         chapterEditor.dirtyProperty().addListener((obs, old, isDirty) -> status.showChapter());
         // Cells read the unsaved set when they are drawn, so redraw them when a chapter gains or loses its draft; a
-        // chapter loses it when saved, which can bring it back to its last revision and changes the book's counts.
+        // chapter loses it when saved, which can bring it back to its last revision and changes the book's counts and
+        // headings.
         chapterEditor.unsavedChapters().addListener((SetChangeListener<Chapter>) change -> {
             chapterList.refresh();
             revisions.check();
             if (change.wasRemoved())
-                countBook();
+                readBook();
         });
         notesPane.setOnBinned(detached::check);
         mediaPane.setOnDetached(detached::check);
@@ -216,7 +217,7 @@ public final class ChapterContext {
         chapterEditor.chapter().filter(chapters::contains).ifPresent(chapterList.getSelectionModel()::select);
         detached.check();
         revisions.check();
-        countBook();
+        readBook();
     }
 
     /** Reads again which chapters changed since the last revision, after a commit, in the app or outside it. */
@@ -388,10 +389,13 @@ public final class ChapterContext {
         status.countLater();
     }
 
-    /** Counts the book's chapters again, as they are saved. */
-    private void countBook() {
+    /** Counts the book's chapters again, and reads their headings for the links, as they are saved. */
+    private void readBook() {
 
-        if (book != null)
-            status.countBook(book, chapterList.getItems());
+        if (book == null)
+            return;
+
+        status.countBook(book, chapterList.getItems());
+        chapterEditor.readHeadings(book, chapterList.getItems());
     }
 }

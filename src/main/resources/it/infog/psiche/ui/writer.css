@@ -15,6 +15,7 @@
     -sage: #8fae6b;
     -amber: #d9a441;
     -orange: #e8772e;
+    -teal: #63b8b3;
 
     -fx-font-family: "Courier Prime";
     -fx-font-size: 13px;
@@ -305,6 +306,17 @@
 /* An image whose file is missing, deleted, renamed or not brought back with a past version of the chapter: an error,
    in attention orange. */
 .manuscript .paragraph-text .text.missing-image {
+    -fx-fill: -orange;
+}
+
+/* A link, in the teal word processors give links, without their underline, which here marks a spelling mistake. */
+.manuscript .paragraph-text .text.link {
+    -fx-fill: -teal;
+}
+
+/* A link that leads nowhere, to a chapter or heading that is not there or to a malformed address: an error, in
+   attention orange, as a missing image. */
+.manuscript .paragraph-text .text.broken-link {
     -fx-fill: -orange;
 }
 

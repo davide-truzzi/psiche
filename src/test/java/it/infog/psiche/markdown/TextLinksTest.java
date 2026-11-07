@@ -162,7 +162,7 @@ class TextLinksTest {
                 + "[malformed](ftp://example.com)\n";
         Map<String, Set<String>> anchors = Map.of("01-departure", Set.of(), "02-harbour", Set.of("the-storm"));
 
-        assertThat(TextLinks.broken(text, "01-departure", anchors)).extracting(TextLink::text)
+        assertThat(TextLinks.broken(text, TextLinks.of(text), "01-departure", anchors)).extracting(TextLink::text)
                 .containsExactly("no chapter", "no heading", "no own heading", "malformed");
     }
 

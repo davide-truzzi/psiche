@@ -34,6 +34,7 @@ public final class ChapterEditor {
     private final ChapterSpelling spelling;
     private final ChapterPlaces places;
     private final ChapterEdits edits;
+    private final BookHeadings headings;
     private Runnable insertImage = () -> {};
 
     private BookFolder book;
@@ -55,6 +56,7 @@ public final class ChapterEditor {
         spelling = new ChapterSpelling(manuscript, statusBar, ownWords, addOwnWord);
         places = new ChapterPlaces(manuscript, () -> chapter);
         edits = new ChapterEdits(manuscript, this::isOpen);
+        headings = new BookHeadings(manuscript::setBookAnchors);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
         SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run()), manuscript,
                 spelling::makeRight);
@@ -225,7 +227,7 @@ public final class ChapterEditor {
         this.chapter = chapter;
         savedText = text;
 
-        manuscript.setChaptersDir(book.chaptersDir());
+        manuscript.setChapter(chapter);
         manuscript.setText(drafts.text(chapter).orElse(text));
         // setText does not fire a change when the new text equals the old, so recompute the state explicitly.
         trackDraft();
@@ -238,6 +240,12 @@ public final class ChapterEditor {
     ChapterPlaces places() {
 
         return places;
+    }
+
+    /** Reads the headings of {@code chapters} of {@code book} again, as saved, which links are checked against. */
+    void readHeadings(BookFolder book, List<Chapter> chapters) {
+
+        headings.read(book, List.copyOf(chapters));
     }
 
     /**
@@ -269,7 +277,8 @@ public final class ChapterEditor {
         book = null;
         chapter = null;
         savedText = "";
-        manuscript.setChaptersDir(null);
+        manuscript.setChapter(null);
+        headings.clear();
         manuscript.clear();
         dirty.set(false);
     }

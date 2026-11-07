@@ -161,17 +161,18 @@ public final class TextLinks {
     }
 
     /**
-     * The links of {@code text}, the chapter named {@code chapter}, that lead nowhere: to a chapter or a heading that
-     * is not there, or to a web address that is not well formed. A web address is never visited.
+     * The {@code links} of {@code text}, the chapter named {@code chapter}, that lead nowhere: to a chapter or a
+     * heading that is not there, or to a web address that is not well formed. A web address is never visited.
      *
+     * @param links   the links of {@code text}, as {@link #of} finds them
      * @param anchors each chapter of the book by name, with the anchors of its headings; for {@code chapter} itself
      *                those of {@code text} are taken, as it is now
      */
-    public static List<TextLink> broken(String text, String chapter, Map<String, Set<String>> anchors) {
+    public static List<TextLink> broken(String text, List<TextLink> links, String chapter,
+                                        Map<String, Set<String>> anchors) {
 
-        List<TextLink> links = of(text);
         if (links.isEmpty())
-            return links;
+            return List.of();
 
         Set<String> own = HeadingAnchors.anchors(text);
         return links.stream().filter(link -> {

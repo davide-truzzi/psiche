@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.ChapterPlace;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
@@ -24,7 +25,6 @@ import org.fxmisc.richtext.StyleClassedTextArea;
 import org.fxmisc.richtext.model.TwoDimensional.Bias;
 import org.fxmisc.richtext.util.UndoUtils;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -233,7 +233,7 @@ final class Manuscript {
         repetitions.setOn(on);
     }
 
-    // Its marks: spelling mistakes and missing images
+    // Its marks: spelling mistakes, missing images and links
 
     /**
      * Checks the text's spelling with {@code checker} from now on, {@code ownWords} being right too, and the words that
@@ -256,10 +256,16 @@ final class Manuscript {
         return marks.suggestions(word);
     }
 
-    /** Looks for the text's images from {@code chaptersDir}, where the chapter's file is; none with {@code null}. */
-    void setChaptersDir(Path chaptersDir) {
+    /** Looks for the text's images and links as those of {@code chapter}; none with {@code null}. */
+    void setChapter(Chapter chapter) {
 
-        marks.setChaptersDir(chaptersDir);
+        marks.setChapter(chapter);
+    }
+
+    /** Checks the links to other chapters against {@code anchors}, each chapter's; none is broken with {@code null}. */
+    void setBookAnchors(Map<String, Set<String>> anchors) {
+
+        marks.setBookAnchors(anchors);
     }
 
     // Editing, for the formatting menu
