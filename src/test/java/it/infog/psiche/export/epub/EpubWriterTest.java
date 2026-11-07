@@ -205,6 +205,26 @@ class EpubWriterTest {
                         + "media/book.properties.");
     }
 
+    @Test
+    void linksToAChapterOrHeadingLeadToItsPageAndPassEpubCheck() throws IOException {
+        Path target = tempDir.resolve("links.epub");
+        Files.createDirectories(tempDir.resolve("chapters"));
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir.resolve("chapters"),
+                List.of(new ChapterText("01-alba", "# Alba\n\n[Sera](03-sera.md), [la città](03-sera.md#la-città), "
+                                + "[vuoto](02-vuoto.md) and [here](#notte).\n\n## Notte\n"),
+                        new ChapterText("02-vuoto", ""),
+                        new ChapterText("03-sera", "# Sera\n\n## La città\n")), EmptyChapters.SKIP);
+
+        writer.write(book, EpubVariant.STORES, target);
+
+        // 02-vuoto is left out, so 03-sera is the second chapter, and the link to the empty one is its text.
+        assertThat(entry(target, "EPUB/xhtml/chapter-1.xhtml")).contains(
+                "<a href=\"chapter-2.xhtml#chapter-2\">Sera</a>",
+                "<a href=\"chapter-2.xhtml#chapter-2--la-città\">la città</a>, vuoto and ",
+                "<a href=\"chapter-1.xhtml#chapter-1--notte\">here</a>", "<h2 id=\"chapter-1--notte\">");
+        assertPassesEpubCheck(target);
+    }
+
     /** Three chapters: one with a described image, a scene break and links; an empty one; one without a heading. */
     private BookExport book(Optional<Path> cover, EmptyChapters empty) throws IOException {
         image("map.png", 600, 400);

@@ -2,6 +2,7 @@ package it.infog.psiche.export.epub;
 
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.common.Template;
+import it.infog.psiche.export.LinkTargets;
 import it.infog.psiche.export.XhtmlRenderer;
 import it.infog.psiche.export.ZipContainer;
 import it.infog.psiche.export.epub.model.EpubImage;
@@ -121,8 +122,12 @@ public final class EpubWriter {
         Optional<EpubPage> coverPage = cover.map(image -> pages.cover(image, properties.title()));
         EpubPage titlePage = pages.titlePage(book.titlePage());
 
-        XhtmlRenderer renderer = XhtmlRenderer.ebook(images);
-        List<EpubPage> chapters = book.chapters().stream().map(chapter -> pages.chapter(chapter, renderer)).toList();
+        // A place of the book is on the page of its chapter.
+        XhtmlRenderer renderer = XhtmlRenderer.ebook(images,
+                place -> Pages.fileName(place.chapterId()) + "#" + place.elementId());
+        LinkTargets links = LinkTargets.of(book.chapters());
+        List<EpubPage> chapters = book.chapters().stream().map(chapter -> pages.chapter(chapter, renderer, links))
+                .toList();
         EpubPage contents = navigation.contents(pages, book.contents(), coverPage, titlePage);
 
         List<EpubPage> spine = new ArrayList<>();

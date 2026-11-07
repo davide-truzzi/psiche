@@ -164,9 +164,11 @@ class BookExporterTest {
                         + "</text:bookmark-ref></text:p>",
                 // the first chapter, back on the manuscript page numbered from 1, then a page break before each other
                 "<text:h text:style-name=\"First_Chapter_Heading_20_1\" text:outline-level=\"1\">"
-                        + "<text:bookmark text:name=\"chapter-1\"/>Alba</text:h>",
+                        + "<text:bookmark text:name=\"chapter-1\"/><text:bookmark text:name=\"chapter-1--alba\"/>"
+                        + "Alba</text:h>",
                 "<text:h text:style-name=\"Chapter_Heading_20_1\" text:outline-level=\"1\">"
-                        + "<text:bookmark text:name=\"chapter-2\"/>02-vuoto</text:h>",
+                        + "<text:bookmark text:name=\"chapter-2\"/><text:bookmark text:name=\"chapter-2--02-vuoto\"/>"
+                        + "02-vuoto</text:h>",
                 "<text:p text:style-name=\"Chapter_First_20_Paragraph\"><text:bookmark text:name=\"chapter-3\"/>"
                         + "Senza titolo, una riga.</text:p>");
         assertThat(content).contains(
@@ -196,6 +198,49 @@ class BookExporterTest {
         assertThat(entry(target, "META-INF/manifest.xml")).contains("manifest:full-path=\"Pictures/image1.png\"");
     }
 
+
+    @Test
+    void aPdfsLinksToAChapterOrHeadingLeadToItsPageAndOthersAreTextAlone() throws IOException {
+        Path target = tempDir.resolve("links.pdf");
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir, List.of(
+                new ChapterText("01-alba", "# Alba\n\nVedi [Due](02-due.md), [la tempesta](02-due.md#la-tempesta) "
+                        + "e [niente](03-niente.md)."),
+                new ChapterText("02-due", "# Due\n\n" + "Una riga che riempie la pagina.\n\n".repeat(40)
+                        + "## La tempesta\n\nUna riga.")), EmptyChapters.SKIP);
+
+        exporter.manuscriptPdf(book, target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            // Due starts on page 4, after the title page, the contents and Alba; its heading is on page 5.
+            List<Integer> linked = new ArrayList<>();
+            for (PDAnnotation annotation : pdf.getPage(2).getAnnotations())
+                if (annotation instanceof PDAnnotationLink link)
+                    linked.add(targetPage(pdf, link.getDestination() != null
+                            ? link.getDestination()
+                            : ((PDActionGoTo) link.getAction()).getDestination()));
+            assertThat(linked).containsExactly(4, 5);
+            assertThat(page(pdf, 5)).contains("La tempesta");
+            assertThat(page(pdf, 3)).contains("e niente.");
+        }
+    }
+
+    @Test
+    void anOdtsLinksToAChapterOrHeadingLeadToItsBookmark() throws Exception {
+        Path target = tempDir.resolve("links.odt");
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir, List.of(
+                new ChapterText("01-alba", "# Alba\n\n[Due](02-due.md), [la tempesta](02-due.md#la-tempesta), "
+                        + "[niente](03-niente.md)"),
+                new ChapterText("02-due", "# Due\n\n## La tempesta\n")), EmptyChapters.SKIP);
+
+        exporter.manuscriptOdt(book, target);
+
+        String content = entry(target, "content.xml");
+        parse(content);
+        assertThat(content).contains(
+                "<text:a xlink:type=\"simple\" xlink:href=\"#chapter-2\">Due</text:a>",
+                "<text:a xlink:type=\"simple\" xlink:href=\"#chapter-2--la-tempesta\">la tempesta</text:a>, niente",
+                "<text:bookmark text:name=\"chapter-2--la-tempesta\"/>La tempesta</text:h>");
+    }
 
     /** The number, from 1, of the page {@code destination} leads to. */
     private static int targetPage(PDDocument pdf, PDDestination destination) throws IOException {

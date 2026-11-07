@@ -2,9 +2,9 @@ package it.infog.psiche.export;
 
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.export.docx.DocxWriter;
+import it.infog.psiche.export.model.ExportedChapter;
 import it.infog.psiche.export.odt.OdtWriter;
 import it.infog.psiche.export.pdf.ManuscriptPdf;
-import org.commonmark.parser.Parser;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -13,8 +13,6 @@ import java.nio.file.Path;
 
 /** Writes a chapter to a file outside the book, as Markdown or as a manuscript PDF, OpenDocument text or DOCX. */
 public final class ChapterExporter {
-
-    private static final Parser PARSER = Parser.builder().build();
 
     private final ManuscriptPdf pdf = new ManuscriptPdf();
     private final OdtWriter odt = new OdtWriter();
@@ -40,7 +38,8 @@ public final class ChapterExporter {
      */
     public void manuscriptPdf(String markdown, String title, BookProperties book, Path baseDirectory, Path target) {
 
-        String body = XhtmlRenderer.render(PARSER.parse(markdown));
+        ExportedChapter chapter = BookAssembler.alone(title, markdown);
+        String body = XhtmlRenderer.render(chapter, LinkTargets.alone(chapter));
         pdf.writeChapter(title, ManuscriptHeader.of(book), book, body, baseDirectory, target);
     }
 
@@ -54,7 +53,7 @@ public final class ChapterExporter {
      */
     public void manuscriptOdt(String markdown, String title, BookProperties book, Path baseDirectory, Path target) {
 
-        odt.writeChapter(PARSER.parse(markdown), title, ManuscriptHeader.of(book), book, baseDirectory, target);
+        odt.writeChapter(BookAssembler.alone(title, markdown), ManuscriptHeader.of(book), book, baseDirectory, target);
     }
 
     /**
@@ -67,6 +66,7 @@ public final class ChapterExporter {
      */
     public void manuscriptDocx(String markdown, String title, BookProperties book, Path baseDirectory, Path target) {
 
-        docx.writeChapter(PARSER.parse(markdown), title, ManuscriptHeader.of(book), book, baseDirectory, target);
+        docx.writeChapter(BookAssembler.alone(title, markdown), ManuscriptHeader.of(book), book, baseDirectory,
+                target);
     }
 }

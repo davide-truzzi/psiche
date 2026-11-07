@@ -99,9 +99,7 @@ final class DocxBody implements DocumentBody {
         if (bookmark == null)
             return;
 
-        bookmarks++;
-        xml.append("<w:bookmarkStart w:id=\"%d\" w:name=\"%s\"/><w:bookmarkEnd w:id=\"%d\"/>"
-                .formatted(bookmarks, bookmarkName(bookmark), bookmarks));
+        appendBookmark(bookmark);
         bookmark = null;
     }
 
@@ -111,11 +109,12 @@ final class DocxBody implements DocumentBody {
         xml.append("</w:p>\n");
     }
 
-    /** Opens a heading as a paragraph; its style gives it its outline level. */
+    /** Opens a heading as a paragraph, its bookmark at its start; its style gives it its outline level. */
     @Override
-    public void openHeading(Style style, int outlineLevel) {
+    public void openHeading(Style style, int outlineLevel, String bookmark) {
 
         openParagraph(style);
+        appendBookmark(bookmark);
     }
 
     @Override
@@ -140,6 +139,14 @@ final class DocxBody implements DocumentBody {
     public void openLink(String address) {
 
         xml.append("<w:hyperlink r:id=\"%s\" w:history=\"1\">".formatted(relationships.link(address)));
+        spans.push(StyleIds.HYPERLINK);
+    }
+
+    /** A link to a bookmark of the document, in the same style as a link to the web. */
+    @Override
+    public void openInternalLink(String bookmark) {
+
+        xml.append("<w:hyperlink w:anchor=\"%s\" w:history=\"1\">".formatted(bookmarkName(bookmark)));
         spans.push(StyleIds.HYPERLINK);
     }
 
@@ -272,6 +279,14 @@ final class DocxBody implements DocumentBody {
                 properties.append(look.getValue());
 
         return properties.append("</w:rPr>").toString();
+    }
+
+    /** Marks the place written next with the bookmark {@code name}, which links lead to. */
+    private void appendBookmark(String name) {
+
+        bookmarks++;
+        xml.append("<w:bookmarkStart w:id=\"%d\" w:name=\"%s\"/><w:bookmarkEnd w:id=\"%d\"/>"
+                .formatted(bookmarks, bookmarkName(name), bookmarks));
     }
 
     /** Word's name for the bookmark {@code name}, the same each time it is asked for; hidden, as Word's own are. */

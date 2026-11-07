@@ -146,13 +146,7 @@ public final class MarkdownRenderer {
             if (link.getTitle() != null)
                 attributes.put("title", link.getTitle());
             html.tag(leadsNowhere ? "span" : "a", attributes);
-            // The next child is taken first, as rendering a child may take it out of the tree.
-            Node child = link.getFirstChild();
-            while (child != null) {
-                Node next = child.getNext();
-                context.render(child);
-                child = next;
-            }
+            HtmlChildren.render(context, link);
             html.tag(leadsNowhere ? "/span" : "/a");
         }
     }

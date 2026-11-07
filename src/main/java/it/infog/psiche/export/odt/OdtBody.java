@@ -57,11 +57,12 @@ final class OdtBody implements DocumentBody {
     }
 
     @Override
-    public void openHeading(Style style, int outlineLevel) {
+    public void openHeading(Style style, int outlineLevel, String bookmark) {
 
         xml.append("<text:h text:style-name=\"%s\" text:outline-level=\"%d\">"
                 .formatted(styleName(style), outlineLevel));
         appendBookmark();
+        appendBookmark(bookmark);
     }
 
     @Override
@@ -86,6 +87,12 @@ final class OdtBody implements DocumentBody {
     public void openLink(String address) {
 
         xml.append("<text:a xlink:type=\"simple\" xlink:href=\"%s\">".formatted(XmlText.escape(address)));
+    }
+
+    @Override
+    public void openInternalLink(String bookmark) {
+
+        openLink("#" + bookmark);
     }
 
     @Override
@@ -218,12 +225,19 @@ final class OdtBody implements DocumentBody {
                 """.formatted(name, style.odtName(), master, properties);
     }
 
+    /** Marks the paragraph or heading starting the page started last with its bookmark, if it has one. */
     private void appendBookmark() {
 
         if (bookmark == null)
             return;
 
-        xml.append("<text:bookmark text:name=\"%s\"/>".formatted(XmlText.escape(bookmark)));
+        appendBookmark(bookmark);
         bookmark = null;
+    }
+
+    /** Marks the place written next with the bookmark {@code name}, which links lead to. */
+    private void appendBookmark(String name) {
+
+        xml.append("<text:bookmark text:name=\"%s\"/>".formatted(XmlText.escape(name)));
     }
 }

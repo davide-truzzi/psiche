@@ -1,7 +1,11 @@
 package it.infog.psiche.export.document;
 
+import it.infog.psiche.export.LinkTargets;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.document.model.enums.Style;
+import it.infog.psiche.export.model.ExportedChapter;
+import it.infog.psiche.export.model.LinkPlace;
+import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.PlainText;
@@ -28,13 +32,15 @@ import org.commonmark.node.Text;
 import org.commonmark.node.ThematicBreak;
 
 import java.util.Iterator;
+import java.util.function.Function;
 import java.util.Optional;
 
 /**
  * Writes a chapter's Markdown into a {@link DocumentBody}, in any format: headings, paragraphs, lists and spans that
  * only name their {@link Style}, so the look stays in the format's stylesheet. It follows the manuscript PDF: scene
  * breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, a line break inside a
- * paragraph is kept, and an image on a paragraph of its own is a centred figure with its caption under it.
+ * paragraph is kept, and an image on a paragraph of its own is a centred figure with its caption under it. Each
+ * heading carries a bookmark named {@link LinkTargets#headingId}, which links to it lead to.
  */
 final class ChapterRenderer extends AbstractVisitor {
 
@@ -42,6 +48,9 @@ final class ChapterRenderer extends AbstractVisitor {
 
     private final DocumentBody body;
     private final Pictures pictures;
+    private final ExportedChapter chapter;
+    private final LinkTargets links;
+    private final Function<Heading, String> anchors = HeadingAnchors.namer();
 
     // Paragraphs are indented, except the chapter's first and the one after a heading, scene break, quote or list.
     private boolean indentNext;
@@ -54,20 +63,25 @@ final class ChapterRenderer extends AbstractVisitor {
      *
      * @param body     where the chapter is written
      * @param pictures where the chapter's images are found, and collected to be packed into the document
+     * @param chapter  the chapter written, whose headings name their bookmarks after its id
+     * @param links    where the chapter's links to places of the book lead in the document
      */
-    ChapterRenderer(DocumentBody body, Pictures pictures) {
+    ChapterRenderer(DocumentBody body, Pictures pictures, ExportedChapter chapter, LinkTargets links) {
 
         this.body = body;
         this.pictures = pictures;
+        this.chapter = chapter;
+        this.links = links;
     }
 
     // Blocks
 
-    /** A heading, with its outline level so the word processor's navigator lists it. */
+    /** A heading, with its outline level so the word processor's navigator lists it, and its bookmark. */
     @Override
     public void visit(Heading heading) {
 
-        body.openHeading(Style.heading(heading.getLevel()), Math.min(heading.getLevel(), 4));
+        body.openHeading(Style.heading(heading.getLevel()), Math.min(heading.getLevel(), 4),
+                LinkTargets.headingId(chapter.id(), anchors.apply(heading)));
         visitChildren(heading);
         body.closeHeading();
 
@@ -282,19 +296,23 @@ final class ChapterRenderer extends AbstractVisitor {
     }
 
     /**
-     * Web and mail links stay links. A link to one of the book's own files would lead nowhere once the chapter is
-     * out of the book, so only its text is kept.
+     * Web and mail links stay links, and a link to a place of the document leads to its bookmark. Any other link, as
+     * one to a chapter left out of the document, would lead nowhere, so only its text is kept.
      */
     @Override
     public void visit(Link link) {
 
         String destination = link.getDestination();
-        if (!destination.matches("(?i)(https?|mailto):.*")) {
+        Optional<LinkPlace> place = links.place(chapter, destination);
+        if (LinkTargets.isWeb(destination))
+            body.openLink(destination);
+        else if (place.isPresent())
+            body.openInternalLink(place.get().elementId());
+        else {
             visitChildren(link);
             return;
         }
 
-        body.openLink(destination);
         visitChildren(link);
         body.closeLink();
     }

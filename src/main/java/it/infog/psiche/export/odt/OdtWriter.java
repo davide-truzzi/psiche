@@ -7,8 +7,8 @@ import it.infog.psiche.export.document.WriteManuscript;
 import it.infog.psiche.export.document.Pictures;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.model.BookExport;
+import it.infog.psiche.export.model.ExportedChapter;
 
-import org.commonmark.node.Node;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -38,22 +38,21 @@ public final class OdtWriter {
     private final Template meta = Template.load(OdtWriter.class, "meta.xml");
 
     /**
-     * Writes one chapter.
+     * Writes one chapter, alone.
      *
-     * @param document      the chapter's Markdown, parsed
-     * @param title         the chapter's title, for the file's properties
+     * @param chapter       the chapter, its file title for the file's properties
      * @param header        the authors and the book's title, for the top of every page
      * @param book          the book the chapter belongs to, for the file's authors and language
      * @param baseDirectory the directory images are relative to, the book's chapters
      */
-    public void writeChapter(Node document, String title, String header, BookProperties book, Path baseDirectory,
+    public void writeChapter(ExportedChapter chapter, String header, BookProperties book, Path baseDirectory,
                              Path target) {
 
         OdtBody body = new OdtBody();
         Pictures pictures = new Pictures(baseDirectory, PICTURES);
-        WriteManuscript.writeChapter(body, document, pictures);
+        WriteManuscript.writeChapter(body, chapter, pictures);
 
-        write(body, pictures, title, header, book, target);
+        write(body, pictures, chapter.fileTitle(), header, book, target);
     }
 
     /**

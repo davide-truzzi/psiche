@@ -1,6 +1,7 @@
 package it.infog.psiche.export.epub;
 
 import it.infog.psiche.common.Template;
+import it.infog.psiche.export.LinkTargets;
 import it.infog.psiche.export.XhtmlRenderer;
 import it.infog.psiche.export.epub.model.EpubImage;
 import it.infog.psiche.export.epub.model.EpubPage;
@@ -65,11 +66,11 @@ final class Pages {
         return page("title-page", titlePage.title(), " epub:type=\"frontmatter\"", ALL_STYLESHEETS, content, "");
     }
 
-    /** A chapter, styled by the book's stylesheet alone, as the author set it. */
-    EpubPage chapter(ExportedChapter chapter, XhtmlRenderer renderer) {
+    /** A chapter, styled by the book's stylesheet alone, as the author set it, its links led by {@code links}. */
+    EpubPage chapter(ExportedChapter chapter, XhtmlRenderer renderer, LinkTargets links) {
 
         String content = "<section id=\"%s\" epub:type=\"chapter\" role=\"doc-chapter\">\n%s</section>\n"
-                .formatted(chapter.id(), renderer.toXhtml(chapter.document()));
+                .formatted(chapter.id(), renderer.toXhtml(chapter, links));
 
         return page(chapter.id(), chapter.title(), " epub:type=\"bodymatter\"", BOOK_STYLESHEET, content, "");
     }

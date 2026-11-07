@@ -64,8 +64,8 @@ class ChapterDocxTest {
         exporter.manuscriptDocx(chapter, "styles", BOOK, tempDir, target);
 
         assertThat(entry(target, DOCUMENT)).contains(
-                "<w:p><w:pPr><w:pStyle w:val=\"Heading1\"/></w:pPr><w:r><w:t xml:space=\"preserve\">Alba</w:t></w:r>"
-                        + "</w:p>",
+                "<w:p><w:pPr><w:pStyle w:val=\"Heading1\"/></w:pPr><w:bookmarkStart w:id=\"1\" w:name=\"_Bookmark1\"/>"
+                        + "<w:bookmarkEnd w:id=\"1\"/><w:r><w:t xml:space=\"preserve\">Alba</w:t></w:r></w:p>",
                 "<w:pStyle w:val=\"FirstParagraph\"/></w:pPr><w:r><w:t xml:space=\"preserve\">È così — </w:t></w:r>"
                         + "<w:r><w:rPr><w:rStyle w:val=\"Emphasis\"/></w:rPr><w:t xml:space=\"preserve\">piano"
                         + "</w:t></w:r>",

@@ -27,6 +27,8 @@ import java.util.Optional;
 public final class BookAssembler {
 
     private static final Parser PARSER = Parser.builder().build();
+    // The id of a chapter exported alone, which the headings' ids start with.
+    private static final String ALONE_ID = "chapter";
 
     private BookAssembler() {
     }
@@ -49,11 +51,24 @@ public final class BookAssembler {
             // Numbered after skipping, so ids stay one per chapter in the book: chapter-1, chapter-2…
             String id = "chapter-" + (exported.size() + 1);
             Node document = chapter.isEmpty() ? placeholder(chapter.fileTitle()) : PARSER.parse(chapter.markdown());
-            exported.add(new ExportedChapter(id, title(document).orElse(chapter.fileTitle()), document));
+            exported.add(new ExportedChapter(id, chapter.fileTitle(), title(document).orElse(chapter.fileTitle()),
+                    document));
         }
 
         return new BookExport(properties, TitlePage.of(properties, cover), Contents.of(properties.language(), exported),
                 stylesheet, baseDirectory, exported);
+    }
+
+    /**
+     * A chapter exported alone, out of the book.
+     *
+     * @param fileTitle the chapter's file name without its extension
+     * @param markdown  the chapter's text
+     */
+    public static ExportedChapter alone(String fileTitle, String markdown) {
+
+        Node document = PARSER.parse(markdown);
+        return new ExportedChapter(ALONE_ID, fileTitle, title(document).orElse(fileTitle), document);
     }
 
     /** An empty chapter's stand-in: its file name as its heading, and nothing else. */
