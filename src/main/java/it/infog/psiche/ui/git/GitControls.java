@@ -1,7 +1,13 @@
 package it.infog.psiche.ui.git;
 
 import it.infog.psiche.git.BookRepository;
+import it.infog.psiche.git.RemoteAddresses;
+import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.Commit;
+import it.infog.psiche.git.model.RemoteAddress;
+import it.infog.psiche.git.model.enums.RemoteKind;
+import it.infog.psiche.settings.Keychain;
+import it.infog.psiche.settings.model.Credentials;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import javafx.beans.binding.Bindings;
@@ -28,7 +34,11 @@ import java.util.function.Function;
 
 import static it.infog.psiche.ui.common.Controls.button;
 
-/** Commit message, Commit and Push for the open book's repository. Disabled while there is none. */
+/**
+ * Commit message, Commit and Synchronize for the open book's repository, disabled while there is none; Synchronize
+ * shows only for a book with a remote. Every Git command runs here, on one thread, connecting and removing the
+ * book's remote and Book properties' Test among them.
+ */
 public final class GitControls extends HBox {
 
     private static final Logger log = LoggerFactory.getLogger(GitControls.class);
@@ -39,23 +49,31 @@ public final class GitControls extends HBox {
 
     private final TextField commitMessage = new TextField();
     private final BooleanProperty available = new SimpleBooleanProperty();
+    private final BooleanProperty remoteConnected = new SimpleBooleanProperty();
     private final ReadOnlyBooleanWrapper busy = new ReadOnlyBooleanWrapper();
     private final BooleanSupplier confirmCommit;
     private final Runnable afterCommit;
     private final StatusBar statusBar;
     private final ErrorReporter errors;
+    private final Keychain keychain;
 
     private BookRepository repository;
+    // The book's identifier, which names its entry in the keychain.
+    private String book = "";
 
     /**
      * @param confirmCommit runs before Commit, to settle unsaved chapters; returning false cancels it
      * @param afterCommit   runs on the FX thread once a commit has been recorded
+     * @param keychain      where the tokens of the books' remotes are kept
      */
-    public GitControls(BooleanSupplier confirmCommit, Runnable afterCommit, StatusBar statusBar, ErrorReporter errors) {
+    public GitControls(BooleanSupplier confirmCommit, Runnable afterCommit, StatusBar statusBar, ErrorReporter errors,
+                       Keychain keychain) {
+
         this.confirmCommit = confirmCommit;
         this.afterCommit = afterCommit;
         this.statusBar = statusBar;
         this.errors = errors;
+        this.keychain = keychain;
 
         BooleanBinding disabled = available.not().or(busy);
         commitMessage.setPromptText("Describe this revision");
@@ -68,17 +86,26 @@ public final class GitControls extends HBox {
         commit.disableProperty().bind(disabled.or(
                 Bindings.createBooleanBinding(() -> commitMessage.getText().isBlank(), commitMessage.textProperty())));
 
-        Button push = button("Push", this::push);
-        push.disableProperty().bind(disabled);
+        // Hidden, not only disabled, for a book without a remote: most authors never need one.
+        Button synchronize = button("Synchronize", this::synchronize);
+        synchronize.disableProperty().bind(disabled);
+        synchronize.visibleProperty().bind(remoteConnected);
+        synchronize.managedProperty().bind(remoteConnected);
 
-        getChildren().addAll(commitMessage, commit, push);
+        getChildren().addAll(commitMessage, commit, synchronize);
         getStyleClass().add("git-controls");
     }
 
-    /** @param repository the open book's repository, or {@code null} to disable the controls */
-    public void setRepository(BookRepository repository) {
+    /**
+     * @param repository the open book's repository, or {@code null} to disable the controls
+     * @param book       the open book's identifier
+     */
+    public void setRepository(BookRepository repository, String book) {
+
         this.repository = repository;
+        this.book = book;
         available.set(repository != null);
+        remoteConnected.set(repository != null && repository.remote().address().isPresent());
     }
 
     /** True while a Git command is running. */
@@ -148,10 +175,70 @@ public final class GitControls extends HBox {
         afterCommit.run();
     }
 
-    private void push() {
-        // No credentials until Book properties keeps the book's token in the keychain: folders only, meanwhile.
-        run("Push", repository -> repository.push(Optional.empty()),
-                branch -> statusBar.info("Pushed %s to origin".formatted(branch)));
+    /**
+     * Makes {@code address} the book's remote, saving {@code credentials}, if any, as the book's in the keychain,
+     * which the caller has unlocked.
+     */
+    public void connectRemote(RemoteAddress address, Optional<Credentials> credentials) {
+
+        String identifier = book;
+        run("Connect the remote", repo -> {
+            credentials.ifPresent(given -> keychain.save(identifier, given));
+            return repo.remote().connect(address);
+        }, saved -> {
+            remoteConnected.set(true);
+            statusBar.info("Connected to the remote " + saved);
+        });
+    }
+
+    /** Disconnects the book from its remote, and deletes its token if the keychain is unlocked, as it is to confirm. */
+    public void removeRemote() {
+
+        String identifier = book;
+        run("Remove the remote", repo -> {
+            repo.remote().remove();
+            if (keychain.unlocked())
+                keychain.remove(identifier);
+            return identifier;
+        }, removed -> {
+            remoteConnected.set(false);
+            statusBar.info("The remote is removed");
+        });
+    }
+
+    /**
+     * The credentials saved for the book's remote, read on the Git thread: none for a folder.
+     *
+     * @throws GitCommandException if an HTTPS remote has no token saved
+     */
+    public Optional<Credentials> savedCredentials(RemoteKind kind) {
+
+        if (kind == RemoteKind.FOLDER)
+            return Optional.empty();
+
+        return Optional.of(keychain.credentials(book).orElseThrow(() -> new GitCommandException(
+                "No token is saved for this book: type it in Book properties, under Remote repository.")));
+    }
+
+    /**
+     * Asks {@code question} of the open book's repository on the Git thread, after the commands clicked before it,
+     * and hands the answer to {@code answer}, or what went wrong to {@code failure}, on the FX thread.
+     */
+    public <T> void ask(Function<BookRepository, T> question, Consumer<T> answer, Consumer<Throwable> failure) {
+
+        submit(repository, question, answer, failure);
+    }
+
+    /** Sends the book's commits to its remote, after unlocking the keychain for an HTTPS one. */
+    private void synchronize() {
+
+        RemoteKind kind = repository.remote().address().map(RemoteAddresses::kind).orElse(RemoteKind.FOLDER);
+        if (kind == RemoteKind.HTTPS && !KeychainDialogs.unlocked(getScene().getWindow(), keychain))
+            return;
+
+        // It only sends, until it learns to bring in the remote's revisions and merge them.
+        run("Synchronize", repo -> repo.push(savedCredentials(kind)),
+                branch -> statusBar.info("Synchronized with the remote"));
     }
 
     /** Runs a command the author asked for, saying so in the status bar, and busy until it ends. */

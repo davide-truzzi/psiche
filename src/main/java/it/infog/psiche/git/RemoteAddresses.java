@@ -60,6 +60,12 @@ public final class RemoteAddresses {
                 : new RemoteAddress(RemoteKind.FOLDER, folder(address).orElseThrow().toString());
     }
 
+    /** The kind of {@code saved}, a remote's address as the book's configuration has it. */
+    public static RemoteKind kind(String saved) {
+
+        return hasScheme(saved.strip(), HTTPS) ? RemoteKind.HTTPS : RemoteKind.FOLDER;
+    }
+
     private static Optional<AddressProblem> withScheme(String address) {
 
         String scheme = address.substring(0, address.indexOf(':')).toLowerCase(Locale.ROOT);

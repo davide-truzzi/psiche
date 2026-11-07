@@ -913,6 +913,68 @@
     -fx-spacing: 18;
 }
 
+/* Book properties' Remote repository section: closed under the book's fields until the author opens it, a line
+   above its title instead of a box; a Test's result in sage when good, amber with something to know, and attention
+   orange when refused. */
+.remote-section {
+    -fx-padding: 8 20 4 20;
+}
+
+.remote-section > .title {
+    -fx-background-color: transparent;
+    -fx-border-color: -desk-edge transparent transparent transparent;
+    -fx-padding: 10 0 6 0;
+}
+
+.remote-section > .title > .text {
+    -fx-fill: -paper-dim;
+}
+
+.remote-section > .title > .arrow-button > .arrow {
+    -fx-background-color: -paper-dim;
+}
+
+.remote-section > .content {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 0 0 0;
+}
+
+.remote-section-content {
+    -fx-spacing: 12;
+    -fx-max-width: 640;
+}
+
+/* A width of their own, so the dialog knows how tall the wrapped texts are before it sizes itself: asked without
+   one, a wrapping label measures itself on a single line. */
+.remote-section-content > .remote-text {
+    -fx-pref-width: 640;
+}
+
+.remote-address {
+    -fx-spacing: 8;
+}
+
+.remote-form .remote-address > .text-field {
+    -fx-pref-width: 360;
+}
+
+.remote-buttons {
+    -fx-spacing: 8;
+}
+
+.form-hint.remote-ok {
+    -fx-text-fill: -sage;
+}
+
+.form-hint.remote-note {
+    -fx-text-fill: -amber;
+}
+
+.form-hint.remote-wrong {
+    -fx-text-fill: -orange;
+}
+
 /* A group of fields, framed like an HTML fieldset: its legend sits in the top edge of the border, on the dialog's
    own background, so the line stops either side of it. */
 .fieldset {

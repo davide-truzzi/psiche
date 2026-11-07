@@ -26,7 +26,8 @@ import java.util.Arrays;
 
 /**
  * The dialogs of Psiche's {@link Keychain}: choosing the master password the first time a token is saved, typing it
- * once a session when a token is first needed, and resetting a keychain whose password is forgotten.
+ * once a session when a token is first needed, typing it again to confirm a token's deletion, and resetting a
+ * keychain whose password is forgotten.
  */
 public final class KeychainDialogs {
 
@@ -35,11 +36,14 @@ public final class KeychainDialogs {
 
     private static final ButtonType CREATE = new ButtonType("Create", ButtonData.OK_DONE);
     private static final ButtonType UNLOCK = new ButtonType("Unlock", ButtonData.OK_DONE);
+    private static final ButtonType CONFIRM = new ButtonType("Confirm", ButtonData.OK_DONE);
     private static final ButtonType RESET = new ButtonType("Reset keychain", ButtonData.LEFT);
     private static final String ABOUT = "Psiche keeps the tokens of your books' remote repositories in its own "
             + "keychain, locked by a master password, which it asks once a session, when a token is first needed.";
     private static final String CREATE_ABOUT = ABOUT + " It cannot be recovered: if you forget it, the keychain can "
             + "only be reset, which deletes every token in it.";
+    private static final String CONFIRM_ABOUT = "Removing the remote also deletes this book's token from Psiche's "
+            + "keychain. Type the keychain's master password to confirm.";
     private static final String RESET_ABOUT = "Every saved token is deleted, for every book. You can make new ones "
             + "on the hosts, such as GitHub or GitLab, and type them in each book's properties.";
 
@@ -57,7 +61,20 @@ public final class KeychainDialogs {
         if (keychain.unlocked())
             return true;
 
-        return keychain.exists() ? unlock(owner, keychain) : create(owner, keychain);
+        return keychain.exists()
+                ? askPassword(owner, keychain, "Unlock the keychain", ABOUT, UNLOCK)
+                : create(owner, keychain);
+    }
+
+    /**
+     * Asks the master password of {@code keychain} even if it is unlocked, to confirm something that deletes a token,
+     * and leaves it unlocked.
+     *
+     * @return false if the author cancels or resets the keychain
+     */
+    public static boolean confirmed(Window owner, Keychain keychain) {
+
+        return askPassword(owner, keychain, "Confirm with the master password", CONFIRM_ABOUT, CONFIRM);
     }
 
     /** Asks for a new master password, typed twice, and creates the keychain with it. */
@@ -99,10 +116,14 @@ public final class KeychainDialogs {
         }
     }
 
-    /** Asks the master password until it is the right one, the author cancels, or resets the keychain. */
-    private static boolean unlock(Window owner, Keychain keychain) {
+    /**
+     * Asks the master password until it is the right one, which unlocks the keychain, the author cancels, or resets
+     * the keychain.
+     */
+    private static boolean askPassword(Window owner, Keychain keychain, String header, String about,
+                                       ButtonType action) {
 
-        Dialog<ButtonType> dialog = dialog(owner, "Unlock the keychain", UNLOCK);
+        Dialog<ButtonType> dialog = dialog(owner, header, action);
         dialog.getDialogPane().getButtonTypes().addFirst(RESET);
 
         PasswordField password = new PasswordField();
@@ -110,11 +131,11 @@ public final class KeychainDialogs {
         problem.setWrapText(true);
         Controls.setShown(problem, false);
         password.textProperty().addListener((obs, old, text) -> Controls.setShown(problem, false));
-        dialog.getDialogPane().lookupButton(UNLOCK).disableProperty()
+        dialog.getDialogPane().lookupButton(action).disableProperty()
                 .bind(Bindings.createBooleanBinding(() -> password.getLength() == 0, password.textProperty()));
 
         // A wrong password keeps the dialog open, saying so, for another try.
-        dialog.getDialogPane().lookupButton(UNLOCK).addEventFilter(ActionEvent.ACTION, event -> {
+        dialog.getDialogPane().lookupButton(action).addEventFilter(ActionEvent.ACTION, event -> {
             char[] typed = characters(password);
             try {
                 if (keychain.unlock(typed))
@@ -143,9 +164,9 @@ public final class KeychainDialogs {
         GridPane form = form();
         form.addRow(0, new Label("Master password"), password);
         form.add(problem, 1, 1);
-        content(dialog, ABOUT, form, password);
+        content(dialog, about, form, password);
 
-        return dialog.showAndWait().filter(UNLOCK::equals).isPresent() && keychain.unlocked();
+        return dialog.showAndWait().filter(action::equals).isPresent() && keychain.unlocked();
     }
 
     /** Asks whether to delete every token, and does it; false if the author changes their mind or it fails. */

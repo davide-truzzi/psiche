@@ -63,4 +63,11 @@ class RemoteAddressesTest {
         assertThat(RemoteAddresses.read("file:///media/davide/USB/Backup"))
                 .isEqualTo(new RemoteAddress(RemoteKind.FOLDER, "/media/davide/USB/Backup"));
     }
+
+    @Test
+    void aSavedAddressIsHttpsOrAFolder() {
+
+        assertThat(RemoteAddresses.kind("https://github.com/davide/alba.git")).isEqualTo(RemoteKind.HTTPS);
+        assertThat(RemoteAddresses.kind("/media/davide/USB/PsicheRepository/alba.git")).isEqualTo(RemoteKind.FOLDER);
+    }
 }

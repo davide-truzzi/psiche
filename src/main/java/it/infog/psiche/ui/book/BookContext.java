@@ -7,6 +7,7 @@ import it.infog.psiche.book.model.enums.PageMeasure;
 import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.ui.chapters.ChapterContext;
@@ -52,18 +53,22 @@ public final class BookContext implements AutoCloseable {
     private final Supplier<Window> window;
     private final Runnable onOpened;
     private final Settings settings;
+    private final Keychain keychain;
     private final ChapterFolderWatch chapterWatch;
     private final BookLocations locations;
 
     private BookFolder book;
     private BookRepository repository;
 
-    /** @param onOpened runs each time a book has opened, to reveal its parts */
-    /** @param settings where the books opened lately are remembered */
+    /**
+     * @param onOpened runs each time a book has opened, to reveal its parts
+     * @param settings where the books opened lately are remembered
+     * @param keychain where the tokens of the books' remotes are kept
+     */
     public BookContext(ChapterContext chapters, GitControls gitControls, StatusBar statusBar,
                        UnsavedChanges unsavedChanges, Exports exports, NotesTransfer notesTransfer,
                        ProjectTransfer projectTransfer, ErrorReporter errors, Supplier<Window> window,
-                       Runnable onOpened, Settings settings) {
+                       Runnable onOpened, Settings settings, Keychain keychain) {
 
         this.chapters = chapters;
         this.gitControls = gitControls;
@@ -76,6 +81,7 @@ public final class BookContext implements AutoCloseable {
         this.window = window;
         this.onOpened = onOpened;
         this.settings = settings;
+        this.keychain = keychain;
 
         chapterWatch = new ChapterFolderWatch(chapters, statusBar);
         locations = new BookLocations(settings);
@@ -164,7 +170,10 @@ public final class BookContext implements AutoCloseable {
         openBook(created.root());
     }
 
-    /** Edits the open book's properties and cover; they are written as soon as the author saves the form. */
+    /**
+     * Edits the open book's properties and cover, which are written as soon as the author saves the form, and its
+     * remote, connected or removed then on the Git thread.
+     */
     public void editProperties() {
 
         BookProperties current;
@@ -176,7 +185,10 @@ public final class BookContext implements AutoCloseable {
         }
 
         Optional<Path> cover = book.cover();
-        BookPropertiesDialog.show(window.get(), current, cover).ifPresent(edit -> {
+        Optional<String> remoteAddress = Optional.ofNullable(repository).flatMap(repo -> repo.remote().address());
+        RemoteSection remote = new RemoteSection(gitControls, keychain, book.root(), remoteAddress,
+                repository != null);
+        BookPropertiesDialog.show(window.get(), current, cover, remote).ifPresent(edit -> {
             try {
                 book.saveProperties(edit.properties());
                 if (edit.cover().isEmpty())
@@ -192,6 +204,8 @@ public final class BookContext implements AutoCloseable {
             statusBar.setPageMeasure(pageMeasure());
             chapters.setBookProperties(edit.properties());
             statusBar.info("Book properties saved");
+            if (repository != null)
+                remote.apply();
         });
     }
 
@@ -267,7 +281,7 @@ public final class BookContext implements AutoCloseable {
         statusBar.setPageMeasure(pageMeasure());
         try {
             repository = BookRepository.open(book.root());
-            gitControls.setRepository(repository);
+            gitControls.setRepository(repository, identifier());
             statusBar.info("Opened " + book.title());
         } catch (GitCommandException e) {
             // Not fatal: the book can be edited without Git, so flag it in the status bar instead of an alert.
@@ -324,8 +338,19 @@ public final class BookContext implements AutoCloseable {
             repository = null;
         }
 
-        gitControls.setRepository(null);
+        gitControls.setRepository(null, "");
         bookOpen.set(false);
+    }
+
+    /** The open book's identifier, which names its token in the keychain; blank if its properties cannot be read. */
+    private String identifier() {
+
+        try {
+            return book.properties().identifier();
+        } catch (UncheckedIOException e) {
+            log.warn("Cannot read the identifier of {}", book.root(), e);
+            return "";
+        }
     }
 
     /** The title from the book's properties, or the folder's name if they cannot be read. */

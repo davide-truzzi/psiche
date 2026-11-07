@@ -1,8 +1,10 @@
 package it.infog.psiche.ui;
 
 import it.infog.psiche.markdown.MarkdownRenderer;
+import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.SettingsFolders;
+import it.infog.psiche.settings.model.SettingsFolder;
 import it.infog.psiche.settings.model.WindowBounds;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.common.AppInfo;
@@ -52,6 +54,7 @@ public final class WriterApp extends Application {
 
     private BookWorkspace workspace;
     private Settings settings;
+    private Keychain keychain;
     private Stage stage;
 
     public static void main(String[] args) {
@@ -67,7 +70,9 @@ public final class WriterApp extends Application {
 
         //settings, in the user's settings folder, or next to the app when it runs portable
         this.stage = stage;
-        settings = new Settings(SettingsFolders.resolve());
+        SettingsFolder settingsFolder = SettingsFolders.resolve();
+        settings = new Settings(settingsFolder);
+        keychain = new Keychain(settingsFolder);
 
         //load preview CSS: the dark theme only recolors the default one, so it comes after it
         String previewStyle = readResource("preview.css");
@@ -78,7 +83,7 @@ public final class WriterApp extends Application {
         });
 
         workspace = new BookWorkspace(renderers, readResource("welcome.md"), getHostServices()::showDocument,
-                settings);
+                settings, keychain);
 
         //generate scene with app CSS
         Scene scene = new Scene(workspace, 1360, 860);
@@ -116,6 +121,8 @@ public final class WriterApp extends Application {
 
         rememberBounds();
         workspace.close();
+        // The master password, typed once this session, goes with it.
+        keychain.lock();
     }
 
     /** Puts the window where {@code bounds} say, maximized if it was. */

@@ -5,6 +5,7 @@ import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.media.ChapterMedia;
+import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.ChapterTab;
@@ -93,9 +94,10 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
      * @param welcome   Markdown shown in the editor and rendered in the preview until a book is opened
      * @param browser   opens a web or mail link from the preview in the system's default application
      * @param settings  where the app remembers what outlasts a session, such as the books opened lately
+     * @param keychain  where the tokens of the books' remotes are kept
      */
     BookWorkspace(Function<PreviewTheme, MarkdownRenderer> renderers, String welcome, Consumer<String> browser,
-                  Settings settings) {
+                  Settings settings, Keychain keychain) {
 
         this.settings = settings;
         this.browser = browser;
@@ -111,7 +113,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapterEditor.setEditorMode(preferences.editorMode());
         unsavedChanges = new UnsavedChanges(chapterEditor, this::window);
         gitControls = new GitControls(() -> unsavedChanges.settle("Save them before committing?"),
-                this::committed, statusBar, this::reportError);
+                this::committed, statusBar, this::reportError, keychain);
         Runnable keepNotesOutOfGit = () -> gitControls.ignore("notes/", "Keep chapter notes out of Git",
                 "Notes are kept out of Git");
         notes = new NotesPane(statusBar, this::reportError, keepNotesOutOfGit::run, browser);
@@ -131,7 +133,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapterTabs = chapterTabs();
         openingTab = new OpeningTab(chapterTabs, settings, statusBar);
         books = new BookContext(chapters, gitControls, statusBar, unsavedChanges, exports, notesTransfer,
-                projectTransfer, this::reportError, this::window, this::bookOpened, settings);
+                projectTransfer, this::reportError, this::window, this::bookOpened, settings, keychain);
 
         // Back in the window, the author may have added chapters elsewhere; only matters while they are not watched.
         sceneProperty().flatMap(Scene::windowProperty).flatMap(Window::focusedProperty)
