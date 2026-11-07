@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.5.0 Alpha (not released yet)
+## 0.5.0 Alpha (2026-11-07)
+
+The fifth release for testing: images and links in the chapters, a Default editor mode where the Markdown recedes,
+and, for advanced use, a book kept in step with a remote repository.
 
 ### What is new
 
