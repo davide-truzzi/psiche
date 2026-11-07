@@ -175,17 +175,28 @@ public final class TextLinks {
             return List.of();
 
         Set<String> own = HeadingAnchors.anchors(text);
-        return links.stream().filter(link -> {
-            LinkTarget target = target(link.destination(), chapter);
-            return switch (target.kind()) {
-                case WEB -> false;
-                case MALFORMED -> true;
-                case CHAPTER -> {
-                    Set<String> headings = target.chapter().equals(chapter) ? own : anchors.get(target.chapter());
-                    yield headings == null || !target.anchor().isEmpty() && !headings.contains(target.anchor());
-                }
-            };
-        }).toList();
+        return links.stream().filter(link -> isBroken(link.destination(), chapter, own, anchors)).toList();
+    }
+
+    /**
+     * True if a link found at {@code destination}, in the chapter named {@code chapter}, leads nowhere, as
+     * {@link #broken} tells.
+     *
+     * @param own     the anchors of the chapter's own headings, as its text is now
+     * @param anchors each chapter of the book by name, with the anchors of its headings
+     */
+    public static boolean isBroken(String destination, String chapter, Set<String> own,
+                                   Map<String, Set<String>> anchors) {
+
+        LinkTarget target = target(destination, chapter);
+        return switch (target.kind()) {
+            case WEB -> false;
+            case MALFORMED -> true;
+            case CHAPTER -> {
+                Set<String> headings = target.chapter().equals(chapter) ? own : anchors.get(target.chapter());
+                yield headings == null || !target.anchor().isEmpty() && !headings.contains(target.anchor());
+            }
+        };
     }
 
     // Changing links

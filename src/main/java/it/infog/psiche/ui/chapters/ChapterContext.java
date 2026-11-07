@@ -127,6 +127,11 @@ public final class ChapterContext {
         notesPane.setOnBinned(detached::check);
         mediaPane.setOnDetached(detached::check);
         notesPane.setChapters(this::chapterTitles);
+        // The preview shows the links that lead nowhere as the editor does, and opens links as the editor does.
+        preview.setLinkCheck(chapterEditor.links()::brokenCheck);
+        chapterEditor.links().setChapters(chapterList::getItems, chapterList.getSelectionModel()::select);
+        preview.setOnLink(chapterEditor.links()::follow);
+        chapterEditor.links().setOnChecked(() -> followEditor(chapterEditor.text()));
     }
 
     /**
@@ -396,6 +401,6 @@ public final class ChapterContext {
             return;
 
         status.countBook(book, chapterList.getItems());
-        chapterEditor.readHeadings(book, chapterList.getItems());
+        chapterEditor.links().read(book, chapterList.getItems());
     }
 }

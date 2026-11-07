@@ -26,17 +26,18 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * The open chapter typeset as a page of the book, following the editor as the author types. While it is hidden, it
- * neither renders nor scrolls; it catches up with the latest text and position once it shows again. Web and mail links
- * open in the system browser; the preview itself never leaves the page. Its theme and the size of its text can change
- * while it shows a page, which then renders again in the new ones.
+ * neither renders nor scrolls; it catches up with the latest text and position once it shows again. A link clicked is
+ * handed to whoever opens links, as the manuscript's are; the preview itself never leaves the page. A link that leads
+ * nowhere shows as its text alone. Its theme and the size of its text can change while it shows a page, which then
+ * renders again in the new ones.
  */
 public final class PreviewPane extends StackPane {
 
@@ -61,13 +62,10 @@ public final class PreviewPane extends StackPane {
     private static final String REPLACE_ARTICLE = "document.querySelector('article').innerHTML = %s;";
     private static final String SCROLL_TO = "window.scrollTo(0, %s)";
 
-    // Links with these schemes open in the system browser or mail client.
-    private static final List<String> EXTERNAL_SCHEMES = List.of("http:", "https:", "mailto:");
     // Lets the frame around the page, seen while it loads, follow the theme.
     private static final PseudoClass DARK = PseudoClass.getPseudoClass("dark");
 
     private final Function<PreviewTheme, MarkdownRenderer> renderers;
-    private final Consumer<String> browser;
     // Held here because the page alone may not keep a listener added from Java alive.
     private final EventListener linkClicks = this::openLink;
     private final WebView view = new WebView();
@@ -76,6 +74,9 @@ public final class PreviewPane extends StackPane {
     private final PauseTransition followDelay = new PauseTransition(FOLLOW_DELAY);
     private final BooleanProperty showing = new SimpleBooleanProperty(true);
     private Runnable pendingRender = () -> {};
+    // Tells, at each render, which links lead nowhere; none until told otherwise.
+    private Supplier<Predicate<String>> brokenLinks = () -> destination -> false;
+    private Consumer<String> links = destination -> {};
     private double scrollAfterLoad;
     // True while a render is held back because the preview is hidden.
     private boolean renderWaiting;
@@ -99,14 +100,12 @@ public final class PreviewPane extends StackPane {
      * @param theme     the theme to start in
      * @param fontSize  the size of the page's text to start with, in pixels
      * @param data      the folder the web engine keeps its own data in, which it makes as it needs it
-     * @param browser   opens a web or mail link in the system's default application
      */
     public PreviewPane(Function<PreviewTheme, MarkdownRenderer> renderers, PreviewTheme theme, int fontSize,
-                       Path data, Consumer<String> browser) {
+                       Path data) {
 
         this.renderers = renderers;
         this.fontSize = fontSize;
-        this.browser = browser;
 
         // Without one, the engine makes a folder named after the app's main class in the home folder.
         view.getEngine().setUserDataDirectory(data.toFile());
@@ -174,6 +173,24 @@ public final class PreviewPane extends StackPane {
             load(markdown, baseDirectory, currentScroll());
         else
             hold(() -> load(markdown, baseDirectory, currentScroll()));
+    }
+
+    /**
+     * Asks {@code check}, at each render, for what tells the destination of a link that leads nowhere, which the page
+     * shows as its text alone.
+     */
+    public void setLinkCheck(Supplier<Predicate<String>> check) {
+
+        brokenLinks = check;
+    }
+
+    /**
+     * Hands {@code open} the destination of each link the author clicks, as the page writes it, its special characters
+     * percent-encoded.
+     */
+    public void setOnLink(Consumer<String> open) {
+
+        links = open;
     }
 
     /** False while the preview is hidden, as behind another tab, so it does no work nobody would see. */
@@ -284,7 +301,7 @@ public final class PreviewPane extends StackPane {
         shownMarkdown = markdown;
         shownBaseDirectory = baseDirectory;
         if (isLoadedFor(baseDirectory)) {
-            String article = renderer.renderArticle(markdown, baseDirectory);
+            String article = renderer.renderArticle(markdown, baseDirectory, brokenLinks.get());
             view.getEngine().executeScript(REPLACE_ARTICLE.formatted(JavaScript.string(article)));
             view.getEngine().executeScript(SCROLL_TO.formatted(scroll));
             showFollowedPosition();
@@ -295,7 +312,7 @@ public final class PreviewPane extends StackPane {
         loadedRenderer = renderer;
         loadedBaseDirectory = baseDirectory;
         loadedFontSize = fontSize;
-        loadPage(renderer.render(markdown, baseDirectory, fontSize));
+        loadPage(renderer.render(markdown, baseDirectory, fontSize, brokenLinks.get()));
     }
 
     /**
@@ -333,8 +350,8 @@ public final class PreviewPane extends StackPane {
     }
 
     /**
-     * Hands a web or mail link to the system browser. Any other link, such as one to a chapter file, would take the
-     * preview away from the chapter, so it does nothing; links to a place on the same page still work.
+     * Hands the link clicked to whoever opens links; the preview itself never follows one, which would take it away
+     * from the chapter.
      */
     private void openLink(Event event) {
 
@@ -342,14 +359,8 @@ public final class PreviewPane extends StackPane {
         if (link == null)
             return;
 
-        String href = link.getAttribute("href").strip();
-        if (href.startsWith("#"))
-            return;
-
         event.preventDefault();
-        String lowerCase = href.toLowerCase(Locale.ROOT);
-        if (EXTERNAL_SCHEMES.stream().anyMatch(lowerCase::startsWith))
-            browser.accept(href);
+        links.accept(link.getAttribute("href").strip());
     }
 
     /** The link {@code node} is in, or null if it is not inside one. */

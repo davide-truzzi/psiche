@@ -34,7 +34,7 @@ public final class ChapterEditor {
     private final ChapterSpelling spelling;
     private final ChapterPlaces places;
     private final ChapterEdits edits;
-    private final BookHeadings headings;
+    private final ChapterLinks links;
     private Runnable insertImage = () -> {};
 
     private BookFolder book;
@@ -56,10 +56,9 @@ public final class ChapterEditor {
         spelling = new ChapterSpelling(manuscript, statusBar, ownWords, addOwnWord);
         places = new ChapterPlaces(manuscript, () -> chapter);
         edits = new ChapterEdits(manuscript, this::isOpen);
-        headings = new BookHeadings(manuscript::setBookAnchors);
+        links = new ChapterLinks(manuscript, this::chapter);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
-        LinkActions links = new LinkActions(manuscript, this::chapter, headings);
-        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run(), links), manuscript,
+        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run(), links.actions()), manuscript,
                 spelling::makeRight);
     }
 
@@ -201,6 +200,12 @@ public final class ChapterEditor {
         manuscript.reveal(position);
     }
 
+    /** Opens the web and mail links the author Ctrl-clicks in the manuscript with {@code browser}. */
+    public void setBrowser(Consumer<String> browser) {
+
+        links.setBrowser(browser);
+    }
+
     /** Runs {@code action} when the author asks to insert an image, from the manuscript's right-click menu. */
     public void setOnInsertImage(Runnable action) {
 
@@ -243,10 +248,10 @@ public final class ChapterEditor {
         return places;
     }
 
-    /** Reads the headings of {@code chapters} of {@code book} again, as saved, which links are checked against. */
-    void readHeadings(BookFolder book, List<Chapter> chapters) {
+    /** The open chapter's links: checked against the book's headings, and followed from the preview. */
+    ChapterLinks links() {
 
-        headings.read(book, List.copyOf(chapters));
+        return links;
     }
 
     /**
@@ -279,7 +284,7 @@ public final class ChapterEditor {
         chapter = null;
         savedText = "";
         manuscript.setChapter(null);
-        headings.clear();
+        links.clear();
         manuscript.clear();
         dirty.set(false);
     }

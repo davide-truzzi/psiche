@@ -42,4 +42,14 @@ class HeadingAnchorsTest {
 
         assertThat(HeadingAnchors.anchors(text)).containsExactly("shown");
     }
+
+    @Test
+    void findsWhereTheHeadingNamedByAnAnchorStarts() {
+
+        String text = "# Departure\n\n## Night\n\nText.\n\n## Night\n";
+
+        assertThat(HeadingAnchors.start(text, "night-1")).hasValue(text.lastIndexOf("## Night"));
+        assertThat(HeadingAnchors.start(text, "departure")).hasValue(0);
+        assertThat(HeadingAnchors.start(text, "day")).isEmpty();
+    }
 }

@@ -4,6 +4,8 @@ import it.infog.psiche.markdown.model.HeadingAnchor;
 
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.Heading;
+import org.commonmark.node.SourceSpan;
+import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
 import java.util.ArrayList;
@@ -11,7 +13,9 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
@@ -26,7 +30,7 @@ public final class HeadingAnchors {
     // underscores.
     private static final Pattern LEFT_OUT = Pattern.compile("[^\\p{L}\\p{M}\\p{N}\\p{Pc} -]");
 
-    private static final Parser PARSER = Parser.builder().build();
+    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
 
     private HeadingAnchors() {
     }
@@ -35,17 +39,44 @@ public final class HeadingAnchors {
     public static List<HeadingAnchor> of(String text) {
 
         List<HeadingAnchor> headings = new ArrayList<>();
-        Set<String> taken = new HashSet<>();
+        Function<Heading, String> namer = namer();
         PARSER.parse(text).accept(new AbstractVisitor() {
             @Override
             public void visit(Heading heading) {
 
-                String plain = PlainText.of(heading);
-                headings.add(new HeadingAnchor(heading.getLevel(), plain, unique(anchor(plain), taken)));
+                headings.add(new HeadingAnchor(heading.getLevel(), PlainText.of(heading), namer.apply(heading)));
             }
         });
 
         return headings;
+    }
+
+    /** Where the heading of {@code text} named {@code anchor} starts; empty if it has none of that name. */
+    public static OptionalInt start(String text, String anchor) {
+
+        List<Integer> starts = new ArrayList<>();
+        Function<Heading, String> namer = namer();
+        PARSER.parse(text).accept(new AbstractVisitor() {
+            @Override
+            public void visit(Heading heading) {
+
+                List<SourceSpan> spans = heading.getSourceSpans();
+                if (namer.apply(heading).equals(anchor) && !spans.isEmpty())
+                    starts.add(spans.getFirst().getInputIndex());
+            }
+        });
+
+        return starts.isEmpty() ? OptionalInt.empty() : OptionalInt.of(starts.getFirst());
+    }
+
+    /**
+     * Names the headings of one parsed text, given in the order they come, as {@link #of} names them: for a renderer
+     * that walks a parsed chapter and marks each heading with its anchor. A new one is needed for each text.
+     */
+    public static Function<Heading, String> namer() {
+
+        Set<String> taken = new HashSet<>();
+        return heading -> unique(anchor(PlainText.of(heading)), taken);
     }
 
     /** The anchors of the headings of {@code text}, in order. */

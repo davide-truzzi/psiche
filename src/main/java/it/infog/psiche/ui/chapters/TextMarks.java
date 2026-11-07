@@ -133,9 +133,10 @@ final class TextMarks {
     /** Finds the text's links, in teal, and those that lead nowhere, in orange. */
     private void findLinks() {
 
+        // The welcome's links too, with no chapter open; which links lead nowhere only a chapter's text can tell.
         String text = area.getText();
-        List<TextLink> found = chapter == null ? List.of() : TextLinks.of(text);
-        List<TextLink> broken = bookAnchors == null
+        List<TextLink> found = TextLinks.of(text);
+        List<TextLink> broken = chapter == null || bookAnchors == null
                 ? List.of()
                 : TextLinks.broken(text, found, chapter.title(), bookAnchors);
 
