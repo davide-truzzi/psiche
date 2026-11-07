@@ -24,9 +24,6 @@ import java.util.stream.StreamSupport;
  */
 public final class ImageUses {
 
-    // How every image's Markdown starts: a text without it has none, and need not be parsed.
-    private static final String IMAGE_START = "![";
-
     private ImageUses() {
     }
 
@@ -60,10 +57,13 @@ public final class ImageUses {
      */
     public static List<ImageLine> missing(String text, Path chaptersDir) {
 
-        if (!text.contains(IMAGE_START))
-            return List.of();
+        return missing(ImageLines.of(text), chaptersDir);
+    }
 
-        return ImageLines.of(text).stream()
+    /** The image paragraphs among {@code lines}, found in a text already, whose file is not there. */
+    public static List<ImageLine> missing(List<ImageLine> lines, Path chaptersDir) {
+
+        return lines.stream()
                 .filter(line -> !ImageLines.isWebAddress(line.destination()))
                 .filter(line -> file(chaptersDir, line).filter(Files::isRegularFile).isEmpty())
                 .toList();
@@ -94,9 +94,6 @@ public final class ImageUses {
      * renamed, showing it in the folder of {@code to}, the chapter's new name, as {@link ChapterMedia#rename} moved it.
      */
     public static String withChapter(String text, Path chaptersDir, Path from, String to) {
-
-        if (!text.contains(IMAGE_START))
-            return text;
 
         Path folder = from.normalize();
         Map<String, String> moves = new LinkedHashMap<>();

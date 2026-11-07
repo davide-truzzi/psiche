@@ -24,6 +24,8 @@ public final class ImageLines {
     // A destination with a scheme, as https: or data:, which is no file of the book.
     private static final Pattern WEB_ADDRESS = Pattern.compile("[a-zA-Z][a-zA-Z0-9+.-]*:");
     private static final String PARAGRAPH_BREAK = "\n\n";
+    // How every image's Markdown starts: a text without it has none, and need not be parsed.
+    private static final String IMAGE_START = "![";
 
     private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
 
@@ -34,6 +36,9 @@ public final class ImageLines {
     public static List<ImageLine> of(String text) {
 
         List<ImageLine> lines = new ArrayList<>();
+        if (!text.contains(IMAGE_START))
+            return lines;
+
         PARSER.parse(text).accept(new AbstractVisitor() {
             @Override
             public void visit(Paragraph paragraph) {

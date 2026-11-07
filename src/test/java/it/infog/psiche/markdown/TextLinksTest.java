@@ -42,6 +42,16 @@ class TextLinksTest {
     }
 
     @Test
+    void theAddressRunsFromTheBracketClosingTheTextToTheClosingParenthesis() {
+
+        String text = "See [the map](Harbour%20office.md#the-clerk \"Clerk\") today.";
+
+        TextRange address = TextLinks.of(text).getFirst().address();
+        assertThat(text.substring(address.start(), address.end()))
+                .isEqualTo("](Harbour%20office.md#the-clerk \"Clerk\")");
+    }
+
+    @Test
     void linksByReferenceBareAddressesImagesAndCommentsAreNotFound() {
 
         String text = "A [reference][ref] and <https://example.com> and ![a map](map.png).\n\n"

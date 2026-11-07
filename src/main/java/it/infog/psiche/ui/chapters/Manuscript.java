@@ -84,7 +84,7 @@ final class Manuscript {
         area.setUndoManager(UndoUtils.plainTextUndoManager(area));
         // Kept by the area it listens to.
         new CaretBlink(area);
-        repetitions = new Repetitions(area, repetitionsCounted);
+        repetitions = new Repetitions(area, marks::notProse, repetitionsCounted);
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             marks.follow(change);

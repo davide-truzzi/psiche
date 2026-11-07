@@ -14,14 +14,15 @@ import java.util.TreeSet;
 
 /**
  * The style classes of the manuscript's text, which writer.css draws: its comments in grey, the ones the preview
- * leaves out, its spelling mistakes with a dotted line under them, its links in teal, and its images whose file is
- * missing and its links that lead nowhere in orange. A part can have several, as a mistake inside a comment, for the
- * moment it takes a check to see it is one, has both.
+ * leaves out, its spelling mistakes with a dotted line under them, its images in green, its links in teal, and its
+ * images whose file is missing and its links that lead nowhere in orange. A part can have several, as a mistake
+ * inside a comment, for the moment it takes a check to see it is one, has both.
  */
 final class TextStyles {
 
     static final String COMMENT = "comment";
     static final String MISTAKE = "misspelled";
+    static final String IMAGE = "image";
     static final String MISSING_IMAGE = "missing-image";
     static final String LINK = "link";
     static final String BROKEN_LINK = "broken-link";

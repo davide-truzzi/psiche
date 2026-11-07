@@ -15,4 +15,10 @@ public record TextLink(TextRange range,
                        String text,
                        String destination,
                        String title) {
+
+    /** Where the link's address is written: from the bracket closing its text to its closing parenthesis. */
+    public TextRange address() {
+
+        return new TextRange(label.end(), range.end());
+    }
 }

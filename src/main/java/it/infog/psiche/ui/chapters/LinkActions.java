@@ -121,7 +121,7 @@ final class LinkActions {
         String text = manuscript.text();
         TextRange range = trimmedSelection();
         return MarkdownFormatter.spansOneLine(text, range.start(), range.end())
-                && ImageLines.of(text).stream().noneMatch(image -> overlaps(image.range(), range));
+                && ImageLines.of(text).stream().noneMatch(image -> image.range().overlaps(range));
     }
 
     private Optional<TextLink> linkAtSelection() {
@@ -154,11 +154,5 @@ final class LinkActions {
         SequencedMap<String, List<HeadingAnchor>> chapters = new LinkedHashMap<>(headings.headings());
         chapters.put(name, HeadingAnchors.of(text));
         return chapters;
-    }
-
-    /** True if {@code a} and {@code b} share a character, or {@code b}, empty, lies inside {@code a}. */
-    private static boolean overlaps(TextRange a, TextRange b) {
-
-        return a.start() < b.end() && b.start() < a.end() || a.start() <= b.start() && b.end() <= a.end();
     }
 }

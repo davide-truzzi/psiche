@@ -3,6 +3,8 @@ package it.infog.psiche.markdown;
 import it.infog.psiche.markdown.model.TextRange;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class OccurrencesTest {
@@ -67,5 +69,16 @@ class OccurrencesTest {
 
         assertThat(Occurrences.wordAt("river", 99, 4)).contains(new TextRange(0, 5));
         assertThat(Occurrences.wordAt("", 0, 4)).isEmpty();
+    }
+
+    @Test
+    void placesInOrAcrossASkippedPartAreLeftOut() {
+
+        String text = "The lantern. [Lantern room](Lantern.md) ![lantern](lantern.png)";
+        TextRange address = new TextRange(text.indexOf("]("), text.indexOf(")") + 1);
+        TextRange image = new TextRange(text.indexOf("!["), text.length());
+
+        assertThat(Occurrences.of(text, "lantern", List.of(address, image)))
+                .containsExactly(new TextRange(4, 11), new TextRange(14, 21));
     }
 }

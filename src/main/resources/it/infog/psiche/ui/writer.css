@@ -308,6 +308,11 @@
     -fx-fill: -graphite;
 }
 
+/* An image, caption and file alike, in sage green, set apart from the text and from the links' teal. */
+.manuscript .paragraph-text .text.image {
+    -fx-fill: -sage;
+}
+
 /* An image whose file is missing, deleted, renamed or not brought back with a past version of the chapter: an error,
    in attention orange. */
 .manuscript .paragraph-text .text.missing-image {
