@@ -1,12 +1,8 @@
 package it.infog.psiche.ui.chapters;
 
-import it.infog.psiche.book.BookFolder;
-import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.enums.PageMeasure;
-import it.infog.psiche.markdown.TextCounter;
 import it.infog.psiche.markdown.model.TextCount;
 import it.infog.psiche.ui.common.Icons;
-import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -16,31 +12,21 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.UncheckedIOException;
-import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import static it.infog.psiche.ui.common.Controls.setShown;
 
 /**
  * The whole book's characters, words and pages, under the chapter list, one to a line, counted as the status bar
- * counts the open chapter. They count the chapters as saved, on a thread of their own, when the book opens, when a
- * chapter is saved, and when one is added, removed or renamed, so typing never recounts the book. Clicking
- * "Book counts…" collapses them to that line, or opens them again. Used on the FX thread.
+ * counts the open chapter, from the chapters as saved, which {@link BookReading} reads. Clicking "Book counts…"
+ * collapses them to that line, or opens them again. Used on the FX thread.
  */
 final class BookCounts {
 
-    private static final Logger log = LoggerFactory.getLogger(BookCounts.class);
     private static final PseudoClass COLLAPSED = PseudoClass.getPseudoClass("collapsed");
 
-    private final ExecutorService counter =
-            Executors.newSingleThreadExecutor(Thread.ofPlatform().name("book-counts").daemon().factory());
     private final Label characters = new Label();
     private final Label words = new Label();
     private final Label pages = new Label();
@@ -48,10 +34,8 @@ final class BookCounts {
     private final VBox box;
     private final ObservableValue<PageMeasure> measure;
     private final Consumer<Boolean> remember;
-    // None until the first count of a book comes back.
+    // None until the book is first read.
     private TextCount count;
-    // Counting again starts a new round; a slower count of an earlier round is dropped when it comes back.
-    private int round;
 
     /**
      * @param measure  how pages are counted, as the status bar counts them
@@ -89,37 +73,16 @@ final class BookCounts {
         return box;
     }
 
-    /** Counts {@code chapters} of {@code book} again, as saved; a chapter that cannot be read is left out. */
-    void count(BookFolder book, List<Chapter> chapters) {
+    /** Shows {@code counted}, the whole book's characters and words, as saved. */
+    void show(TextCount counted) {
 
-        int counting = ++round;
-        counter.execute(() -> {
-            int allCharacters = 0;
-            int allWords = 0;
-            for (Chapter chapter : chapters) {
-                try {
-                    TextCount chapterCount = TextCounter.count(book.read(chapter));
-                    allCharacters += chapterCount.characters();
-                    allWords += chapterCount.words();
-                } catch (UncheckedIOException e) {
-                    log.warn("Cannot count {}", chapter.title(), e);
-                }
-            }
-
-            TextCount counted = new TextCount(allCharacters, allWords);
-            Platform.runLater(() -> {
-                if (counting != round)
-                    return;
-                count = counted;
-                show();
-            });
-        });
+        count = counted;
+        show();
     }
 
-    /** Hides the counts, as no book is open, and drops a count still on its way. */
+    /** Hides the counts, as no book is open. */
     void clear() {
 
-        round++;
         count = null;
         show();
     }

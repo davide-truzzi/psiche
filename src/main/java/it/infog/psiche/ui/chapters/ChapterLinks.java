@@ -1,15 +1,16 @@
 package it.infog.psiche.ui.chapters;
 
-import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.TextLinks;
+import it.infog.psiche.markdown.model.HeadingAnchor;
 import it.infog.psiche.markdown.model.LinkTarget;
 import it.infog.psiche.markdown.model.enums.LinkKind;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -48,10 +49,10 @@ final class ChapterLinks {
         return actions;
     }
 
-    /** Reads the headings of {@code chapters} of {@code book} again, as saved, which the links are checked against. */
-    void read(BookFolder book, List<Chapter> chapters) {
+    /** Takes {@code found}, each chapter's headings in the book's order, as saved, to check the links against. */
+    void takeHeadings(SequencedMap<String, List<HeadingAnchor>> found) {
 
-        headings.read(book, List.copyOf(chapters));
+        headings.take(found);
     }
 
     /** Drops the book's headings, as no book is open. */

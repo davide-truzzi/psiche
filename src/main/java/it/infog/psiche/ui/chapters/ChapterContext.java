@@ -71,6 +71,7 @@ public final class ChapterContext {
     private final DetachedButtons detached;
     private final ChapterRevisions revisions;
     private final ChapterStatus status;
+    private final BookReading reading;
 
     private final BooleanProperty bookOpen = new SimpleBooleanProperty();
     private final BooleanProperty hasRepository = new SimpleBooleanProperty();
@@ -108,6 +109,7 @@ public final class ChapterContext {
                 why -> changes.readyForCommit(repository, why, Optional.empty()),
                 detached::offerRestore, this::showChapter);
         status = new ChapterStatus(chapterEditor, statusBar, bookCountsShown, rememberBookCounts);
+        reading = new BookReading(status::showBookCount, chapterEditor.links()::takeHeadings);
         sidebar = buildSidebar();
 
         // listeners
@@ -181,6 +183,7 @@ public final class ChapterContext {
         mediaPane.show(null, null);
 
         // Closing a saved chapter leaves the dirty flag unchanged, so its listener would not clear the status bar.
+        reading.clear();
         status.clear();
         chapterList.getItems().clear();
 
@@ -394,13 +397,10 @@ public final class ChapterContext {
         status.countLater();
     }
 
-    /** Counts the book's chapters again, and reads their headings for the links, as they are saved. */
+    /** Reads the book's chapters again, as saved, for its counts and for the headings its links lead to. */
     private void readBook() {
 
-        if (book == null)
-            return;
-
-        status.countBook(book, chapterList.getItems());
-        chapterEditor.links().read(book, chapterList.getItems());
+        if (book != null)
+            reading.read(book, chapterList.getItems());
     }
 }

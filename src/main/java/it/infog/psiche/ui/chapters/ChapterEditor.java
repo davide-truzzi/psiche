@@ -62,26 +62,28 @@ public final class ChapterEditor {
                 spelling::makeRight);
     }
 
-    public Node node() {
+    // The page
 
-        return manuscript.node();
-    }
-
-    public ObservableValue<String> textProperty() {
-
-        return manuscript.textProperty();
-    }
-
-    public String text() {
-
-        return manuscript.text();
-    }
-
+    public Node node() { return manuscript.node(); }
+    public ObservableValue<String> textProperty() { return manuscript.textProperty(); }
+    public String text() { return manuscript.text(); }
     /** The open chapter's text as it is on disk, without unsaved changes. */
-    String savedText() {
-
-        return savedText;
-    }
+    String savedText() { return savedText; }
+    /**
+     * The zero-based character of the open chapter's text the author is at: the caret's while writing, and once they
+     * scroll to read, the one a third of the way down the view, until the caret moves again.
+     */
+    ReadOnlyIntegerProperty currentPositionProperty() { return manuscript.currentPositionProperty(); }
+    /** Where the manuscript's text starts, in scene coordinates, so other parts of the window can line up with it. */
+    ReadOnlyDoubleProperty textMarginProperty() { return manuscript.textMarginProperty(); }
+    /** True once the author scrolls the manuscript to read, until the caret next moves. */
+    boolean isReading() { return manuscript.isReading(); }
+    /** Takes the author to {@code position} in the open chapter, with the caret and the focus there. */
+    public void reveal(int position) { manuscript.reveal(position); }
+    /** Shows the welcome and its logo again, as the book closes; see {@link Manuscript#showWelcome}. */
+    void showWelcome() { manuscript.showWelcome(); }
+    /** Removes the welcome and its logo while a book is open; see {@link Manuscript#hideWelcome}. */
+    void hideWelcome() { manuscript.hideWelcome(); }
 
     /**
      * Replaces the open chapter's whole text with {@code text}, as an unsaved change the author can undo like any edit.
@@ -95,122 +97,50 @@ public final class ChapterEditor {
         manuscript.replaceAll(text);
     }
 
-    /**
-     * The zero-based character of the open chapter's text the author is at: the caret's while writing, and once they
-     * scroll to read, the one a third of the way down the view, until the caret moves again.
-     */
-    ReadOnlyIntegerProperty currentPositionProperty() {
-
-        return manuscript.currentPositionProperty();
-    }
-
-    /** Where the manuscript's text starts, in scene coordinates, so other parts of the window can line up with it. */
-    ReadOnlyDoubleProperty textMarginProperty() {
-
-        return manuscript.textMarginProperty();
-    }
-
-    /** True once the author scrolls the manuscript to read, until the caret next moves. */
-    boolean isReading() {
-
-        return manuscript.isReading();
-    }
+    // Preferences, and the book's language
 
     /** Shows the manuscript's text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
-    public void setFontSize(int fontSize) {
-
-        manuscript.setFontSize(fontSize);
-    }
-
+    public void setFontSize(int fontSize) { manuscript.setFontSize(fontSize); }
     /**
      * Turns spell checking on or off, as Preferences asks, and with it on, checks the words with a capital letter too,
      * which names have, if {@code strict}.
      */
-    public void setSpelling(boolean on, boolean strict) {
-
-        spelling.setOn(on, strict);
-    }
-
+    public void setSpelling(boolean on, boolean strict) { spelling.setOn(on, strict); }
     /** Shows, or not, as Preferences asks, the other places of the word the author is at, and how many there are. */
-    public void setHighlightRepetitions(boolean on) {
-
-        manuscript.highlightRepetitions(on);
-    }
-
+    public void setHighlightRepetitions(boolean on) { manuscript.highlightRepetitions(on); }
     /** Checks the spelling in the open book's language, a BCP 47 tag; none with {@code null} while no book is open. */
-    void setBookLanguage(String tag) {
+    void setBookLanguage(String tag) { spelling.setBookLanguage(tag); }
 
-        spelling.setBookLanguage(tag);
-    }
+    // The open chapter, and the unsaved ones
 
     /** True while the open chapter has changes that are not on disk. */
-    ReadOnlyBooleanProperty dirtyProperty() {
-
-        return dirty.getReadOnlyProperty();
-    }
-
-    boolean isDirty() {
-
-        return dirty.get();
-    }
-
+    ReadOnlyBooleanProperty dirtyProperty() { return dirty.getReadOnlyProperty(); }
+    boolean isDirty() { return dirty.get(); }
     /** Every chapter with unsaved changes, the open one included. */
-    public ObservableSet<Chapter> unsavedChapters() {
-
-        return drafts.chapters();
-    }
-
+    public ObservableSet<Chapter> unsavedChapters() { return drafts.chapters(); }
     /** Chapters with unsaved changes, in book order. */
-    List<Chapter> sortedUnsavedChapters() {
-
-        return drafts.sortedChapters();
-    }
-
-    boolean hasUnsavedChanges() {
-
-        return !drafts.isEmpty();
-    }
-
+    List<Chapter> sortedUnsavedChapters() { return drafts.sortedChapters(); }
+    boolean hasUnsavedChanges() { return !drafts.isEmpty(); }
     /** The chapter being edited; empty while no chapter is open. */
-    public Optional<Chapter> chapter() {
-
-        return Optional.ofNullable(chapter);
-    }
-
+    public Optional<Chapter> chapter() { return Optional.ofNullable(chapter); }
     /** The book whose chapter is edited; empty while no chapter is open. */
-    public Optional<BookFolder> book() {
+    public Optional<BookFolder> book() { return chapter().map(open -> book); }
+    public boolean isOpen(Chapter candidate) { return candidate.equals(chapter); }
 
-        return chapter().map(open -> book);
-    }
-
-    public boolean isOpen(Chapter candidate) {
-
-        return candidate.equals(chapter);
-    }
+    // Its parts, for the rest of the window
 
     /** Changes made to the open chapter from outside its text, as the Media tab makes them. */
-    public ChapterEdits edits() {
-
-        return edits;
-    }
-
-    /** Takes the author to {@code position} in the open chapter, with the caret and the focus there. */
-    public void reveal(int position) {
-
-        manuscript.reveal(position);
-    }
-
+    public ChapterEdits edits() { return edits; }
+    /** Where the author left each chapter of the open book, where it opens again. */
+    ChapterPlaces places() { return places; }
+    /** The open chapter's links: checked against the book's headings, and followed from the preview. */
+    ChapterLinks links() { return links; }
     /** Opens the web and mail links the author Ctrl-clicks in the manuscript with {@code browser}. */
-    public void setBrowser(Consumer<String> browser) {
-
-        links.setBrowser(browser);
-    }
-
+    public void setBrowser(Consumer<String> browser) { links.setBrowser(browser); }
     /** Runs {@code action} when the author asks to insert an image, from the manuscript's right-click menu. */
-    public void setOnInsertImage(Runnable action) {
+    public void setOnInsertImage(Runnable action) { insertImage = action; }
 
-        insertImage = action;
-    }
+    // Opening, closing and saving
 
     /**
      * Shows {@code chapter}, with its unsaved draft if it has one. Unsaved changes to the chapter shown so far are kept
@@ -242,38 +172,11 @@ public final class ChapterEditor {
         return true;
     }
 
-    /** Where the author left each chapter of the open book, where it opens again. */
-    ChapterPlaces places() {
-
-        return places;
-    }
-
-    /** The open chapter's links: checked against the book's headings, and followed from the preview. */
-    ChapterLinks links() {
-
-        return links;
-    }
-
     /**
      * Keeps the open chapter from changing while {@code frozen}, as while the book is being exported: it can be read,
      * but not edited.
      */
-    public void setFrozen(boolean frozen) {
-
-        manuscript.setEditable(!frozen && chapter != null);
-    }
-
-    /** Shows the welcome and its logo again, as the book closes; see {@link Manuscript#showWelcome}. */
-    void showWelcome() {
-
-        manuscript.showWelcome();
-    }
-
-    /** Removes the welcome and its logo while a book is open; see {@link Manuscript#hideWelcome}. */
-    void hideWelcome() {
-
-        manuscript.hideWelcome();
-    }
+    public void setFrozen(boolean frozen) { manuscript.setEditable(!frozen && chapter != null); }
 
     /** Empties the editor and makes it read-only, discarding every draft. */
     void close() {
