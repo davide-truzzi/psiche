@@ -95,7 +95,7 @@ class BookRemoteTest extends GitBookTest {
     void removingForgetsTheRemoteAndItsBranches() throws Exception {
 
         remote.connect(folder(backup));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
         git.fetch().setRemote("origin").call();
 
         remote.remove();
@@ -126,7 +126,7 @@ class BookRemoteTest extends GitBookTest {
     void aRepositoryWithTheBookAsItIsIsTheSame() {
 
         remote.connect(folder(backup));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
 
         assertThat(test(folder(backup))).isEqualTo(RemoteState.SAME);
     }
@@ -135,7 +135,7 @@ class BookRemoteTest extends GitBookTest {
     void aRepositoryWithoutTheBooksNewRevisionsIsBehind() throws Exception {
 
         remote.connect(folder(backup));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
         write("chapters/02-crossing.md", "The river was high.");
         commitAll("Crossing");
 
@@ -146,7 +146,7 @@ class BookRemoteTest extends GitBookTest {
     void aRepositoryWithRevisionsFromAnotherDeviceIsAhead() throws Exception {
 
         remote.connect(folder(backup));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
         commitOnAnotherDevice("chapters/03-harbour.md", "Ships at anchor.");
 
         assertThat(test(folder(backup))).isEqualTo(RemoteState.AHEAD);
@@ -156,7 +156,7 @@ class BookRemoteTest extends GitBookTest {
     void aRepositoryAndABookThatBothMovedOnHaveDiverged() throws Exception {
 
         remote.connect(folder(backup));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
         commitOnAnotherDevice("chapters/03-harbour.md", "Ships at anchor.");
         write("chapters/02-crossing.md", "The river was high.");
         commitAll("Crossing");
@@ -192,7 +192,7 @@ class BookRemoteTest extends GitBookTest {
     void testingChangesNeitherTheBookNorItsRemote() throws Exception {
 
         remote.connect(folder(backup));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
         commitOnAnotherDevice("chapters/03-harbour.md", "Ships at anchor.");
         ObjectId head = git.getRepository().resolve("HEAD");
 

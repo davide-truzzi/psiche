@@ -1581,6 +1581,22 @@
     -fx-text-fill: -orange;
 }
 
+/* Commit before closing, for a book that synchronizes automatically: why, above the commit's description. */
+.sync-question-content {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+    -fx-pref-width: 460;
+}
+
+.sync-question-about {
+    -fx-text-fill: -paper-dim;
+}
+
+/* Automatic synchronization, in the Remote repository section: the switch, and what it does under it. */
+.remote-auto-sync {
+    -fx-spacing: 4;
+}
+
 /* Images */
 
 .insert-image-content {

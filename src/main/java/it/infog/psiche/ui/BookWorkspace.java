@@ -175,11 +175,13 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
 
     /**
      * Lets the author save or discard unsaved chapters before the window closes, and keep a transfer that runs going;
-     * false means stay open.
+     * then synchronizes the open book if it does so automatically, and runs {@code close}. Nothing runs if the author
+     * cancels.
      */
-    boolean confirmClose() {
+    void requestClose(Runnable close) {
 
-        return projectTransfer.confirmStop() && unsavedChanges.settle("Save them before closing Psiche Writer?");
+        if (projectTransfer.confirmStop() && unsavedChanges.settle("Save them before closing Psiche Writer?"))
+            gitControls.leave(close);
     }
 
     /**

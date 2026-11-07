@@ -4,7 +4,6 @@ import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.GitIgnore;
 import it.infog.psiche.git.RemoteAddresses;
 import it.infog.psiche.git.exceptions.GitCommandException;
-import it.infog.psiche.git.exceptions.UncommittedWorkException;
 import it.infog.psiche.git.model.Commit;
 import it.infog.psiche.git.model.RemoteAddress;
 import it.infog.psiche.git.model.SyncReport;
@@ -39,8 +38,8 @@ import static it.infog.psiche.ui.common.Controls.button;
 
 /**
  * Commit message, Commit and Synchronize for the open book's repository, disabled while there is none; Synchronize
- * shows only for a book with a remote. Every Git command runs here, on one thread, connecting and removing the
- * book's remote and Book properties' Test among them.
+ * shows only for a book with a remote, and runs by itself too, as {@link Synchronizer} tells. Every Git command runs
+ * here, on one thread, connecting and removing the book's remote and Book properties' Test among them.
  */
 public final class GitControls extends HBox {
 
@@ -54,15 +53,13 @@ public final class GitControls extends HBox {
     private final BooleanProperty available = new SimpleBooleanProperty();
     private final BooleanProperty remoteConnected = new SimpleBooleanProperty();
     private final ReadOnlyBooleanWrapper busy = new ReadOnlyBooleanWrapper();
-    private final ReadOnlyBooleanWrapper synchronizing = new ReadOnlyBooleanWrapper();
     private final BooleanSupplier confirmCommit;
     private final Runnable afterCommit;
     private final StatusBar statusBar;
     private final ErrorReporter errors;
     private final Keychain keychain;
+    private final Synchronizer synchronizer;
 
-    private BooleanSupplier unsavedWork = () -> false;
-    private Consumer<SyncReport> afterSynchronize = report -> {};
     private Runnable afterBookTaken = () -> {};
 
     private BookRepository repository;
@@ -82,6 +79,7 @@ public final class GitControls extends HBox {
         this.statusBar = statusBar;
         this.errors = errors;
         this.keychain = keychain;
+        synchronizer = new Synchronizer(this, keychain, statusBar, errors);
 
         BooleanBinding disabled = available.not().or(busy);
         commitMessage.setPromptText("Describe this revision");
@@ -95,7 +93,7 @@ public final class GitControls extends HBox {
                 Bindings.createBooleanBinding(() -> commitMessage.getText().isBlank(), commitMessage.textProperty())));
 
         // Hidden, not only disabled, for a book without a remote: most authors never need one.
-        Button synchronize = button("Synchronize", this::synchronize);
+        Button synchronize = button("Synchronize", synchronizer::clicked);
         synchronize.disableProperty().bind(disabled);
         synchronize.visibleProperty().bind(remoteConnected);
         synchronize.managedProperty().bind(remoteConnected);
@@ -123,7 +121,8 @@ public final class GitControls extends HBox {
 
     /** True while Synchronize runs, which may change the book's files: nothing else may change them meanwhile. */
     public ReadOnlyBooleanProperty synchronizingProperty() {
-        return synchronizing.getReadOnlyProperty();
+
+        return synchronizer.synchronizingProperty();
     }
 
     /**
@@ -132,8 +131,34 @@ public final class GitControls extends HBox {
      */
     public void setSynchronization(BooleanSupplier unsavedWork, Consumer<SyncReport> afterSynchronize) {
 
-        this.unsavedWork = unsavedWork;
-        this.afterSynchronize = afterSynchronize;
+        synchronizer.setSynchronization(unsavedWork, afterSynchronize);
+    }
+
+    /**
+     * Whether the open book synchronizes by itself: as it opens and closes, and after every commit; see
+     * {@link Synchronizer}.
+     */
+    public void setAutoSync(boolean autoSync) {
+
+        synchronizer.setAutoSync(autoSync);
+    }
+
+    /**
+     * Checks, as the book opens, whether its remote has newer revisions, after the commands submitted before; nothing
+     * for a book without a remote. See {@link Synchronizer#checkAtOpen}.
+     */
+    public void checkRemote() {
+
+        synchronizer.checkAtOpen();
+    }
+
+    /**
+     * Readies the open book to close, once its unsaved chapters are settled: synchronizes it if it does so by itself,
+     * then runs {@code then}; nothing runs if the author cancels. See {@link Synchronizer#leave}.
+     */
+    public void leave(Runnable then) {
+
+        synchronizer.leave(then);
     }
 
     /**
@@ -141,7 +166,11 @@ public final class GitControls extends HBox {
      * own with {@code message}. The author's commit message is left as it is.
      */
     public void commitChange(String message, List<Path> files) {
-        run("Commit", repo -> repo.commitOnly(message, files), this::committed);
+
+        run("Commit", repo -> repo.commitOnly(message, files), commit -> {
+            committed(commit);
+            synchronizer.afterCommit();
+        });
     }
 
     /**
@@ -203,13 +232,11 @@ public final class GitControls extends HBox {
         if (!confirmCommit.getAsBoolean())
             return;
 
-        run("Commit", repo -> repo.commit(commitMessage.getText()), commit -> {
-            commitMessage.clear();
-            committed(commit);
-        });
+        commit(commitMessage.getText(), synchronizer::afterCommit, () -> {});
     }
 
     private void committed(Commit commit) {
+
         statusBar.info("Committed %s  %s".formatted(commit.shortId(), commit.message()));
         afterCommit.run();
     }
@@ -281,66 +308,49 @@ public final class GitControls extends HBox {
         submit(repository, question, answer, failure);
     }
 
+    /** What is typed beside Commit. */
+    String commitMessage() {
+
+        return commitMessage.getText();
+    }
+
     /**
-     * Brings in the remote's revisions, merges them and sends the book's, after unlocking the keychain for an HTTPS
-     * remote; refused while work is not saved and committed, before the keychain is asked for.
+     * Commits every change in the book with {@code message}, emptying the field beside Commit, then runs {@code then};
+     * or {@code failed}, once the author is told what went wrong.
      */
-    private void synchronize() {
+    void commit(String message, Runnable then, Runnable failed) {
 
-        if (unsavedWork.getAsBoolean()) {
-            SyncReports.commitFirst(getScene().getWindow());
-            return;
-        }
-
-        // Saved but not committed is known only from the disk, so on the Git thread.
-        run("Synchronize", BookRepository::isCommitted, committed -> {
-            if (committed)
-                synchronizeCommitted();
-            else
-                notCommitted();
-        });
-    }
-
-    /** Synchronize, once the book's work is committed, after unlocking the keychain for an HTTPS remote. */
-    private void synchronizeCommitted() {
-
-        RemoteKind kind = repository.remote().address().map(RemoteAddresses::kind).orElse(RemoteKind.FOLDER);
-        if (kind == RemoteKind.HTTPS && !KeychainDialogs.unlocked(getScene().getWindow(), keychain)) {
-            statusBar.info("");
-            return;
-        }
-
-        synchronizing.set(true);
-        run("Synchronize", repo -> repo.synchronize(savedCredentials(kind)), report -> {
-            synchronizing.set(false);
-            afterSynchronize.accept(report);
-            statusBar.info(SyncReports.summary(report));
-            SyncReports.showConflicts(getScene().getWindow(), report.conflicts());
+        run("Commit", repo -> repo.commit(message), commit -> {
+            commitMessage.clear();
+            committed(commit);
+            then.run();
         }, error -> {
-            synchronizing.set(false);
-            if (error instanceof UncommittedWorkException)
-                notCommitted();
-            else
-                errors.report("Synchronize failed", error);
+            errors.report("Commit failed", error);
+            failed.run();
         });
     }
 
-    /** Tells the author Synchronize waits for their work to be committed. */
-    private void notCommitted() {
+    /** True if the open book has a remote. */
+    boolean hasRemote() {
 
-        statusBar.info("Not synchronized: commit first");
-        SyncReports.commitFirst(getScene().getWindow());
+        return remoteConnected.get();
+    }
+
+    /** The open book's remote's kind; a folder for a book without one, which needs no credentials. */
+    RemoteKind remoteKind() {
+
+        return repository.remote().address().map(RemoteAddresses::kind).orElse(RemoteKind.FOLDER);
     }
 
     /** Runs a command the author asked for, saying so in the status bar, and busy until it ends. */
-    private <T> void run(String action, Function<BookRepository, T> command, Consumer<T> onSuccess) {
+    <T> void run(String action, Function<BookRepository, T> command, Consumer<T> onSuccess) {
 
         run(action, command, onSuccess, error -> errors.report(action + " failed", error));
     }
 
     /** As {@link #run(String, Function, Consumer)}, handing what went wrong to {@code onFailure}. */
-    private <T> void run(String action, Function<BookRepository, T> command, Consumer<T> onSuccess,
-                         Consumer<Throwable> onFailure) {
+    <T> void run(String action, Function<BookRepository, T> command, Consumer<T> onSuccess,
+                 Consumer<Throwable> onFailure) {
 
         busy.set(true);
         statusBar.info(action + "…");
@@ -375,6 +385,7 @@ public final class GitControls extends HBox {
 
     /** Stops the Git thread, interrupting a running command. */
     public void shutdown() {
+
         executor.shutdownNow();
     }
 }

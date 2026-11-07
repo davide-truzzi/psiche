@@ -18,6 +18,7 @@ import it.infog.psiche.git.model.FileRevision;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -114,7 +115,7 @@ class BookRepositoryTest extends GitBookTest {
             write("chapters/01-departure.md", "It began at dawn.");
             ObjectId head = commitAll("Draft chapter one").getId();
 
-            String pushed = repository.push(Optional.empty());
+            String pushed = repository.push(Optional.empty(), Duration.ZERO);
 
             assertThat(pushed).isEqualTo(BRANCH);
             assertThat(origin.getRepository().resolve("refs/heads/" + BRANCH)).isEqualTo(head);
@@ -126,7 +127,7 @@ class BookRepositoryTest extends GitBookTest {
         write("chapters/01-departure.md", "It began at dawn.");
         commitAll("initial");
 
-        assertThatThrownBy(() -> repository.push(Optional.empty()))
+        assertThatThrownBy(() -> repository.push(Optional.empty(), Duration.ZERO))
                 .isInstanceOf(GitCommandException.class)
                 .hasMessage("No 'origin' remote is configured for this book");
     }
@@ -145,7 +146,7 @@ class BookRepositoryTest extends GitBookTest {
             write("chapters/01-departure.md", "Unrelated history");
             commitAll("Draft chapter one");
 
-            assertThatThrownBy(() -> repository.push(Optional.empty()))
+            assertThatThrownBy(() -> repository.push(Optional.empty(), Duration.ZERO))
                     .isInstanceOf(GitCommandException.class)
                     .hasMessageStartingWith("Push of refs/heads/main was rejected (REJECTED_NONFASTFORWARD)");
         }

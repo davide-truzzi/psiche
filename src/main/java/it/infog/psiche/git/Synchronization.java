@@ -2,6 +2,7 @@ package it.infog.psiche.git;
 
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.git.exceptions.RemoteStateException;
 import it.infog.psiche.git.exceptions.UncommittedWorkException;
 import it.infog.psiche.git.model.Conflict;
 import it.infog.psiche.git.model.SyncReport;
@@ -32,6 +33,7 @@ import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -60,10 +62,12 @@ final class Synchronization {
      * Synchronizes the book with its remote.
      *
      * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @param timeout     how long to wait for the host to answer; zero for JGit's default
      * @throws UncommittedWorkException if the book has changes that are not committed; nothing is done then
-     * @throws GitCommandException      if the remote cannot be reached, holds something else, or refuses the book
+     * @throws RemoteStateException     if the remote cannot be reached or refuses the credentials
+     * @throws GitCommandException      if the remote holds something else, or refuses the book
      */
-    SyncReport run(Optional<Credentials> credentials) {
+    SyncReport run(Optional<Credentials> credentials, Duration timeout) {
 
         //preconditions: the book committed, on main
         if (!book.isCommitted())
@@ -72,7 +76,7 @@ final class Synchronization {
         requireMain();
 
         //what the remote has
-        fetch(credentials);
+        fetch(credentials, timeout);
         try (RevWalk walk = new RevWalk(repository)) {
             ObjectId theirsId = repository.resolve(TRACKING);
             RemoteState found = theirsId == null ? RemoteState.EMPTY : BookRemote.compare(repository, theirsId);
@@ -83,16 +87,36 @@ final class Synchronization {
             return switch (found) {
                 case SAME -> report(found, List.of(), List.of());
                 case EMPTY, BEHIND -> {
-                    book.push(credentials);
+                    book.push(credentials, timeout);
                     yield report(found, List.of(), List.of());
                 }
                 case AHEAD -> report(found, moveTo(ours, theirs), List.of());
-                case DIVERGED -> merge(walk, ours, theirs, credentials);
+                case DIVERGED -> merge(walk, ours, theirs, credentials, timeout);
                 case UNRELATED -> throw new GitCommandException(RemoteState.UNRELATED.message());
                 default -> throw new IllegalStateException("Not a comparison of the book with its remote: " + found);
             };
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot synchronize the book", e);
+        }
+    }
+
+    /**
+     * Brings in what the remote has, changing nothing the author sees, and compares it with the book.
+     *
+     * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @param timeout     how long to wait for the host to answer; zero for JGit's default
+     * @return {@link RemoteState#EMPTY}, {@code SAME}, {@code BEHIND}, {@code AHEAD}, {@code DIVERGED} or
+     *         {@code UNRELATED}
+     * @throws RemoteStateException if the remote cannot be reached or refuses the credentials
+     */
+    RemoteState check(Optional<Credentials> credentials, Duration timeout) {
+
+        fetch(credentials, timeout);
+        try {
+            ObjectId theirs = repository.resolve(TRACKING);
+            return theirs == null ? RemoteState.EMPTY : BookRemote.compare(repository, theirs);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot compare the book with its remote", e);
         }
     }
 
@@ -106,7 +130,7 @@ final class Synchronization {
     String adopt(Optional<Credentials> credentials) {
 
         requireMain();
-        fetch(credentials);
+        fetch(credentials, Duration.ZERO);
         try (RevWalk walk = new RevWalk(repository)) {
             ObjectId theirsId = repository.resolve(TRACKING);
             if (theirsId == null)
@@ -133,8 +157,8 @@ final class Synchronization {
     }
 
     /** Merges {@code theirs} into {@code ours} as a commit, puts the book's folder in step with it, and sends it. */
-    private SyncReport merge(RevWalk walk, RevCommit ours, RevCommit theirs, Optional<Credentials> credentials)
-            throws IOException {
+    private SyncReport merge(RevWalk walk, RevCommit ours, RevCommit theirs, Optional<Credentials> credentials,
+                             Duration timeout) throws IOException {
 
         RevCommit base = mergeBase(walk, ours, theirs);
         try (ObjectInserter inserter = repository.newObjectInserter()) {
@@ -152,7 +176,7 @@ final class Synchronization {
             inserter.flush();
 
             List<Path> changed = moveTo(ours, walk.parseCommit(mergeId));
-            book.push(credentials);
+            book.push(credentials, timeout);
             return report(RemoteState.DIVERGED, changed, merge.conflicts());
         }
     }
@@ -236,18 +260,23 @@ final class Synchronization {
         return base;
     }
 
-    /** Brings in the remote's branches, with the author's credentials for an HTTPS remote. */
-    private void fetch(Optional<Credentials> credentials) {
+    /**
+     * Brings in the remote's branches, with the author's credentials for an HTTPS remote.
+     *
+     * @param timeout how long to wait for the host to answer; zero for JGit's default
+     */
+    private void fetch(Optional<Credentials> credentials, Duration timeout) {
 
         try {
             Git.wrap(repository).fetch()
                     .setRemote(BookRepository.REMOTE)
                     .setRemoveDeletedRefs(true)
                     .setCredentialsProvider(BookRemote.provider(credentials))
+                    .setTimeout(Math.toIntExact(timeout.toSeconds()))
                     .call();
         } catch (GitAPIException e) {
             throw RemoteErrors.state(e)
-                    .map(state -> new GitCommandException(state.message(), e))
+                    .<GitCommandException>map(state -> new RemoteStateException(state, e))
                     .orElseGet(() -> new GitCommandException(
                             "Cannot bring in the remote's revisions: " + RemoteErrors.cleaned(e.getMessage()), e));
         }

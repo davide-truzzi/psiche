@@ -25,6 +25,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
@@ -42,8 +43,8 @@ import java.util.Optional;
 
 /**
  * The Remote repository section of Book properties, closed unless the book has a remote: its address, an
- * {@code https://} one with a username and a token, or a folder; Test, which {@link RemoteTest} runs, and Remove
- * remote.
+ * {@code https://} one with a username and a token, or a folder; automatic synchronization; Test, which
+ * {@link RemoteTest} runs, and Remove remote.
  * <p>
  * Save waits for a good Test while the remote's fields are changed: editing a field after a good test asks for
  * another. Nothing is changed until Save, when {@link #apply} connects or removes the remote on the Git thread.
@@ -57,6 +58,8 @@ final class RemoteSection {
     private static final String DRIVE_NOTE = "Choose a folder on another drive than the book's, so one failing disk "
             + "cannot take both copies. Psiche keeps the book in a PsicheRepository folder inside it.";
     private static final String SAVED = "Saved in the keychain";
+    private static final String AUTO_SYNC_ABOUT = "On this device: Synchronize runs as the book opens and closes, "
+            + "and after every commit.";
     private static final String REMOVE_ABOUT = "The book stays as it is, and so does the repository, with what was "
             + "sent to it. Synchronize goes away until you connect a remote again.";
 
@@ -70,6 +73,7 @@ final class RemoteSection {
     private final TextField address = new TextField();
     private final TextField username = new TextField();
     private final PasswordField token = new PasswordField();
+    private final CheckBox autoSync = new CheckBox("Synchronize automatically");
     private final Label addressHint = Controls.hint(ADDRESS_HINT);
     private final Label driveNote = Controls.hint(DRIVE_NOTE);
     private final Label result = Controls.hint("");
@@ -88,12 +92,14 @@ final class RemoteSection {
     private ObservableValue<String> title = new SimpleStringProperty("");
 
     /**
-     * @param git   runs Test, and at Save connects or removes the remote, on the Git thread
-     * @param book  the book's folder
-     * @param saved the book's remote's address, if it has one
-     * @param inGit false for a book without a Git repository, which cannot have a remote
+     * @param git      runs Test, and at Save connects or removes the remote, on the Git thread
+     * @param book     the book's folder
+     * @param saved    the book's remote's address, if it has one
+     * @param inGit    false for a book without a Git repository, which cannot have a remote
+     * @param autoSync true if the book synchronizes automatically on this device
      */
-    RemoteSection(GitControls git, Keychain keychain, Path book, Optional<String> saved, boolean inGit) {
+    RemoteSection(GitControls git, Keychain keychain, Path book, Optional<String> saved, boolean inGit,
+                  boolean autoSync) {
 
         this.git = git;
         remoteTest = new RemoteTest(git, book);
@@ -103,6 +109,7 @@ final class RemoteSection {
         this.inGit = inGit;
 
         address.setText(saved.orElse(""));
+        this.autoSync.setSelected(autoSync);
         Observable[] fields = {address.textProperty(), username.textProperty(), token.textProperty()};
         changed = Bindings.createBooleanBinding(() -> !address.getText().strip().equals(saved.orElse(""))
                 || !username.getText().isBlank() || token.getLength() > 0, fields);
@@ -123,6 +130,15 @@ final class RemoteSection {
     BooleanBinding savable() {
 
         return savable;
+    }
+
+    /**
+     * True if the book is to synchronize automatically, once saved: switched on, with a remote. Changing it needs no
+     * Test.
+     */
+    boolean autoSync() {
+
+        return autoSync.isSelected() && !removing.get() && !address.getText().isBlank();
     }
 
     /** The section, closed unless the book has a remote. */
@@ -171,12 +187,16 @@ final class RemoteSection {
         HBox buttons = new HBox(test, remove);
         buttons.getStyleClass().add("remote-buttons");
 
+        VBox autoSyncBox = new VBox(autoSync, Controls.hint(AUTO_SYNC_ABOUT));
+        autoSyncBox.getStyleClass().add("remote-auto-sync");
+
         address.disableProperty().bind(testing.or(removing));
         choose.disableProperty().bind(address.disableProperty());
         username.disableProperty().bind(address.disableProperty());
         token.disableProperty().bind(address.disableProperty());
+        autoSync.disableProperty().bind(address.disableProperty());
 
-        VBox content = new VBox(about, form, driveNote, buttons, result);
+        VBox content = new VBox(about, form, driveNote, autoSyncBox, buttons, result);
         content.getStyleClass().add("remote-section-content");
         TitledPane section = new TitledPane("Remote repository", content);
         section.getStyleClass().add("remote-section");
@@ -191,7 +211,9 @@ final class RemoteSection {
             boolean https = !address.getText().isBlank() && RemoteAddresses.kind(address.getText()) == RemoteKind.HTTPS;
             for (Region field : new Region[]{usernameLabel, username, tokenLabel, token})
                 Controls.setShown(field, https);
-            Controls.setShown(driveNote, !https && RemoteAddresses.problem(address.getText()).isEmpty());
+            boolean valid = RemoteAddresses.problem(address.getText()).isEmpty();
+            Controls.setShown(driveNote, !https && valid);
+            Controls.setShown(autoSyncBox, valid);
             showAddressProblem();
             fit();
         };

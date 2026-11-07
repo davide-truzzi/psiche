@@ -2,6 +2,7 @@ package it.infog.psiche.git;
 
 import it.infog.psiche.git.model.enums.RemoteState;
 
+import org.eclipse.jgit.api.errors.InvalidRemoteException;
 import org.eclipse.jgit.errors.NoRemoteRepositoryException;
 
 import java.net.ConnectException;
@@ -34,7 +35,8 @@ final class RemoteErrors {
     /** What {@code failure}, thrown while reaching a remote, means; empty if it is none of the known causes. */
     static Optional<RemoteState> state(Exception failure) {
 
-        if (failure instanceof NoRemoteRepositoryException)
+        // A fetch says so of a folder that is not there, such as a drive not plugged in.
+        if (failure instanceof NoRemoteRepositoryException || failure instanceof InvalidRemoteException)
             return Optional.of(RemoteState.NOT_A_REPOSITORY);
 
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {

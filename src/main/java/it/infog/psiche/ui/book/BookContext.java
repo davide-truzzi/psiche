@@ -10,7 +10,6 @@ import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.media.ChapterMedia;
 import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
-import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.ui.chapters.ChapterContext;
 import it.infog.psiche.ui.chapters.UnsavedChanges;
 import it.infog.psiche.ui.common.Dialogs;
@@ -34,7 +33,9 @@ import java.util.function.Supplier;
 
 /**
  * The open book: opens, creates and closes books with their Git repository and chapter watcher, edits the book's
- * properties and how its pages are counted, and hands the book to the {@link ChapterContext} for its chapters.
+ * properties and how its pages are counted, and hands the book to the {@link ChapterContext} for its chapters. A book
+ * with a remote is checked for newer revisions as it opens, and one that synchronizes automatically does so before
+ * another takes its place or it closes.
  */
 public final class BookContext implements AutoCloseable {
 
@@ -57,9 +58,11 @@ public final class BookContext implements AutoCloseable {
     private final Keychain keychain;
     private final ChapterFolderWatch chapterWatch;
     private final BookLocations locations;
+    private final BookCreation creation;
 
     private BookFolder book;
     private BookRepository repository;
+    private BookState state;
 
     /**
      * @param onOpened runs each time a book has opened, to reveal its parts
@@ -86,6 +89,7 @@ public final class BookContext implements AutoCloseable {
 
         chapterWatch = new ChapterFolderWatch(chapters, statusBar);
         locations = new BookLocations(settings);
+        creation = new BookCreation(unsavedChanges, gitControls, locations, settings, errors, window, this::openBook);
 
         bookTitle.getStyleClass().add("book-title");
         statusBar.setOnPageMeasureChosen(this::choosePageMeasure);
@@ -114,13 +118,11 @@ public final class BookContext implements AutoCloseable {
         return locations.recentBooks(book);
     }
 
-    /** Opens a book from the recent list, once unsaved changes are settled. */
+    /** Opens a book from the recent list, once unsaved changes are settled and the open book left. */
     void openRecent(Path directory) {
 
-        if (!unsavedChanges.settle("Save them before opening another book?"))
-            return;
-
-        openBook(directory);
+        if (unsavedChanges.settle("Save them before opening another book?"))
+            gitControls.leave(() -> openBook(directory));
     }
 
     void clearRecentBooks() {
@@ -134,43 +136,13 @@ public final class BookContext implements AutoCloseable {
             return;
 
         Dialogs.chooseDirectory(window.get(), "Open book folder", locations.booksDirectory(book))
-                .ifPresent(this::openBook);
+                .ifPresent(directory -> gitControls.leave(() -> openBook(directory)));
     }
 
+    /** Creates a book where the author chooses, and opens it in place of the open one. */
     public void createBook() {
 
-        if (!unsavedChanges.settle("Save them before creating a new book?"))
-            return;
-
-        Optional<String> title = Dialogs.askTitle(window.get(), "New book", "", "Create");
-        if (title.isEmpty())
-            return;
-
-        Optional<Path> parent = Dialogs.chooseDirectory(
-                window.get(), "Choose where to create \"%s\"".formatted(title.get().strip()),
-                locations.newBooksDirectory(book));
-        if (parent.isEmpty())
-            return;
-
-        BookFolder created;
-
-        try {
-            Preferences preferences = settings.preferences();
-            created = BookFolder.create(parent.get(), title.get(), preferences.newBookLanguage(),
-                    preferences.newBookAuthor());
-        } catch (IllegalArgumentException | UncheckedIOException e) {
-            errors.report("Cannot create book", e);
-            return;
-        }
-
-        try {
-            BookRepository.init(created.root());
-        } catch (GitCommandException e) {
-            // The book itself is fine; it opens without Git and the author can run 'git init' later.
-            errors.report("Created " + created.title() + " without a Git repository", e);
-        }
-
-        openBook(created.root());
+        creation.create(book);
     }
 
     /**
@@ -190,7 +162,7 @@ public final class BookContext implements AutoCloseable {
         Optional<Path> cover = book.cover();
         Optional<String> remoteAddress = Optional.ofNullable(repository).flatMap(repo -> repo.remote().address());
         RemoteSection remote = new RemoteSection(gitControls, keychain, book.root(), remoteAddress,
-                repository != null);
+                repository != null, state.autoSync());
         BookPropertiesDialog.show(window.get(), current, cover, remote).ifPresent(edit -> {
             try {
                 book.saveProperties(edit.properties());
@@ -207,8 +179,11 @@ public final class BookContext implements AutoCloseable {
             statusBar.setPageMeasure(pageMeasure());
             chapters.setBookProperties(edit.properties());
             statusBar.info("Book properties saved");
-            if (repository != null)
+            if (repository != null) {
                 remote.apply();
+                state.saveAutoSync(remote.autoSync());
+                gitControls.setAutoSync(remote.autoSync());
+            }
         });
     }
 
@@ -252,17 +227,14 @@ public final class BookContext implements AutoCloseable {
                 this::openBook);
     }
 
-    /** Closes the open book, once unsaved changes are settled, and shows the welcome as when the app starts. */
+    /**
+     * Closes the open book, once unsaved changes are settled and it is synchronized if it does so automatically, and
+     * shows the welcome as when the app starts.
+     */
     public void closeOpenBook() {
 
-        if (book == null || !unsavedChanges.settle("Save them before closing the book?"))
-            return;
-
-        String closed = book.title();
-        closeBook();
-        book = null;
-        bookTitle.setText(NO_BOOK);
-        statusBar.info("Closed " + closed);
+        if (book != null && unsavedChanges.settle("Save them before closing the book?"))
+            gitControls.leave(this::closeNow);
     }
 
     /** Opens the book in {@code directory}, discarding any unsaved changes; callers settle them first. */
@@ -282,9 +254,11 @@ public final class BookContext implements AutoCloseable {
         bookOpen.set(true);
         bookTitle.setText(displayTitle());
         statusBar.setPageMeasure(pageMeasure());
+        state = BookState.of(book);
         try {
             repository = BookRepository.open(book.root());
             gitControls.setRepository(repository, identifier());
+            gitControls.setAutoSync(state.autoSync());
             statusBar.info("Opened " + book.title());
         } catch (GitCommandException e) {
             // Not fatal: the book can be edited without Git, so flag it in the status bar instead of an alert.
@@ -296,9 +270,11 @@ public final class BookContext implements AutoCloseable {
         gitControls.track(ChapterMedia.FORMER_GIT_IGNORE, ChapterMedia.GIT_IGNORE, book.mediaDir(),
                 "Keep chapter images in Git");
         chapterWatch.start(book);
-        chapters.show(book, repository);
+        chapters.show(book, repository, state);
         settings.bookOpened(book.root());
         onOpened.run();
+        // After the commits above, on the Git thread, so a Synchronize it leads to finds them made.
+        gitControls.checkRemote();
     }
 
     /**
@@ -318,19 +294,35 @@ public final class BookContext implements AutoCloseable {
     }
 
     /**
-     * Readies the open book for an imported one: closes it if the import replaces it, or else settles its unsaved
-     * changes, as the imported book opens in its place; false if the author cancels.
+     * Readies the open book for an imported one, then runs {@code then}: settles its unsaved changes, synchronizes it
+     * if it does so automatically, and closes it if the import replaces it; nothing runs if the author cancels.
      */
-    private boolean makeWayFor(Path imported) {
+    private void makeWayFor(Path imported, Runnable then) {
 
-        if (book == null)
-            return true;
+        if (book == null) {
+            then.run();
+            return;
+        }
 
-        if (!isOpen(imported))
-            return unsavedChanges.settle("Save them before opening the imported book?");
+        boolean replaced = isOpen(imported);
+        if (!unsavedChanges.settle(replaced ? "Save them before closing the book?"
+                : "Save them before opening the imported book?"))
+            return;
 
-        closeOpenBook();
-        return book == null;
+        gitControls.leave(replaced ? () -> {
+            closeNow();
+            then.run();
+        } : then);
+    }
+
+    /** Closes the open book, as it is, and shows the welcome as when the app starts. */
+    private void closeNow() {
+
+        String closed = book.title();
+        closeBook();
+        book = null;
+        bookTitle.setText(NO_BOOK);
+        statusBar.info("Closed " + closed);
     }
 
     /** Releases the open book, if any, discarding unsaved changes; callers save first if they need to. */
@@ -345,6 +337,8 @@ public final class BookContext implements AutoCloseable {
         }
 
         gitControls.setRepository(null, "");
+        gitControls.setAutoSync(false);
+        state = null;
         bookOpen.set(false);
     }
 

@@ -20,6 +20,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.Commit;
 import it.infog.psiche.git.model.SyncReport;
+import it.infog.psiche.git.model.enums.RemoteState;
 import it.infog.psiche.settings.model.Credentials;
 
 import java.io.File;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -228,12 +230,31 @@ public final class BookRepository implements AutoCloseable {
      * {@link Synchronization}.
      *
      * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @param timeout     how long to wait for the host to answer; zero for JGit's default
      * @throws it.infog.psiche.git.exceptions.UncommittedWorkException if the book has changes that are not committed
-     * @throws GitCommandException if the remote cannot be reached, holds something else, or refuses the book
+     * @throws it.infog.psiche.git.exceptions.RemoteStateException if the remote cannot be reached or refuses the
+     *                                                             credentials
+     * @throws GitCommandException if the remote holds something else, or refuses the book
      */
-    public SyncReport synchronize(Optional<Credentials> credentials) {
+    public SyncReport synchronize(Optional<Credentials> credentials, Duration timeout) {
 
-        return new Synchronization(this, git.getRepository()).run(credentials);
+        return new Synchronization(this, git.getRepository()).run(credentials, timeout);
+    }
+
+    /**
+     * Brings in the remote's revisions and compares them with the book's, changing nothing the author sees: whether
+     * Synchronize would bring in something, as a book opens.
+     *
+     * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @param timeout     how long to wait for the host to answer; zero for JGit's default
+     * @return {@link RemoteState#EMPTY}, {@code SAME}, {@code BEHIND}, {@code AHEAD}, {@code DIVERGED} or
+     *         {@code UNRELATED}
+     * @throws it.infog.psiche.git.exceptions.RemoteStateException if the remote cannot be reached or refuses the
+     *                                                             credentials
+     */
+    public RemoteState checkRemote(Optional<Credentials> credentials, Duration timeout) {
+
+        return new Synchronization(this, git.getRepository()).check(credentials, timeout);
     }
 
     /**
@@ -254,10 +275,11 @@ public final class BookRepository implements AutoCloseable {
      * Pushes the current branch to the branch of the same name on {@code origin}.
      *
      * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @param timeout     how long to wait for the host to answer; zero for JGit's default
      * @return the pushed branch name
      * @throws GitCommandException if there is no {@code origin}, HEAD is detached, or the remote rejects the push
      */
-    public String push(Optional<Credentials> credentials) {
+    public String push(Optional<Credentials> credentials, Duration timeout) {
 
         String fullBranch = currentBranch();
         if (!git.getRepository().getRemoteNames().contains(REMOTE)) {
@@ -269,6 +291,7 @@ public final class BookRepository implements AutoCloseable {
                     .setRemote(REMOTE)
                     .setRefSpecs(new RefSpec(fullBranch + ":" + fullBranch))
                     .setCredentialsProvider(BookRemote.provider(credentials))
+                    .setTimeout(Math.toIntExact(timeout.toSeconds()))
                     .call();
         } catch (GitAPIException e) {
             throw new GitCommandException("git push failed: " + RemoteErrors.cleaned(e.getMessage()), e);

@@ -1,6 +1,7 @@
 package it.infog.psiche.git;
 
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.git.exceptions.RemoteStateException;
 import it.infog.psiche.git.exceptions.UncommittedWorkException;
 import it.infog.psiche.git.model.Conflict;
 import it.infog.psiche.git.model.RemoteAddress;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -42,7 +44,7 @@ class SynchronizationTest extends GitBookTest {
         write(DEPARTURE_FILE, DEPARTURE);
         commitAll("First draft");
         String saved = repository.remote().connect(new RemoteAddress(RemoteKind.FOLDER, backup.toString()));
-        repository.push(Optional.empty());
+        repository.push(Optional.empty(), Duration.ZERO);
 
         device = tempDir.resolve("other-device");
         other = Git.cloneRepository().setURI(saved).setDirectory(device.toFile()).call();
@@ -59,7 +61,7 @@ class SynchronizationTest extends GitBookTest {
 
         ObjectId head = head();
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(report.found()).isEqualTo(RemoteState.SAME);
         assertThat(report.changed()).isEmpty();
@@ -72,7 +74,7 @@ class SynchronizationTest extends GitBookTest {
         write("chapters/02-crossing.md", "The river was high.\n");
         ObjectId crossing = commitAll("Crossing").getId();
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(report.found()).isEqualTo(RemoteState.BEHIND);
         assertThat(remoteMain()).isEqualTo(crossing);
@@ -86,7 +88,7 @@ class SynchronizationTest extends GitBookTest {
         git.getRepository().getConfig().setString("remote", "origin", "url", empty.toString());
         git.getRepository().getConfig().save();
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(report.found()).isEqualTo(RemoteState.EMPTY);
         try (Git remote = Git.open(empty.toFile())) {
@@ -99,7 +101,7 @@ class SynchronizationTest extends GitBookTest {
 
         RevCommit harbour = commitOnTheOtherDevice("chapters/03-harbour.md", "Ships at anchor.\n");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(report.found()).isEqualTo(RemoteState.AHEAD);
         assertThat(head()).isEqualTo(harbour.getId());
@@ -116,7 +118,7 @@ class SynchronizationTest extends GitBookTest {
         other.commit().setMessage("Delete departure").call();
         other.push().call();
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(bookRoot.resolve(DEPARTURE_FILE)).doesNotExist();
         assertThat(report.changed()).containsExactly(bookRoot.resolve(DEPARTURE_FILE));
@@ -129,7 +131,7 @@ class SynchronizationTest extends GitBookTest {
         write("chapters/02-crossing.md", "The river was high.\n");
         commitAll("Crossing");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(report.found()).isEqualTo(RemoteState.DIVERGED);
         assertThat(report.conflicts()).isEmpty();
@@ -150,7 +152,7 @@ class SynchronizationTest extends GitBookTest {
         write(DEPARTURE_FILE, DEPARTURE.replace("By noon", "By midday"));
         commitAll("Midday");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(report.conflicts()).isEmpty();
         assertThat(bookRoot.resolve(DEPARTURE_FILE)).content()
@@ -167,7 +169,7 @@ class SynchronizationTest extends GitBookTest {
         write(DEPARTURE_FILE, ours);
         commitAll("Silent");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         Path copy = bookRoot.resolve(DEPARTURE_COPY);
         assertThat(bookRoot.resolve(DEPARTURE_FILE)).hasContent(ours);
@@ -184,13 +186,13 @@ class SynchronizationTest extends GitBookTest {
 
         write(DEPARTURE_COPY, "An older copy.\n");
         commitAll("An older copy");
-        repository.synchronize(Optional.empty());
+        repository.synchronize(Optional.empty(), Duration.ZERO);
         other.pull().call();
         commitOnTheOtherDevice(DEPARTURE_FILE, "Theirs.\n");
         write(DEPARTURE_FILE, "Ours.\n");
         commitAll("Ours");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         Path numbered = bookRoot.resolve(DEPARTURE_COPY.replace(")", ", 2)"));
         assertThat(report.conflicts()).extracting(Conflict::copy).containsExactly(Optional.of(numbered));
@@ -205,7 +207,7 @@ class SynchronizationTest extends GitBookTest {
         Files.delete(bookRoot.resolve(DEPARTURE_FILE));
         commitAll("Delete departure");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(bookRoot.resolve(DEPARTURE_FILE)).doesNotExist();
         assertThat(bookRoot.resolve(DEPARTURE_COPY)).hasContent("Changed there.");
@@ -223,7 +225,7 @@ class SynchronizationTest extends GitBookTest {
         write(DEPARTURE_FILE, "Changed here.\n");
         commitAll("Change departure");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(bookRoot.resolve(DEPARTURE_FILE)).hasContent("Changed here.");
         assertThat(report.conflicts()).containsExactly(new Conflict(bookRoot.resolve(DEPARTURE_FILE),
@@ -236,13 +238,13 @@ class SynchronizationTest extends GitBookTest {
         String image = "media/01-departure/map.png";
         write(image, "\u0000PNG first");
         commitAll("Map");
-        repository.synchronize(Optional.empty());
+        repository.synchronize(Optional.empty(), Duration.ZERO);
         other.pull().call();
         commitOnTheOtherDevice(image, "\u0000PNG theirs");
         write(image, "\u0000PNG ours");
         commitAll("Our map");
 
-        SyncReport report = repository.synchronize(Optional.empty());
+        SyncReport report = repository.synchronize(Optional.empty(), Duration.ZERO);
 
         assertThat(bookRoot.resolve(image)).hasContent("\u0000PNG ours");
         assertThat(report.conflicts()).containsExactly(new Conflict(bookRoot.resolve(image), Optional.empty()));
@@ -256,7 +258,7 @@ class SynchronizationTest extends GitBookTest {
         write(DEPARTURE_FILE, "Not committed.\n");
         ObjectId head = head();
 
-        assertThatThrownBy(() -> repository.synchronize(Optional.empty()))
+        assertThatThrownBy(() -> repository.synchronize(Optional.empty(), Duration.ZERO))
                 .isInstanceOf(UncommittedWorkException.class);
         assertThat(head()).isEqualTo(head);
         assertThat(bookRoot.resolve("chapters/03-harbour.md")).doesNotExist();
@@ -267,7 +269,7 @@ class SynchronizationTest extends GitBookTest {
 
         write("chapters/02-crossing.md", "Not committed.\n");
 
-        assertThatThrownBy(() -> repository.synchronize(Optional.empty()))
+        assertThatThrownBy(() -> repository.synchronize(Optional.empty(), Duration.ZERO))
                 .isInstanceOf(UncommittedWorkException.class);
     }
 
@@ -285,9 +287,48 @@ class SynchronizationTest extends GitBookTest {
         other.checkout().setName("elsewhere").call();
         other.push().setForce(true).setRefSpecs(new RefSpec("refs/heads/elsewhere:refs/heads/" + BRANCH)).call();
 
-        assertThatThrownBy(() -> repository.synchronize(Optional.empty()))
+        assertThatThrownBy(() -> repository.synchronize(Optional.empty(), Duration.ZERO))
                 .isInstanceOf(GitCommandException.class)
                 .hasMessage(RemoteState.UNRELATED.message());
+    }
+
+    @Test
+    void theCheckAtOpenTellsWhatTheRemoteHasAndChangesNothing() throws Exception {
+
+        assertThat(repository.checkRemote(Optional.empty(), Duration.ofSeconds(10))).isEqualTo(RemoteState.SAME);
+
+        write("chapters/02-crossing.md", "The river was high.\n");
+        commitAll("Crossing");
+        assertThat(repository.checkRemote(Optional.empty(), Duration.ofSeconds(10))).isEqualTo(RemoteState.BEHIND);
+
+        commitOnTheOtherDevice("chapters/03-harbour.md", "Ships at anchor.\n");
+        ObjectId head = head();
+        assertThat(repository.checkRemote(Optional.empty(), Duration.ofSeconds(10)))
+                .isEqualTo(RemoteState.DIVERGED);
+        assertThat(head()).isEqualTo(head);
+        assertThat(bookRoot.resolve("chapters/03-harbour.md")).doesNotExist();
+    }
+
+    @Test
+    void theCheckAtOpenFindsTheOtherDevicesRevisions() throws Exception {
+
+        commitOnTheOtherDevice("chapters/03-harbour.md", "Ships at anchor.\n");
+
+        assertThat(repository.checkRemote(Optional.empty(), Duration.ofSeconds(10))).isEqualTo(RemoteState.AHEAD);
+    }
+
+    @Test
+    void aFolderRemoteThatIsNotThereCannotBeReached() throws Exception {
+
+        // As a USB stick that is not plugged in.
+        Path remote = Path.of(repository.remote().address().orElseThrow());
+        Files.move(remote, tempDir.resolve("unplugged.git"));
+
+        assertThatThrownBy(() -> repository.checkRemote(Optional.empty(), Duration.ofSeconds(10)))
+                .isInstanceOfSatisfying(RemoteStateException.class,
+                        e -> assertThat(e.state()).isEqualTo(RemoteState.NOT_A_REPOSITORY));
+        assertThatThrownBy(() -> repository.synchronize(Optional.empty(), Duration.ofSeconds(10)))
+                .isInstanceOf(RemoteStateException.class);
     }
 
     /** Commits {@code file} with {@code text} on the other device, and sends it to the remote. */

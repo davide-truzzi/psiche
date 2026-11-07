@@ -143,15 +143,17 @@ public final class ChapterContext {
         return sidebar;
     }
 
-    /** Lists the chapters of {@code book} and opens the first; from now on an empty chapter shows as a blank page. */
-    public void show(BookFolder book, BookRepository repository) {
+    /**
+     * Lists the chapters of {@code book} and opens the first; from now on an empty chapter shows as a blank page.
+     *
+     * @param state the book's state, one for the book, shared, as the editor and the notes keep theirs in it too
+     */
+    public void show(BookFolder book, BookRepository repository, BookState state) {
 
         this.book = book;
         this.repository = repository;
         notes = new NoteStore(book.notesDir());
         view.setBook(book, repository, notes);
-        // One state for the book, shared, as the editor and the notes keep theirs in the same file.
-        BookState state = BookState.of(book);
         Optional<BookProperties> properties = properties(book);
         chapterEditor.places().setBookState(state);
         notesPane.setBook(properties.map(BookProperties::title).orElse(book.title()), state);

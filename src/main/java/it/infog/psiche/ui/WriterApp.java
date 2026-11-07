@@ -98,9 +98,10 @@ public final class WriterApp extends Application {
         ICON_SIZES.forEach(size -> stage.getIcons().add(
                 new Image(WriterApp.class.getResource("icons/psiche-%d.png".formatted(size)).toExternalForm())));
         stage.setScene(scene);
+        // The window stays until the workspace is ready, which may take a Synchronize: it closes it then.
         stage.setOnCloseRequest(event -> {
-            if (!workspace.confirmClose())
-                event.consume();
+            event.consume();
+            workspace.requestClose(stage::close);
         });
         settings.windowBounds().filter(WriterApp::fitsOnScreen).ifPresent(this::place);
         stage.show();
