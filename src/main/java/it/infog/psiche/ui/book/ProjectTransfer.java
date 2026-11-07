@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -105,10 +106,10 @@ public final class ProjectTransfer {
      * @param booksDirectory where the choosers start; null to let them choose
      * @param isOpen         tells whether a folder is the open book's
      * @param makeWay        readies the open book for the imported one, given its folder: closes it if replaced, or
-     *                       settles its unsaved changes; false if the author cancels
+     *                       settles its unsaved changes; then runs the import it is given, not if the author cancels
      * @param open           opens the imported book
      */
-    public void importProject(Path booksDirectory, Predicate<Path> isOpen, Predicate<Path> makeWay,
+    public void importProject(Path booksDirectory, Predicate<Path> isOpen, BiConsumer<Path, Runnable> makeWay,
                               Consumer<Path> open) {
 
         //project file
@@ -151,10 +152,8 @@ public final class ProjectTransfer {
             }
         }
 
-        if (!makeWay.test(target))
-            return;
-
-        importProject(archive.get(), manifest, parent.get(), backup, open);
+        Optional<Path> chosenBackup = backup;
+        makeWay.accept(target, () -> importProject(archive.get(), manifest, parent.get(), chosenBackup, open));
     }
 
     /**

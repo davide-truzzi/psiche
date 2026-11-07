@@ -1,7 +1,10 @@
 package it.infog.psiche.git;
 
+import it.infog.psiche.git.model.RemoteAddress;
+import it.infog.psiche.git.model.enums.RemoteKind;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.transport.RefSpec;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -12,7 +15,8 @@ import java.nio.file.Path;
 
 /**
  * A book folder with a Git repository, for the tests of {@link BookRepository} and {@link BookHistory}: files are
- * written, moved and committed as an author, or another program, would.
+ * written, moved and committed as an author, or another program, would. For the remote's tests, bare repositories
+ * stand for a host or a drive, and other copies of the book for other devices.
  */
 abstract class GitBookTest {
 
@@ -61,5 +65,35 @@ abstract class GitBookTest {
         git.add().addFilepattern(".").call();
         git.add().addFilepattern(".").setUpdate(true).call();
         return git.commit().setMessage(message).call();
+    }
+
+    /** An empty bare repository on main, {@code name} in the temporary folder, as a host or a drive keeps one. */
+    Path bare(String name) throws Exception {
+
+        Path folder = tempDir.resolve(name);
+        Git.init().setBare(true).setDirectory(folder.toFile()).setInitialBranch(BRANCH).call().close();
+        return folder;
+    }
+
+    /** {@code folder} as the book's remote, as the author picks it. */
+    static RemoteAddress folder(Path folder) {
+
+        return new RemoteAddress(RemoteKind.FOLDER, folder.toString());
+    }
+
+    /**
+     * Writes {@code file} with {@code text} in {@code device}, another copy of the book or a host's own, commits it,
+     * and pushes it to main on {@code remote}, a remote's name or a repository's folder.
+     */
+    static RevCommit commitAndPush(Git device, String file, String text, String remote) throws Exception {
+
+        Path written = device.getRepository().getWorkTree().toPath().resolve(file);
+        Files.createDirectories(written.getParent());
+        Files.writeString(written, text);
+        device.add().addFilepattern(".").call();
+        RevCommit commit = device.commit().setMessage("From the other device").call();
+        device.push().setRemote(remote).setRefSpecs(new RefSpec("HEAD:refs/heads/" + BRANCH)).call();
+
+        return commit;
     }
 }

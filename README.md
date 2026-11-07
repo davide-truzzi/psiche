@@ -58,13 +58,14 @@ my-book/              ← the folder; the book's title is set in its properties
   notes**, **Export Psiche project** and **Import Psiche project**. What acts on one chapter is in that chapter's
   right-click menu.
 - **Close book** closes the open book, asking first about unsaved changes as opening another book does, and shows the
-  welcome page again, as when Psiche starts. It waits while a commit, a push or a notes export or import is running.
+  welcome page again, as when Psiche starts. It waits while a commit, a Synchronize or a notes export or import is
+  running. A book that synchronizes automatically synchronizes first (see [Git](#git)).
 - **Export Psiche project** writes the whole book folder, as it is saved, to one `.psiche` file you pick, by default
   next to the book's folder as `<folder>-<YYYY-MM-DD>.psiche`: chapters, media, notes with their files, and the Git
   history, to move the book to another computer or keep a copy. Psiche's own settings, such as the words added to the
   dictionary, are not in it. It is refused while a chapter has unsaved changes: save or revert them first. Text is
   compressed and every other file stored as it is, so large files in notes copy at the speed of the disk. Meanwhile the
-  book is frozen, so nothing in it changes while it is read: the chapter list, the notes, Commit, Push and the Book
+  book is frozen, so nothing in it changes while it is read: the chapter list, the notes, Commit, Synchronize and the Book
   menu are disabled, and the open chapter can be read but not edited. The status bar shows how far it has come, as
   `Exporting Lorem ▮▮▮▮▯▯▯▯▯▯ 42 %`, and closing the window asks first.
 - **Import Psiche project** asks for a `.psiche` file and the folder to put the book in, unpacks it there under the
@@ -380,10 +381,43 @@ my-book/              ← the folder; the book's title is set in its properties
 ### Git
 - **Commit**: records every change in the book (new, modified and deleted files) in one commit, using the message in
   the toolbar field. Press Enter in the field or click the button.
-- **Push**: pushes the current branch to the branch of the same name on `origin`. HTTPS remotes authenticate with
-  credentials from `~/.netrc`.
-- Git commands run in the background, one at a time, in the order you clicked them. Errors (nothing to commit, no
-  `origin`, rejected push, …) are shown in a dialog and in the status bar.
+- **Remote repository**, in **Book properties**, for advanced use: connects the book to a repository on a host such
+  as GitHub or GitLab (an `https://` address, a username and a personal access token that can write) or to a folder,
+  such as one on a USB stick or another drive, where Psiche keeps the book in `PsicheRepository/<book>.git`, one
+  folder holding several books. Choose a folder on another drive than the book's, so one failing disk cannot take
+  both copies. `http://`, `git://`, SSH and addresses with a password in them are refused.
+  - **Test** checks the address, the host's certificate, the token and its right to write, and what the repository
+    holds: empty, behind the book, or with newer revisions from another device are all fine. A repository with a
+    history of its own, such as one the host created with a README, a licence or a .gitignore, is refused: create
+    an empty one. Save waits for a good Test whenever the remote's fields change.
+  - An empty book connected to a repository holding a book of the same title takes that book in its place at Save.
+  - **Remove remote** disconnects the book and deletes its token, after asking the master password.
+  - The remote is `origin` in the book's `.git/config`, on branch `main`, so the command line sees it too; the token
+    is never written there.
+- **Synchronize**, after Commit, shown only for a book with a remote: brings in the revisions made on another device,
+  merges them with the book's, and sends the book's, in one go. It needs every chapter saved and committed, and says
+  so otherwise. A merge Git can make line by line is committed, and the status bar names the chapters it changed.
+  When both devices changed the same lines of a chapter, the book keeps this device's text and the other's becomes
+  a chapter of its own, `<title> (other device, YYYY-MM-DD)`, to compare and delete; another file changed on both
+  keeps this device's version, the other's staying in the history. A dialog lists them.
+- **Synchronize automatically**, a switch in the Remote repository section, kept for each book on each device in
+  `psiche.properties`. Off, Synchronize runs only when you click it. On, it also runs:
+  - as the book opens, if the remote has something new;
+  - after every commit, yours or a chapter's rename, deletion or restore;
+  - before the book is left: Close book, opening or creating another, importing a Psiche project, closing the window.
+    Work not committed is offered a commit first, with **Commit**, **Close without synchronizing** and **Cancel**.
+
+  A remote that cannot be reached, offline or on a drive not plugged in, is given up after 10 seconds and told in the
+  status bar; the book opens or closes anyway.
+- **The keychain**: tokens are kept in `credentials.p12`, in Psiche's settings folder, one per book, locked by a
+  master password chosen with the first token and asked once a session, when a token is first needed. It cannot be
+  recovered: **Reset keychain**, in the password's dialog, deletes every token, to be made again on the host. While
+  Psiche runs unlocked, the tokens are in its memory.
+- A book's images are committed with it, so they travel with Synchronize; notes and `psiche.properties` stay out of
+  Git. A second device gets a book by importing a Psiche project exported on the first: the remote comes with it,
+  the token does not.
+- Git commands run in the background, one at a time, in the order you clicked them. Errors (nothing to commit, a
+  remote that refuses the token, …) are shown in a dialog and in the status bar.
 - Books without a Git repository can still be edited. The Git controls stay disabled until you run `git init` in the
   folder.
 
@@ -422,8 +456,7 @@ my-book/              ← the folder; the book's title is set in its properties
 ./gradlew installDist                          # launcher in build/install/psiche/bin/psiche
 ```
 
-The tests use their own empty home directory under `build/test-home`, so your `~/.gitconfig` and `~/.netrc` don't
-affect them. `ChapterWatcherTest` needs a free inotify instance on Linux. If none is left (*"User limit of inotify
+The tests use their own empty home directory under `build/test-home`, so your `~/.gitconfig` doesn't affect them. `ChapterWatcherTest` needs a free inotify instance on Linux. If none is left (*"User limit of inotify
 instances reached"*), the test is reported as skipped, not failed, so the watcher is then untested.
 
 ## Packaging
@@ -470,8 +503,8 @@ What each package holds:
 | Package | Responsibility |
 |---|---|
 | `it.infog.psiche.book` | `BookFolder` (create, open and validate a book; create, list, read and write chapters; and, through `BookMedia`, what `media/` keeps: read and save the book's properties and how its pages are counted, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `BookState` keeps `psiche.properties`, where each chapter was left (`book.model.ChapterPlace`). `ProjectArchive` writes a whole book folder to a Psiche project file, and unpacks one in place of the folder of that name, refusing entries that would leave the book's folder. `book.model.BookProperties` holds the properties, `book.model.ProjectManifest` what a project file says about its book |
-| `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), adding a line to `.gitignore` and committing it alone, push, and the files changed since the last commit, via JGit. `BookHistory`, from `BookRepository.history()`, reads what the commits recorded: a file's history as `FileRevision`s with lines added and removed, whether a name was ever used, the deleted chapters, and a file as a commit recorded it. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
-| `it.infog.psiche.settings` | The app's own settings. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties` and `words.txt`, the author's own words for the spell checker, shared by every book, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was, beside whether the book's counts under the chapter list are open and which tab beside the chapter (`model.enums.ChapterTab`) shows when a book opens. A value missing or unreadable reads as its default |
+| `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), push, and the files changed since the last commit, via JGit; `GitIgnore`, from `BookRepository.gitignore()`, adds a line to `.gitignore` and commits it alone, and brings a folder kept out into Git. `BookRemote` is the book's `origin`: its address checked by `RemoteAddresses` (`model.RemoteAddress`) and a folder's by `RemoteFolder`, connected or removed, and **Test**, which tells a `model.enums.RemoteState`, as `RemoteErrors` reads JGit's failures, with addresses cleaned of user info. `Synchronization` fetches, compares, fast-forwards or merges (`BookMerge`, file by file in memory, a conflict as a copy beside the chapter, `model.Conflict`) and pushes, reporting a `model.SyncReport`; it also checks the remote as a book opens, and puts a remote's book in place of an empty one. `BookHistory`, from `BookRepository.history()`, reads what the commits recorded: a file's history as `FileRevision`s with lines added and removed, whether a name was ever used, the deleted chapters, and a file as a commit recorded it. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
+| `it.infog.psiche.settings` | The app's own settings, and `Keychain`, the books' tokens (`model.Credentials`) in a PKCS12 file locked by a master password. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties` and `words.txt`, the author's own words for the spell checker, shared by every book, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was, beside whether the book's counts under the chapter list are open and which tab beside the chapter (`model.enums.ChapterTab`) shows when a book opens. A value missing or unreadable reads as its default |
 | `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports. `Occurrences`: every place a text appears, capitals or not, and the word at a position, for the editor's repetitions |
 | `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter, and the book's own in `_book/` (`NoteStore.BOOK`, a name `BookFolder` refuses for a chapter), and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, go to `DetachedNoteStore`, from `NoteStore.detached()`, and so does a file replaced or removed, with a copy of its note. `DetachedNoteStore` keeps them in a `-del-` folder with the time and why, and lists the folders that match no chapter as orphans, for Detached notes to restore or delete for good. How a note sits on disk, read and written whole, and how notes move between folders, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
 | `it.infog.psiche.spelling` | Spell checking, offline. `SpellChecker` checks words in one language with the Hunspell dictionary the app brings for it, through Lucene's Hunspell, and suggests others; it takes the author's own words, a curly apostrophe as a straight one, and a closing quote after a word. `ProseWords` finds the words of a chapter's prose, leaving out code, HTML and comments, link and image targets, addresses, entities and words with digits. `Dictionaries` reads the list of the dictionaries the app brings, `dictionaries.txt` in the resources (English, Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal), and picks a book's: its country's, or else the first of its language; each is a `model.SpellingLanguage`. A dictionary, from LibreOffice, is a folder named by its tag with its licence, and adding or removing one takes its folder and its line, no code; `SOURCES.md` says where each came from and how |
@@ -521,7 +554,10 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |
 | `chapters.UnsavedChanges` | Asks whether to save or discard unsaved chapters before a book is replaced, a commit, an export or closing the window |
 | `preview.PreviewPane` | The typeset preview in a `WebView`: `render` shows a chapter at once from the top, `renderLater` follows the author's typing after a 500 ms pause and keeps the scroll position, and `followPosition` scrolls to the part of the page rendered from a character of the Markdown, as far down its block as it is through the block's text; while hidden behind the History tab it holds back both and catches up when shown; a render of the page already shown, for the same folder, theme and font size, only replaces its article, without loading the page and its stylesheet again |
-| `git.GitControls` | Commit message, Commit and Push. Runs Git commands one at a time on a background thread, exposes a *busy* flag that the book buttons disable on, and reports each commit so the history and the revision dots reload; also adds a line to `.gitignore`, for notes, and reads the book's state quietly, for the revision dots |
+| `git.GitControls` | Commit message, Commit and Synchronize, hidden without a remote. Runs Git commands one at a time on a background thread, exposes a *busy* flag that the book buttons disable on, and reports each commit so the history and the revision dots reload; also adds a line to `.gitignore`, for notes, brings images into Git, connects and removes the remote, and reads the book's state quietly, for the revision dots |
+| `git.Synchronizer` | Synchronize, clicked or automatic: the check as a book opens, after a commit, and before the book is left, which the workspace waits for; a remote that cannot be reached only in the status bar. `SyncReports` tells what it did and the conflicts, `SyncQuestions` asks to commit before closing |
+| `git.KeychainDialogs` | The keychain's dialogs: the master password chosen, typed once a session, typed again to delete a token, and Reset keychain |
+| `book.RemoteSection`, `RemoteTest` | The Remote repository section of *Book properties*: the address, the username and token, Synchronize automatically, Test and Remove remote; Save waits for a good Test; Test's outcome as the author reads it |
 | `notes.NotesPane` | The Notes tab: the open chapter's `NoteBoard`, or the book's, as the `BoardSwitch` above it says, shown in a `BoardViewport` with a `BoardBar` in its corner, and the board's keys (`BoardKeys`); remembers in the book's state which board was looked at last; `BoardCounts` gives the tab its *Notes (3+2)* title and the switch its dots, reading the board not on screen; reads a chapter's notes as it opens, again after notes are restored to it, and keeps each chapter's view; asks for pictures only while the tab is showing. `settle()` saves what is pending before a chapter is renamed or deleted, or the app closes |
 | `notes.NoteBoard` | The board itself: the notes as cards, the one selected and the order they lie in; makes new notes, by a double-click, New note, or for files dropped or pasted, writes each change a card reports, and moves a deleted note to Detached notes and says so |
 | `notes.NoteMoves` | The notes leaving the board, as the `NoteMoveActions` a card asks its board for: to another chapter's board, picked from a list, or to the other board the Notes tab shows, from the note's menu or dropped on that board's half of the switch, which `CardDrag` tells where the pointer is |
@@ -557,8 +593,11 @@ callbacks (`ErrorReporter`, the check before committing, the after-commit hook, 
 - No way to reorder chapters from the editor other than renaming their number prefixes.
 - Rename, delete and restore need a Git repository, every chapter saved, and every change to the files Git tracks
   committed; the chapter renamed or deleted must be committed too.
-- No pull or fetch, and no way to configure remotes. Add `origin` with `git remote add origin <url>`.
-- Only HTTPS (via `~/.netrc`) and local remotes are supported for push. SSH remotes are not.
+- Remotes are HTTPS, with a token, or a folder; SSH is not supported. One remote per book, on branch `main`.
+- No Clone: a second device gets the book from a Psiche project exported on the first.
+- Synchronize is made for one author on several devices. Two people writing the same chapter at once would meet
+  conflict copies often.
+- The keychain's master password cannot be recovered; Reset keychain deletes every token.
 - Chapter files must not be changed by another program while the book is open (see the warning under
   [Book layout](#book-layout)). The editor doesn't reload a chapter changed on disk, and the next save overwrites the
   change. A chapter deleted on disk with unsaved changes is written back by **Save chapters**.

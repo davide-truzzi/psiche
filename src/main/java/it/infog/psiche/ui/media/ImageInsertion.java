@@ -42,22 +42,18 @@ public final class ImageInsertion {
     private final StatusBar statusBar;
     private final ErrorReporter errors;
     private final Supplier<Window> window;
-    private final Runnable keepOutOfGit;
     private final WorkThread thread = new WorkThread("Images");
     private Runnable onCopied = () -> {};
 
     // Where the file chooser opens: the user's home, then the folder of the image last chosen.
     private Path lastFolder = Path.of(System.getProperty("user.home"));
 
-    /** @param keepOutOfGit keeps the chapters' images out of the book's Git, once an image is copied into it */
-    public ImageInsertion(ChapterEditor editor, StatusBar statusBar, ErrorReporter errors, Supplier<Window> window,
-                          Runnable keepOutOfGit) {
+    public ImageInsertion(ChapterEditor editor, StatusBar statusBar, ErrorReporter errors, Supplier<Window> window) {
 
         this.editor = editor;
         this.statusBar = statusBar;
         this.errors = errors;
         this.window = window;
-        this.keepOutOfGit = keepOutOfGit;
     }
 
     /** Asks for an image to insert into the open chapter; nothing with no chapter open, or while one is on its way. */
@@ -255,7 +251,6 @@ public final class ImageInsertion {
 
         ChapterMedia media = new ChapterMedia(book.mediaDir());
         thread.run(() -> media.add(chapter.title(), file), copied -> {
-            keepOutOfGit.run();
             onCopied.run();
             String name = copied.getFileName().toString();
             if (!place.test(name))

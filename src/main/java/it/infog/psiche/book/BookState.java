@@ -17,8 +17,9 @@ import java.util.Properties;
 
 /**
  * What Psiche remembers about one book, in {@value #FILE} at the book's root, which every book gets as it is created
- * or first opened, so a folder shows at a glance that it is a Psiche book: where the author left each chapter, and
- * which notes board, the chapter's or the book's, they looked at last.
+ * or first opened, so a folder shows at a glance that it is a Psiche book: where the author left each chapter, which
+ * notes board, the chapter's or the book's, they looked at last, and whether the book synchronizes with its remote by
+ * itself on this device.
  * It is the author's own state, not the book's, so it stays out of Git; a Psiche project takes it along.
  */
 public final class BookState {
@@ -33,6 +34,7 @@ public final class BookState {
     private static final String CARET = ".caret";
     private static final String TOP = ".top";
     private static final String NOTES_BOARD = "notes.board";
+    private static final String AUTO_SYNC = "remote.autosync";
 
     private final Path file;
     private final Path chaptersDir;
@@ -91,6 +93,22 @@ public final class BookState {
             return;
 
         properties.setProperty(NOTES_BOARD, board.name().toLowerCase(Locale.ROOT));
+        write();
+    }
+
+    /** True if the book synchronizes with its remote by itself: as it opens and closes, and after every commit. */
+    public boolean autoSync() {
+
+        return Boolean.parseBoolean(properties.getProperty(AUTO_SYNC));
+    }
+
+    /** Remembers whether the book synchronizes with its remote by itself, on this device only. */
+    public void saveAutoSync(boolean on) {
+
+        if (on == autoSync())
+            return;
+
+        properties.setProperty(AUTO_SYNC, String.valueOf(on));
         write();
     }
 

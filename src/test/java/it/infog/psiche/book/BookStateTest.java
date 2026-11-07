@@ -77,6 +77,17 @@ class BookStateTest {
     }
 
     @Test
+    void automaticSynchronizationIsOffAtFirstAndRemembered() throws IOException {
+        BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
+        assertThat(BookState.of(book).autoSync()).isFalse();
+
+        BookState.of(book).saveAutoSync(true);
+
+        assertThat(BookState.of(book).autoSync()).isTrue();
+        assertThat(Files.readString(book.root().resolve("psiche.properties"))).contains("remote.autosync=true");
+    }
+
+    @Test
     void aDamagedPlaceIsNoPlace() throws IOException {
         BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
         Chapter alba = book.createChapter("01 alba");

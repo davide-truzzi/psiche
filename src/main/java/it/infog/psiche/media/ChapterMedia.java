@@ -28,9 +28,9 @@ import static it.infog.psiche.common.SafeFiles.temporaryBeside;
 
 /**
  * The images of a book's chapters, in {@code media/}: each chapter with images has a folder there named like the
- * chapter's file, without {@code .md}, holding them. Only those folders are chapter images, kept out of Git by the
- * line {@value #GIT_IGNORE}; the files directly in {@code media/}, such as the book's properties and cover, are the
- * book's own and never touched here. No image belongs to the whole book.
+ * chapter's file, without {@code .md}, holding them. Only those folders are chapter images, which Git keeps with the
+ * chapters; the files directly in {@code media/}, such as the book's properties and cover, are the book's own and never
+ * touched here. No image belongs to the whole book.
  * <p>
  * A renamed chapter's images move with it. Those of a deleted chapter, and an image the author detaches, are kept in a
  * deleted folder named after the chapter and the time, as {@link ChapterFolders} names them, where
@@ -39,8 +39,13 @@ import static it.infog.psiche.common.SafeFiles.temporaryBeside;
  */
 public final class ChapterMedia {
 
-    /** The line of the book's {@code .gitignore} that keeps the chapters' images out of Git. */
-    public static final String GIT_IGNORE = "media/*/";
+    /** The line of the book's {@code .gitignore} that kept the chapters' images out of Git, before 0.5.0. */
+    public static final String FORMER_GIT_IGNORE = "media/*/";
+    /**
+     * The line of the book's {@code .gitignore} that keeps the deleted folders out of Git: what was deleted or detached
+     * stays on this device. A digit after the mark, as the time starts, so a chapter such as "fine-del-mondo" is kept.
+     */
+    public static final String GIT_IGNORE = "media/*" + ChapterFolders.DELETED_MARK + "[0-9]*/";
 
     private static final Logger log = LoggerFactory.getLogger(ChapterMedia.class);
     // Files whose names start with it are Psiche's own work in progress, never images.

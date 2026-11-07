@@ -26,6 +26,8 @@ final class BookMedia {
 
     static final String PROPERTIES_FILE = "book.properties";
     static final String STYLE_FILE = "style.css";
+    static final String TITLE_KEY = "title";
+    static final String IDENTIFIER_KEY = "identifier";
     static final List<String> COVER_FILES = List.of("cover.jpg", "cover.png");
 
     private static final String PAGE_COUNT = "pageCount";
@@ -126,12 +128,12 @@ final class BookMedia {
         String language = Locale.getDefault().toLanguageTag();
 
         return new BookProperties(
-                saved.getProperty("title", folderName),
+                saved.getProperty(TITLE_KEY, folderName),
                 saved.getProperty("subtitle", ""),
                 Arrays.stream(saved.getProperty("authors", "").split("\n")).filter(name -> !name.isBlank()).toList(),
                 saved.getProperty("language", language.equals("und") ? "en" : language),
                 saved.getProperty("rights", ""),
-                saved.getProperty("identifier", "urn:uuid:" + UUID.randomUUID()));
+                saved.getProperty(IDENTIFIER_KEY, "urn:uuid:" + UUID.randomUUID()));
     }
 
     /**
@@ -146,13 +148,13 @@ final class BookMedia {
             throw new IllegalArgumentException("Book title must not be blank");
 
         Properties saved = loadProperties();
-        saved.setProperty("title", properties.title().strip());
+        saved.setProperty(TITLE_KEY, properties.title().strip());
         saved.setProperty("subtitle", properties.subtitle().strip());
         saved.setProperty("authors",
                 properties.authors().stream().map(String::strip).collect(Collectors.joining("\n")));
         saved.setProperty("language", properties.language());
         saved.setProperty("rights", properties.rights().strip());
-        saved.setProperty("identifier", properties.identifier());
+        saved.setProperty(IDENTIFIER_KEY, properties.identifier());
         storeProperties(saved);
 
         ensureStyle();

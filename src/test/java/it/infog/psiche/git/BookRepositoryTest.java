@@ -3,7 +3,6 @@ package it.infog.psiche.git;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.junit.jupiter.api.Test;
@@ -18,8 +17,10 @@ import it.infog.psiche.git.model.FileRevision;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -113,7 +114,7 @@ class BookRepositoryTest extends GitBookTest {
             write("chapters/01-departure.md", "It began at dawn.");
             ObjectId head = commitAll("Draft chapter one").getId();
 
-            String pushed = repository.push();
+            String pushed = repository.push(Optional.empty(), Duration.ZERO);
 
             assertThat(pushed).isEqualTo(BRANCH);
             assertThat(origin.getRepository().resolve("refs/heads/" + BRANCH)).isEqualTo(head);
@@ -125,7 +126,7 @@ class BookRepositoryTest extends GitBookTest {
         write("chapters/01-departure.md", "It began at dawn.");
         commitAll("initial");
 
-        assertThatThrownBy(() -> repository.push())
+        assertThatThrownBy(() -> repository.push(Optional.empty(), Duration.ZERO))
                 .isInstanceOf(GitCommandException.class)
                 .hasMessage("No 'origin' remote is configured for this book");
     }
@@ -137,14 +138,11 @@ class BookRepositoryTest extends GitBookTest {
                      .setURI(origin.getRepository().getDirectory().toURI().toString())
                      .setDirectory(tempDir.resolve("co-author").toFile())
                      .call()) {
-            Files.writeString(tempDir.resolve("co-author/preface.md"), "Their preface");
-            coAuthor.add().addFilepattern(".").call();
-            coAuthor.commit().setMessage("Add preface").call();
-            coAuthor.push().setRefSpecs(new RefSpec("HEAD:refs/heads/" + BRANCH)).call();
+            commitAndPush(coAuthor, "preface.md", "Their preface", BookRepository.REMOTE);
             write("chapters/01-departure.md", "Unrelated history");
             commitAll("Draft chapter one");
 
-            assertThatThrownBy(() -> repository.push())
+            assertThatThrownBy(() -> repository.push(Optional.empty(), Duration.ZERO))
                     .isInstanceOf(GitCommandException.class)
                     .hasMessageStartingWith("Push of refs/heads/main was rejected (REJECTED_NONFASTFORWARD)");
         }
@@ -259,38 +257,26 @@ class BookRepositoryTest extends GitBookTest {
     }
 
     @Test
-    void ignoringAPatternCommitsGitignoreAloneAndOnlyOnce() throws Exception {
+    void aBookIsCommittedOnlyWithNothingChangedAndNothingNew() throws Exception {
         write("chapters/01-departure.md", DEPARTURE);
+        write(".gitignore", "notes/\n");
         commitAll("First draft");
-        write("chapters/01-departure.md", DEPARTURE + "A new line, not committed.\n");
+        write("notes/01-departure/idea.md", "Ignored.\n");
+        assertThat(repository.isCommitted()).isTrue();
 
-        assertThat(repository.ignores("notes/")).isFalse();
-        assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isTrue();
-        assertThat(repository.ignores("notes/")).isTrue();
-        assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isFalse();
+        write("chapters/02-crossing.md", "Saved, not committed.\n");
+        assertThat(repository.isCommitted()).isFalse();
 
-        assertThat(bookRoot.resolve(".gitignore")).hasContent("notes/");
-        assertThat(git.log().call()).extracting(RevCommit::getShortMessage)
-                .containsExactly("Keep chapter notes out of Git", "First draft");
-        assertThat(git.status().call().getModified()).containsExactly("chapters/01-departure.md");
-    }
-
-    @Test
-    void anIgnoredPatternGoesOnALineOfItsOwn() throws Exception {
-        write("chapters/01-departure.md", DEPARTURE);
-        write(".gitignore", "*.bak");
-        commitAll("First draft");
-
-        repository.ignore("notes/", "Keep chapter notes out of Git");
-
-        assertThat(Files.readString(bookRoot.resolve(".gitignore"))).isEqualTo("*.bak\nnotes/\n");
+        commitAll("Crossing");
+        write("chapters/01-departure.md", DEPARTURE + "Saved, not committed.\n");
+        assertThat(repository.isCommitted()).isFalse();
     }
 
     @Test
     void aCommitLeavesIgnoredNotesOut() throws Exception {
         write("chapters/01-departure.md", DEPARTURE);
         commitAll("First draft");
-        repository.ignore("notes/", "Keep chapter notes out of Git");
+        repository.gitignore().add("notes/", "Keep chapter notes out of Git");
         write("notes/01-departure/20261101-093000-a1b2/note.md", "Marco lies about the letter.\n");
         write("chapters/01-departure.md", DEPARTURE + "The bells rang.\n");
 
@@ -307,22 +293,9 @@ class BookRepositoryTest extends GitBookTest {
         assertThat(repository.hasUncommittedChanges()).isFalse();
     }
 
-    @Test
-    void aBookWithoutCommitsCanIgnoreAPattern() throws Exception {
-        write("chapters/01-departure.md", DEPARTURE);
-
-        assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isTrue();
-
-        assertThat(git.log().call()).extracting(RevCommit::getShortMessage)
-                .containsExactly("Keep chapter notes out of Git");
-        assertThat(git.status().call().getUntracked()).containsExactly("chapters/01-departure.md");
-    }
-
-
     private Git bareOrigin() throws Exception {
-        Path originDir = tempDir.resolve("origin.git");
-        Git origin = Git.init().setBare(true).setDirectory(originDir.toFile()).setInitialBranch(BRANCH).call();
+        Path originDir = bare("origin.git");
         git.remoteAdd().setName(BookRepository.REMOTE).setUri(new URIish(originDir.toUri().toString())).call();
-        return origin;
+        return Git.open(originDir.toFile());
     }
 }

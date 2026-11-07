@@ -131,6 +131,9 @@ val runtimeModules = listOf(
 val jlinkRuntime by tasks.registering(Exec::class) {
     description = "Makes the Java runtime the packaged app brings, of the JDK modules it needs."
     val runtime = packageDir.map { it.dir("runtime") }
+    // Made again for another module list or another JDK: without inputs, Gradle would keep the first one made.
+    inputs.property("modules", runtimeModules)
+    inputs.property("jdk", javaToolchains.launcherFor(java.toolchain).map { it.metadata.javaRuntimeVersion })
     outputs.dir(runtime)
     doFirst { delete(runtime) }
     executable(jdkTool("jlink"))
@@ -181,6 +184,11 @@ val appImage by tasks.registering(Exec::class) {
     dependsOn(jpackageImage)
     val appDir = packageDir.map { it.dir("AppDir") }
     val appImageFile = layout.buildDirectory.file("distributions/psiche.AppImage")
+    // What the AppImage is made of: without inputs, Gradle would take an AppImage already there as up to date, and
+    // never make it again with new code.
+    inputs.dir(packageDir.map { it.dir("image/psiche") })
+    inputs.dir("src/package/linux")
+    inputs.file("src/package/icons/psiche.png")
     outputs.file(appImageFile)
     doFirst {
         delete(appDir)

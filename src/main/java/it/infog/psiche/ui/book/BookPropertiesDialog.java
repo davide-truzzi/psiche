@@ -8,6 +8,7 @@ import it.infog.psiche.ui.common.ImageFilter;
 import it.infog.psiche.ui.common.LanguageChoice;
 
 import javafx.beans.binding.Bindings;
+import javafx.event.ActionEvent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
@@ -29,7 +30,10 @@ import java.nio.file.Path;
 import java.time.Year;
 import java.util.Optional;
 
-/** A form for the book's properties and its cover, everything an ebook of the book needs besides the chapters. */
+/**
+ * A form for the book's properties and its cover, everything an ebook of the book needs besides the chapters, and,
+ * under them, its remote repository.
+ */
 public final class BookPropertiesDialog {
 
     /**
@@ -51,10 +55,11 @@ public final class BookPropertiesDialog {
     /**
      * Shows the form filled in with {@code properties} and waits for the author.
      *
-     * @param cover the book's cover, if it has one
+     * @param cover  the book's cover, if it has one
+     * @param remote the Remote repository section, applied by the caller once the form is saved
      * @return empty if the author cancels
      */
-    static Optional<Edit> show(Window owner, BookProperties properties, Optional<Path> cover) {
+    static Optional<Edit> show(Window owner, BookProperties properties, Optional<Path> cover, RemoteSection remote) {
 
         Dialog<ButtonType> dialog = new Dialog<>();
         Dialogs.ownAndStyle(dialog, owner);
@@ -64,6 +69,7 @@ public final class BookPropertiesDialog {
 
         //text fields
         TextField title = new TextField(properties.title());
+        remote.followTitle(title.textProperty());
         TextField subtitle = new TextField(properties.subtitle());
         TextArea authors = new TextArea(String.join("\n", properties.authors()));
         authors.setPrefRowCount(3);
@@ -72,8 +78,14 @@ public final class BookPropertiesDialog {
         TextField rights = new TextField(properties.rights());
         suggestRights(rights, authors);
 
-        dialog.getDialogPane().lookupButton(SAVE).disableProperty()
-                .bind(Bindings.createBooleanBinding(() -> title.getText().isBlank(), title.textProperty()));
+        // Also while the remote's fields are changed and not tested.
+        Button save = (Button) dialog.getDialogPane().lookupButton(SAVE);
+        save.disableProperty().bind(Bindings.createBooleanBinding(() -> title.getText().isBlank(),
+                title.textProperty()).or(remote.savable().not()));
+        save.addEventFilter(ActionEvent.ACTION, event -> {
+            if (!remote.readyToSave())
+                event.consume();
+        });
 
         //cover
         CoverPicker coverPicker = new CoverPicker(cover);
@@ -86,9 +98,9 @@ public final class BookPropertiesDialog {
         form.addRow(3, new Label("Language"), DictionaryMark.after(language));
         form.addRow(4, new Label("Copyright"), rights);
 
-        HBox content = new HBox(form, coverPicker.node());
-        content.getStyleClass().add("book-properties-content");
-        dialog.getDialogPane().setContent(content);
+        HBox book = new HBox(form, coverPicker.node());
+        book.getStyleClass().add("book-properties-content");
+        dialog.getDialogPane().setContent(new VBox(book, remote.node()));
         dialog.setOnShown(event -> title.requestFocus());
 
         if (dialog.showAndWait().filter(SAVE::equals).isEmpty())

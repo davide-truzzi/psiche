@@ -6,7 +6,7 @@
 
 - **Images**: **Insert image…**, in the editor's right-click menu, puts a JPEG or PNG image into the chapter after the
   caret's line, with a caption, which the book prints under it. The image is copied into the book's
-  `media/<chapter>/` folder, which Psiche keeps out of Git; the dialog warns when it will look poor in the exports.
+  `media/<chapter>/` folder, and committed with the book; the dialog warns when it will look poor in the exports.
   The preview and every export show it centred, with its caption.
 - **Media** tab, beside the preview: the chapter's images, with a preview of each. Those its text does not show, and
   those of low quality, are marked; **Insert at the caret** puts one back, and **Detach** sets one aside, to bring
@@ -38,6 +38,27 @@
 - Images show in sage green in the editor, in both modes, set apart from the text and from the links' teal.
 - Repetitions leave out image lines and links' addresses: a word there is neither highlighted nor counted. A link's
   text still counts, as prose.
+- **Remote repository**, for advanced use, in Book properties: a book can be connected to a repository on a host
+  such as GitHub or GitLab, over HTTPS with a username and a personal access token, or to a folder, such as one on a
+  USB stick or another drive, where Psiche keeps it in a `PsicheRepository` folder. **Test** checks the address, the
+  token and its right to write, and what the repository holds, before Save. A repository created with a README, a
+  licence or a .gitignore is refused, saying how to make one Psiche can use. Most authors need none of this: the
+  book's own history and the Psiche project export are enough.
+- **Synchronize**, beside Commit, only for a book with a remote, in place of Push: it brings in the revisions made on
+  another device, merges them with the book's, and sends the book's, in one go. Work not committed waits for a
+  commit first. When both devices changed the same lines of a chapter, the book keeps this device's text and the
+  other's is added as a chapter of its own, "<title> (other device, YYYY-MM-DD)", to compare and then delete.
+- **Synchronize automatically**, a switch in the Remote repository section, for each book on each device. On, the
+  book synchronizes as it opens, if the remote has something new, after every commit, and before it closes, asking
+  to commit any work not committed yet. Off, nothing happens until you click Synchronize. A remote that cannot be
+  reached, offline or on a drive not plugged in, is told in the status bar and never stops a book opening or closing.
+- The tokens are kept in Psiche's own **keychain**, a file in its settings folder locked by a master password, which
+  Psiche asks once a session, when a token is first needed. It cannot be recovered: **Reset keychain** deletes every
+  token, to be made again on the host. Tokens are never written in the book, nor in a Psiche project. `~/.netrc` is
+  no longer read.
+- A book's images are committed with it, so they have a history and travel with Synchronize; notes stay out of Git.
+  A book opened for the first time with this version commits its images on its own.
+- A second device gets a book by importing a Psiche project exported on the first, then typing the token once.
 - Images whose chapter has a space in its name were left out of the ODT, DOCX and EPUB exports, and an image written
   with `%20` in its path showed as missing in the editor. Both work now.
 
@@ -45,6 +66,8 @@
 
 - Default mode: tell us if a link or an image ever refuses an edit you expected to make, or if the caret lands
   somewhere unexpected around one.
+- Remote repository: tell us if Synchronize ever leaves a chapter different from what you expected on either device.
+  Keep a Psiche project export of the book while you try it.
 
 ## 0.4.1 Alpha (2026-11-06)
 
