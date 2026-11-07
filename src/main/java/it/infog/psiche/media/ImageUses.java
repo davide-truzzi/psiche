@@ -6,7 +6,6 @@ import it.infog.psiche.media.model.ChapterImage;
 import it.infog.psiche.media.model.MediaImage;
 
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -112,11 +111,7 @@ public final class ImageUses {
     /** The file {@code line} shows; empty if its destination is no path, such as a web address. */
     public static Optional<Path> file(Path chaptersDir, ImageLine line) {
 
-        try {
-            return Optional.of(chaptersDir.resolve(line.destination()).normalize());
-        } catch (InvalidPathException e) {
-            return Optional.empty();
-        }
+        return ImageLines.file(chaptersDir, line.destination());
     }
 
     /** Where {@code file} is in {@code folder}, its parts joined by slashes as a link writes them. */

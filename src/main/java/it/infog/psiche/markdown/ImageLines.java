@@ -9,6 +9,8 @@ import org.commonmark.node.Paragraph;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -64,6 +66,24 @@ public final class ImageLines {
     public static boolean isWebAddress(String destination) {
 
         return WEB_ADDRESS.matcher(destination).lookingAt();
+    }
+
+    /**
+     * The file an image's {@code destination} names, resolved against {@code chaptersDir}, however it is written: with
+     * spaces, as Psiche writes it between angle brackets, or with percent escapes, as {@code %20}, as a browser reads
+     * it. A percent sign that starts no escape is part of the name. Empty for a web address or no possible path.
+     */
+    public static Optional<Path> file(Path chaptersDir, String destination) {
+
+        if (isWebAddress(destination))
+            return Optional.empty();
+
+        String path = TextLinks.decoded(destination).orElse(destination);
+        try {
+            return Optional.of(chaptersDir.resolve(path).normalize());
+        } catch (InvalidPathException e) {
+            return Optional.empty();
+        }
     }
 
     /** Where the image {@code fileName} of {@code chapter} is, written from a chapter's file in {@code chapters/}. */

@@ -1,6 +1,7 @@
 package it.infog.psiche.export.document;
 
 import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.markdown.ImageLines;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +9,6 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Iterator;
@@ -89,16 +89,11 @@ public final class Pictures {
     /** The file {@code destination} names, resolved against the chapters; empty for a web address. */
     private Optional<Path> localFile(String destination) {
 
-        try {
-            URI uri = baseDirectory.toUri().resolve(destination);
-            if (!"file".equals(uri.getScheme()))
-                return Optional.empty();
-
-            return Optional.of(Path.of(uri).normalize());
-        } catch (IllegalArgumentException e) {
+        Optional<Path> file = ImageLines.file(baseDirectory, destination);
+        if (file.isEmpty() && !ImageLines.isWebAddress(destination))
             log.warn("Leaving out the image {}: not a file", destination);
-            return Optional.empty();
-        }
+
+        return file;
     }
 
     /**

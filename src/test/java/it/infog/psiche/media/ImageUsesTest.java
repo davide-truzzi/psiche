@@ -52,6 +52,18 @@ class ImageUsesTest {
         assertThat(ImageUses.missing("No images here.", chapters)).isEmpty();
     }
 
+    @Test
+    void anImageInAFolderWithASpaceIsFoundWrittenWithTheSpaceOrWithPercentEscapes(@TempDir Path book)
+            throws Exception {
+
+        Path chapters = Files.createDirectories(book.resolve("chapters"));
+        Files.createDirectories(book.resolve("media/Chapter three"));
+        Files.writeString(book.resolve("media/Chapter three/map.png"), "a picture");
+        String text = "![Written](<../media/Chapter three/map.png>)\n\n![Typed](../media/Chapter%20three/map.png)\n";
+
+        assertThat(ImageUses.missing(text, chapters)).isEmpty();
+    }
+
     private static MediaImage image(String name) {
 
         return new MediaImage(BOOK.resolve("media/01-departure").resolve(name), ImageFormat.PNG, 1200, 800, 1000,

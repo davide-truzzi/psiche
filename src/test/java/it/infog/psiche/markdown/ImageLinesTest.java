@@ -6,6 +6,8 @@ import it.infog.psiche.markdown.model.TextRange;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ImageLinesTest {
@@ -125,5 +127,23 @@ class ImageLinesTest {
     private static String apply(String text, TextEdit edit) {
 
         return text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
+    }
+
+    @Test
+    void anImagesFileIsFoundWithSpacesOrPercentEscapesAndAPercentSignAloneIsPartOfTheName() {
+
+        Path chapters = Path.of("/books/Lantern/chapters");
+        Path file = Path.of("/books/Lantern/media/Chapter three/map.png");
+
+        assertThat(ImageLines.file(chapters, "../media/Chapter three/map.png")).contains(file);
+        assertThat(ImageLines.file(chapters, "../media/Chapter%20three/map.png")).contains(file);
+        assertThat(ImageLines.file(chapters, "../media/50%off.png"))
+                .contains(Path.of("/books/Lantern/media/50%off.png"));
+    }
+
+    @Test
+    void anImageOnTheWebIsNoFile() {
+
+        assertThat(ImageLines.file(Path.of("/books/Lantern/chapters"), "https://example.com/map.png")).isEmpty();
     }
 }

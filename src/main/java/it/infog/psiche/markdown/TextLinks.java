@@ -290,7 +290,7 @@ public final class TextLinks {
     }
 
     /** {@code written} with its percent escapes undone, such as {@code %20} for a space; empty if one is broken. */
-    private static Optional<String> decoded(String written) {
+    static Optional<String> decoded(String written) {
 
         try {
             // A plus is a plus in a link, not a space as in a form.

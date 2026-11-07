@@ -194,6 +194,20 @@ class ChapterExporterTest {
     }
 
     @Test
+    void odtPacksAnImageOfAChapterWhoseNameHasASpaceAsPsicheWritesIt() throws IOException {
+        Path chapters = Files.createDirectories(tempDir.resolve("chapters"));
+        Path media = Files.createDirectories(tempDir.resolve("media/Chapter three"));
+        ImageIO.write(new BufferedImage(192, 96, BufferedImage.TYPE_INT_RGB), "png", media.resolve("map.png").toFile());
+        Path target = tempDir.resolve("spaced.odt");
+
+        exporter.manuscriptOdt("![Map](<../media/Chapter three/map.png>)\n", "spaced", BOOK, chapters, target);
+
+        try (ZipFile zip = new ZipFile(target.toFile())) {
+            assertThat(zip.getEntry("Pictures/image1.png")).isNotNull();
+        }
+    }
+
+    @Test
     void odtPacksImagesAndLeavesOutMissingOnes() throws IOException {
         Path chapters = Files.createDirectories(tempDir.resolve("chapters"));
         Path media = Files.createDirectories(tempDir.resolve("media"));
