@@ -24,6 +24,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.StackPane;
 import org.fxmisc.flowless.VirtualizedScrollPane;
+import org.fxmisc.richtext.CharacterHit;
 import org.fxmisc.richtext.StyleClassedTextArea;
 import org.fxmisc.richtext.model.TwoDimensional.Bias;
 import org.fxmisc.richtext.util.UndoUtils;
@@ -54,7 +55,7 @@ final class Manuscript {
     // Default mode, which writer.css draws: the text keeps its styles in both modes, so a switch moves nothing.
     private static final PseudoClass DEFAULT_MODE = PseudoClass.getPseudoClass("default-mode");
 
-    private final StyleClassedTextArea area = new PlainTextArea();
+    private final PlainTextArea area = new PlainTextArea();
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
     private final TextMarks marks = new TextMarks(area);
@@ -67,6 +68,8 @@ final class Manuscript {
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
     // Where the right-click menu was last asked for, in the text: under the pointer, or at the caret from the keyboard.
     private int menuIndex;
+    // What it was asked for on, for Default mode: the character under the pointer, or the selection from the keyboard.
+    private IndexRange menuSpot = new IndexRange(0, 0);
     // True once the author scrolls the manuscript, until the caret next moves.
     private boolean reading;
 
@@ -95,9 +98,7 @@ final class Manuscript {
             marks.follow(change);
             repetitions.textChanged();
         });
-        area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, event -> menuIndex = event.isKeyboardTrigger()
-                ? area.getCaretPosition()
-                : area.hit(event.getX(), event.getY()).getInsertionIndex());
+        area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, this::menuRequested);
         this.welcome = new Welcome(area, page, welcome);
         showWelcome();
 
@@ -144,7 +145,7 @@ final class Manuscript {
 
         // A new text is read from its start, not from where the old one was scrolled to.
         reading = false;
-        area.replaceText(text);
+        area.freely(() -> area.replaceText(text));
         area.getUndoManager().forgetHistory();
         marks.checkSpellingNow();
     }
@@ -153,7 +154,7 @@ final class Manuscript {
     void replaceAll(String text) {
 
         reading = false;
-        area.replaceText(0, area.getLength(), text);
+        area.freely(() -> area.replaceText(0, area.getLength(), text));
 
         // Typing at the top would otherwise merge into the same undo change.
         area.getUndoManager().preventMerge();
@@ -253,6 +254,7 @@ final class Manuscript {
             return;
 
         area.pseudoClassStateChanged(DEFAULT_MODE, on);
+        area.setBlocks(on ? marks::blocks : List::of);
         // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will be.
         for (Node paragraph : area.lookupAll(".paragraph-text"))
             if (paragraph instanceof Parent text)
@@ -320,11 +322,31 @@ final class Manuscript {
                 }));
     }
 
+    /** True if the selection can be formatted: in Default mode, only if the links and image lines stay whole. */
+    boolean canFormat() {
+
+        IndexRange selection = area.getSelection();
+        return !isDefaultMode() || marks.formattable(selection.getStart(), selection.getEnd());
+    }
+
+    /**
+     * What the menu's link and image items act on: in Default mode, the link or image under the right-click, as the
+     * character there, or the selection if the menu came from the keyboard; in Advanced, the selection, as in a text
+     * editor.
+     */
+    IndexRange menuSelection() { return isDefaultMode() ? menuSpot : area.getSelection(); }
+
     IndexRange selection() { return area.getSelection(); }
     String selectedText() { return area.getSelectedText(); }
     void select(int start, int end) { area.selectRange(start, end); }
-    /** Replaces the text from {@code start} to {@code end} with {@code replacement}, as one change Undo reverts. */
-    void replace(int start, int end, String replacement) { area.replaceText(start, end, replacement); }
+    /**
+     * Replaces the text from {@code start} to {@code end} with {@code replacement}, as one change Undo reverts; an
+     * edit of the app's own, which Default mode's blocks never refuse.
+     */
+    void replace(int start, int end, String replacement) {
+
+        area.freely(() -> area.replaceText(start, end, replacement));
+    }
     boolean canUndo() { return area.isUndoAvailable(); }
     boolean canRedo() { return area.isRedoAvailable(); }
     void undo() { area.undo(); }
@@ -343,6 +365,24 @@ final class Manuscript {
         area.showParagraphAtTop(Math.clamp(place.topParagraph(), 0, area.getParagraphs().size() - 1));
         area.requestFocus();
     }
+
+    /** Remembers where the right-click menu is asked for: see {@link #menuIndex} and {@link #menuSpot}. */
+    private void menuRequested(ContextMenuEvent event) {
+
+        if (event.isKeyboardTrigger()) {
+            menuIndex = area.getCaretPosition();
+            menuSpot = area.getSelection();
+            return;
+        }
+
+        CharacterHit hit = area.hit(event.getX(), event.getY());
+        menuIndex = hit.getInsertionIndex();
+        menuSpot = hit.getCharacterIndex().isPresent()
+                ? new IndexRange(hit.getCharacterIndex().getAsInt(), hit.getCharacterIndex().getAsInt() + 1)
+                : new IndexRange(menuIndex, menuIndex);
+    }
+
+    private boolean isDefaultMode() { return area.getPseudoClassStates().contains(DEFAULT_MODE); }
 
     private int positionAtCaret() {
 

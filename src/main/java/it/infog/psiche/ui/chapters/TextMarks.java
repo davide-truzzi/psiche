@@ -3,6 +3,7 @@ package it.infog.psiche.ui.chapters;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.ImageLines;
+import it.infog.psiche.markdown.TextBlocks;
 import it.infog.psiche.markdown.TextLinks;
 import it.infog.psiche.markdown.model.ImageLine;
 import it.infog.psiche.markdown.model.TextLink;
@@ -49,6 +50,9 @@ final class TextMarks {
     private List<TextRange> imageAndLinkMarkers = List.of();
     // The image lines and the links' addresses, which are no prose, in order.
     private List<TextRange> notProse = List.of();
+    // The links, broken or not, and the image lines, in order: the blocks of Default mode.
+    private List<TextRange> blocks = List.of();
+    private List<TextLink> textLinks = List.of();
     // The open chapter, whose images and links are looked for; null while none is open, and none is missing or broken.
     private Chapter chapter;
     // Each chapter of the book with the anchors of its headings, as saved; null until they are read, and no link to
@@ -135,6 +139,12 @@ final class TextMarks {
      */
     List<TextRange> notProse() { return notProse; }
 
+    /** The text's links, broken or not, and its image lines, in order: Default mode's blocks; see TextBlocks. */
+    List<TextRange> blocks() { return blocks; }
+
+    /** True if formatting the selection from {@code start} to {@code end} keeps the blocks whole; see TextBlocks. */
+    boolean formattable(int start, int end) { return TextBlocks.formattable(images, textLinks, start, end); }
+
     /**
      * Finds the text's images, in green, and those whose file is not there, in orange; its links, in teal, and those
      * that lead nowhere, in orange; and the parts of both that are no prose.
@@ -151,16 +161,18 @@ final class TextMarks {
 
         //links: the welcome's too, with no chapter open; which links lead nowhere only a chapter's text can tell
         List<TextLink> found = TextLinks.of(text);
+        textLinks = found;
         List<TextLink> broken = chapter == null || bookAnchors == null
                 ? List.of()
                 : TextLinks.broken(text, found, chapter.title(), bookAnchors);
         links = found.stream().filter(link -> !broken.contains(link)).map(TextLink::range).toList();
         brokenLinks = broken.stream().map(TextLink::range).toList();
 
-        //markers, and no prose
+        //markers, no prose and blocks
         imageAndLinkMarkers = inOrder(Stream.concat(lines.stream().map(ImageLine::markers),
                 found.stream().map(TextLink::markers)).flatMap(List::stream));
         notProse = inOrder(Stream.concat(images.stream(), found.stream().map(TextLink::address)));
+        blocks = inOrder(Stream.concat(images.stream(), found.stream().map(TextLink::range)));
     }
 
     /** Finds the text's comments, and gives each line in view with one a dot in the margin. */

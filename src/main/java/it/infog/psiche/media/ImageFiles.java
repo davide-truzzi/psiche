@@ -51,7 +51,7 @@ public final class ImageFiles {
     }
 
     /** The image in {@code file}; empty if it is not a JPEG or PNG image, or cannot be read. */
-    static Optional<MediaImage> tryRead(Path file) {
+    public static Optional<MediaImage> tryRead(Path file) {
 
         try {
             return Optional.of(read(file));

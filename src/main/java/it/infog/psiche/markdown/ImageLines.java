@@ -139,6 +139,18 @@ public final class ImageLines {
     }
 
     /**
+     * {@code text} with the image paragraph {@code line} written as {@code markdown}, as Modify image does; as it is
+     * if {@code line} is no longer there, as found then.
+     */
+    public static String withLine(String text, ImageLine line, String markdown) {
+
+        if (!of(text).contains(line))
+            return text;
+
+        return text.substring(0, line.range().start()) + markdown + text.substring(line.range().end());
+    }
+
+    /**
      * {@code text} without the image paragraph {@code line}, and without the blank line it leaves: the paragraphs
      * around it end up one blank line apart, as if it had never been inserted.
      */

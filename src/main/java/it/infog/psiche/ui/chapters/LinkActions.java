@@ -25,9 +25,10 @@ import java.util.function.Supplier;
 import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
- * Insert link… and Remove link in the manuscript's right-click menu. With the caret or the selection inside a link,
- * Insert link… reads Modify link…, and Remove link shows, which keeps the link's text. Ctrl+K, as in word processors,
- * inserts or modifies. A link is made from the selection, on one line and outside an image; each change is one edit,
+ * Insert link… and Remove link in the manuscript's right-click menu. On a link, Insert link… reads Modify link…, and
+ * Remove link shows, which keeps the link's text: the link under the right-click in Default mode, the one the caret or
+ * the selection is in in Advanced; see {@link Manuscript#menuSelection}. Ctrl+K, as in word processors, inserts or
+ * modifies at the caret. A link is made from the selection, on one line and outside an image; each change is one edit,
  * which a single Undo reverts.
  */
 final class LinkActions {
@@ -37,7 +38,7 @@ final class LinkActions {
     private final Manuscript manuscript;
     private final Supplier<Optional<Chapter>> chapter;
     private final BookHeadings headings;
-    private final MenuItem edit = menuItem("Insert link…", this::edit);
+    private final MenuItem edit = menuItem("Insert link…", this::editAtMenu);
     private final MenuItem remove = menuItem("Remove link", this::remove);
 
     /**
@@ -58,23 +59,35 @@ final class LinkActions {
         return List.of(edit, remove);
     }
 
-    /** Names, shows and enables the items for the caret or the selection, as the menu opens. */
+    /** Names, shows and enables the items for where the menu opens. */
     void update() {
 
-        Optional<TextLink> link = linkAtSelection();
+        Optional<TextLink> link = linkAt(manuscript.menuSelection());
         edit.setText(link.isPresent() ? "Modify link…" : "Insert link…");
         edit.setDisable(!canEdit(link));
         remove.setVisible(link.isPresent());
         remove.setDisable(!manuscript.isEditable());
     }
 
-    /**
-     * Insert link… or Modify link…: asks for the link's text and where it leads, and writes it in place of the
-     * selection, or of the link the caret is in; the caret ends after it.
-     */
+    /** Ctrl+K: Insert link… or Modify link… at the caret or the selection, in both modes. */
     void edit() {
 
-        Optional<TextLink> link = linkAtSelection();
+        edit(manuscript.selection());
+    }
+
+    /** The menu's Insert link… or Modify link…, on where the menu opened. */
+    private void editAtMenu() {
+
+        edit(manuscript.menuSelection());
+    }
+
+    /**
+     * Insert link… or Modify link…: asks for the link's text and where it leads, and writes it in place of the link at
+     * {@code target}, or of the selection; the caret ends after it.
+     */
+    private void edit(IndexRange target) {
+
+        Optional<TextLink> link = linkAt(target);
         if (!canEdit(link))
             return;
 
@@ -96,14 +109,14 @@ final class LinkActions {
         manuscript.select(caret, caret);
     }
 
-    /** Remove link: the link the caret or the selection is in becomes its text alone, as written, selected. */
+    /** Remove link: the link the menu is on becomes its text alone, as written, selected. */
     private void remove() {
 
         if (!manuscript.isEditable())
             return;
 
         String text = manuscript.text();
-        linkAtSelection().ifPresent(link -> {
+        linkAt(manuscript.menuSelection()).ifPresent(link -> {
             TextEdit edit = TextLinks.unlinked(text, link);
             manuscript.replace(edit.start(), edit.end(), edit.replacement());
             manuscript.select(edit.selectionStart(), edit.selectionEnd());
@@ -124,10 +137,9 @@ final class LinkActions {
                 && ImageLines.of(text).stream().noneMatch(image -> image.range().overlaps(range));
     }
 
-    private Optional<TextLink> linkAtSelection() {
+    private Optional<TextLink> linkAt(IndexRange target) {
 
-        IndexRange selection = manuscript.selection();
-        return TextLinks.at(manuscript.text(), selection.getStart(), selection.getEnd());
+        return TextLinks.at(manuscript.text(), target.getStart(), target.getEnd());
     }
 
     /** The selection without the spaces it starts or ends with, which stay outside the link. */

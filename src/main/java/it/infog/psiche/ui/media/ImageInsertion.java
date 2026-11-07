@@ -3,6 +3,7 @@ package it.infog.psiche.ui.media;
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.markdown.ImageLines;
+import it.infog.psiche.markdown.model.ImageLine;
 import it.infog.psiche.media.ChapterMedia;
 import it.infog.psiche.media.ImageFiles;
 import it.infog.psiche.media.ImageUses;
@@ -23,6 +24,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -30,8 +32,9 @@ import java.util.function.Supplier;
  * the {@link UnshownImagesDialog}, or another file; otherwise the author picks a JPEG or PNG file straight away. The
  * image shows in the {@link InsertImageDialog} with a caption to write and a warning if it will look poor in the
  * exports; it is copied into the chapter's folder in {@code media/}, unless it is there already, and written into the
- * chapter after the caret's line, as one change Undo reverts. The file is read and copied on a thread of its own; the
- * first image of a book also keeps the chapters' images out of Git.
+ * chapter after the caret's line, as one change Undo reverts. Modify image shows an image of the chapter in the same
+ * dialog, to change its caption or, with Choose another, its file. Files are read and copied on a thread of their
+ * own; the first image of a book also keeps the chapters' images out of Git.
  */
 public final class ImageInsertion {
 
@@ -64,6 +67,25 @@ public final class ImageInsertion {
         Optional<Chapter> chapter = editor.chapter();
         if (book.isPresent() && chapter.isPresent() && !thread.isBusy())
             offer(book.get(), chapter.get());
+    }
+
+    /**
+     * Modify image: shows {@code line}'s image, read off the FX thread, with its caption to change; a missing file
+     * shows no preview. Choose another swaps the file, copied into the chapter's folder as Insert does, and keeps the
+     * caption; the old file stays in the folder. The line is written anew in place, as one change Undo reverts.
+     */
+    public void modify(ImageLine line) {
+
+        Optional<BookFolder> book = editor.book();
+        Optional<Chapter> chapter = editor.chapter();
+        if (book.isEmpty() || chapter.isEmpty() || thread.isBusy())
+            return;
+
+        Optional<Path> file = ImageLines.file(book.get().chaptersDir(), line.destination());
+        String fileName = file.map(path -> path.getFileName().toString()).orElse(line.destination());
+        thread.run(() -> file.flatMap(ImageFiles::tryRead),
+                image -> askModify(book.get(), chapter.get(), line, new Shown(image, fileName, false), line.caption()),
+                failure -> errors.report("Cannot read " + fileName, failure));
     }
 
     /** Runs {@code action} each time an image is copied into a chapter's folder. */
@@ -173,7 +195,7 @@ public final class ImageInsertion {
         if (!editor.isOpen(chapter))
             return;
 
-        InsertImageDialog dialog = new InsertImageDialog(window.get(), image, chapter.title(), inFolder);
+        InsertImageDialog dialog = InsertImageDialog.inserting(window.get(), image, chapter.title(), inFolder);
         ButtonType choice = dialog.showAndWait().orElse(ButtonType.CANCEL);
         if (choice == InsertImageDialog.CHOOSE_ANOTHER) {
             if (inFolder)
@@ -181,25 +203,79 @@ public final class ImageInsertion {
             else
                 choose(book, chapter);
         } else if (choice == InsertImageDialog.INSERT) {
+            String caption = dialog.caption();
             if (inFolder)
-                write(chapter, image.name(), dialog.caption());
+                write(chapter, image.name(), caption);
             else
-                copy(book, chapter, image.file(), dialog.caption());
+                copy(book, chapter, image.file(), name -> write(chapter, name, caption));
         }
     }
 
-    /** Copies the image into the chapter's folder off the FX thread, then writes it into the chapter. */
-    private void copy(BookFolder book, Chapter chapter, Path file, String caption) {
+    /**
+     * Shows {@code shown} as {@code line}'s image, with {@code caption}, to the author, who modifies it, chooses
+     * another file, or cancels.
+     */
+    private void askModify(BookFolder book, Chapter chapter, ImageLine line, Shown shown, String caption) {
+
+        // The author may have opened another chapter while the file was read.
+        if (!editor.isOpen(chapter))
+            return;
+
+        InsertImageDialog dialog = InsertImageDialog.modifying(window.get(), shown.image(), shown.fileName(), caption,
+                chapter.title(), shown.chosen());
+        ButtonType choice = dialog.showAndWait().orElse(ButtonType.CANCEL);
+        String modified = dialog.caption();
+        if (choice == InsertImageDialog.CHOOSE_ANOTHER)
+            chooseFor(book, chapter, line, modified);
+        else if (choice == InsertImageDialog.MODIFY && shown.chosen())
+            copy(book, chapter, shown.image().orElseThrow().file(), name -> rewrite(chapter, line,
+                    ImageLines.markdown(modified, ImageLines.destination(chapter.title(), name))));
+        else if (choice == InsertImageDialog.MODIFY)
+            rewrite(chapter, line, ImageLines.markdown(modified, line.destination()));
+    }
+
+    /** Asks for a file in place of {@code line}'s image, reads it off the FX thread, and shows it with the caption. */
+    private void chooseFor(BookFolder book, Chapter chapter, ImageLine line, String caption) {
+
+        Optional<Path> file = chooseFile();
+        if (file.isEmpty())
+            return;
+
+        lastFolder = file.get().getParent();
+        thread.run(() -> ImageFiles.read(file.get()),
+                image -> askModify(book, chapter, line, new Shown(Optional.of(image), image.name(), true), caption),
+                failure -> refuse(file.get(), failure));
+    }
+
+    /**
+     * Copies {@code file} into the chapter's folder off the FX thread, then writes it into the chapter with
+     * {@code place}, given the copy's name, which returns false if the chapter is no longer open.
+     */
+    private void copy(BookFolder book, Chapter chapter, Path file, Predicate<String> place) {
 
         ChapterMedia media = new ChapterMedia(book.mediaDir());
         thread.run(() -> media.add(chapter.title(), file), copied -> {
             keepOutOfGit.run();
             onCopied.run();
             String name = copied.getFileName().toString();
-            if (!write(chapter, name, caption))
+            if (!place.test(name))
                 statusBar.info("Copied %s to media/%s/; open the chapter to insert it from the Media tab".formatted(
                         name, chapter.title()));
         }, failure -> errors.report("Cannot copy " + file.getFileName() + " into the book", failure));
+    }
+
+    /**
+     * Writes {@code line} anew as {@code markdown}, in place, if it is still in the open {@code chapter}.
+     *
+     * @return false if the chapter is no longer open
+     */
+    private boolean rewrite(Chapter chapter, ImageLine line, String markdown) {
+
+        if (!editor.edits().change(chapter, text -> ImageLines.withLine(text, line, markdown)))
+            return false;
+
+        statusBar.info("Modified the image");
+        return true;
     }
 
     /**
@@ -226,5 +302,17 @@ public final class ImageInsertion {
                     "It is not a JPEG or PNG image. Save it as one in an image program first.");
         else
             errors.report("Cannot read " + file.getFileName(), failure);
+    }
+
+    /**
+     * An image as Modify image shows it.
+     *
+     * @param image    its file as read; empty if it is missing
+     * @param fileName its file's name, which a missing one has too
+     * @param chosen   true for a file the author chose in place of the image's, not yet copied into the book
+     */
+    private record Shown(Optional<MediaImage> image,
+                         String fileName,
+                         boolean chosen) {
     }
 }

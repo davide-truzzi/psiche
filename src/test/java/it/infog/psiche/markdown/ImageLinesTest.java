@@ -56,6 +56,19 @@ class ImageLinesTest {
     }
 
     @Test
+    void modifyingAnImageRewritesItsLineInPlaceOnlyIfItIsStillThere() {
+
+        String text = "Before.\n\n" + MAP + "\n\nAfter.\n";
+        ImageLine line = ImageLines.of(text).getFirst();
+        String modified = ImageLines.markdown("The coast", "../media/01-departure/coast.png");
+
+        assertThat(ImageLines.withLine(text, line, modified))
+                .isEqualTo("Before.\n\n![The coast](../media/01-departure/coast.png)\n\nAfter.\n");
+        String moved = "Now. " + text;
+        assertThat(ImageLines.withLine(moved, line, modified)).isEqualTo(moved);
+    }
+
+    @Test
     void aDestinationWithSpacesOrParenthesesGoesInAngleBrackets() {
 
         assertThat(ImageLines.markdown("Map", ImageLines.destination("01 (draft)", "map.png")))

@@ -1,7 +1,10 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.MarkdownFormatter;
+import it.infog.psiche.markdown.model.ImageLine;
 import it.infog.psiche.markdown.model.TextEdit;
+import it.infog.psiche.markdown.model.TextRange;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.Menu;
@@ -15,12 +18,15 @@ import javafx.scene.input.KeyCombination;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
 
 import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
  * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, then
- * Insert image… and the {@link LinkActions}, above the editing commands the text's own menu has, which this menu
+ * Insert image…, which reads Modify image… on an image line (see {@link Manuscript#menuSelection}), and the
+ * {@link LinkActions}, above the editing commands the text's own menu has, which this menu
  * replaces. Each formatting is one change, which a single Undo reverts.
  */
 final class FormattingMenu {
@@ -54,19 +60,21 @@ final class FormattingMenu {
      * Gives {@code manuscript} the menu on a right-click, and its shortcuts while it has the focus.
      *
      * @param insertImage asks for an image and writes it into the chapter, for Insert image…
+     * @param modifyImage shows an image line of the chapter to change, for Modify image…
      * @param links       Insert, Modify and Remove link, whose items follow Insert image…
      *
      * @return the menu, for other parts of the editor to add to
      */
-    static ContextMenu attach(Manuscript manuscript, Runnable insertImage, LinkActions links) {
+    static ContextMenu attach(Manuscript manuscript, Runnable insertImage, Consumer<ImageLine> modifyImage,
+                              LinkActions links) {
 
         FormattingMenu formatting = new FormattingMenu(manuscript);
-        ContextMenu menu = formatting.menu(insertImage, links);
+        ContextMenu menu = formatting.menu(insertImage, modifyImage, links);
         manuscript.setMenu(menu, formatting.shortcuts);
         return menu;
     }
 
-    private ContextMenu menu(Runnable insertImage, LinkActions links) {
+    private ContextMenu menu(Runnable insertImage, Consumer<ImageLine> modifyImage, LinkActions links) {
 
         //formatting
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
@@ -83,7 +91,7 @@ final class FormattingMenu {
         MenuItem clear = formatItem("Clear formatting", CLEAR_FORMATTING, MarkdownFormatter::clearFormatting);
 
         //inserting
-        MenuItem image = menuItem("Insert image…", insertImage);
+        MenuItem image = menuItem("Insert image…", () -> menuImage().ifPresentOrElse(modifyImage, insertImage));
         shortcuts.put(LinkActions.SHORTCUT, links::edit);
 
         //editing
@@ -110,11 +118,15 @@ final class FormattingMenu {
             boolean oneLine = MarkdownFormatter.spansOneLine(manuscript.text(), selection.getStart(),
                     selection.getEnd());
 
-            bold.setDisable(!editable || !words);
-            italic.setDisable(!editable || !words);
-            heading.setDisable(!editable || !oneLine);
-            List.of(bulletedList, numberedList, quote, comment, clear, image)
-                    .forEach(item -> item.setDisable(!editable));
+            // In Default mode, an image's caption and a link's Markdown change only from their dialogs.
+            boolean formattable = editable && manuscript.canFormat();
+
+            bold.setDisable(!formattable || !words);
+            italic.setDisable(!formattable || !words);
+            heading.setDisable(!formattable || !oneLine);
+            List.of(bulletedList, numberedList, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
+            image.setText(menuImage().isPresent() ? "Modify image…" : "Insert image…");
+            image.setDisable(!editable);
             links.update();
 
             undo.setDisable(!editable || !manuscript.canUndo());
@@ -127,6 +139,14 @@ final class FormattingMenu {
         });
 
         return menu;
+    }
+
+    /** The image line the menu is on, which Modify image… changes; see {@link Manuscript#menuSelection}. */
+    private Optional<ImageLine> menuImage() {
+
+        IndexRange spot = manuscript.menuSelection();
+        TextRange range = new TextRange(spot.getStart(), spot.getEnd());
+        return ImageLines.of(manuscript.text()).stream().filter(line -> line.range().overlaps(range)).findFirst();
     }
 
     /** A menu item that formats the selection, also run by {@code shortcut} while the manuscript has the focus. */
@@ -150,7 +170,7 @@ final class FormattingMenu {
     /** Formats the selection as one change, which a single Undo reverts, and selects the result. */
     private void format(Formatting formatting) {
 
-        if (!manuscript.isEditable())
+        if (!manuscript.isEditable() || !manuscript.canFormat())
             return;
 
         String text = manuscript.text();

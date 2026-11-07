@@ -1532,6 +1532,11 @@
     -fx-wrap-text: true;
 }
 
+/* The file of an image being modified that is not there: an error, in attention orange, as in the manuscript. */
+.insert-image-name.missing {
+    -fx-text-fill: -orange;
+}
+
 .insert-image-details,
 .insert-image-hint {
     -fx-text-fill: -graphite;
