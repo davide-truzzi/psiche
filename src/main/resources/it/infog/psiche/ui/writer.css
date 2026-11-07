@@ -1504,6 +1504,21 @@
     -fx-text-fill: -orange;
 }
 
+/* The keychain's dialogs: what the keychain is, above the password fields; a wrong password in attention orange. */
+.keychain-dialog-content {
+    -fx-spacing: 12;
+    -fx-padding: 16 20 4 20;
+    -fx-pref-width: 460;
+}
+
+.keychain-about {
+    -fx-text-fill: -paper-dim;
+}
+
+.keychain-dialog-content .form-hint.keychain-wrong {
+    -fx-text-fill: -orange;
+}
+
 /* Images */
 
 .insert-image-content {
