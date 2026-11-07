@@ -12,8 +12,8 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableSet;
-import javafx.scene.control.ContextMenu;
 import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
 
 import java.io.UncheckedIOException;
 import java.util.List;

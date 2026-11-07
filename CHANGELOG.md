@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.5.0 Alpha (not released yet)
+
+### What is new
+
+- **Images**: **Insert image…**, in the editor's right-click menu, puts a JPEG or PNG image into the chapter after the
+  caret's line, with a caption, which the book prints under it. The image is copied into the book's
+  `media/<chapter>/` folder, which Psiche keeps out of Git; the dialog warns when it will look poor in the exports.
+  The preview and every export show it centred, with its caption.
+- **Media** tab, beside the preview: the chapter's images, with a preview of each. Those its text does not show, and
+  those of low quality, are marked; **Insert at the caret** puts one back, and **Detach** sets one aside, to bring
+  back from **Detached images**. Renaming or deleting a chapter takes its images along, as it does its notes.
+- An image whose file is missing shows in orange in the editor, and as a box in the preview.
+- **Links**: **Insert link…** in the right-click menu, or Ctrl+K (⌘K on macOS), links the selection to a web address
+  or to another chapter, or to a heading in it. On a link it reads **Modify link…**, and **Remove link** keeps its
+  text. Links show in teal in the editor; one that leads nowhere, to a missing chapter or heading or to a web address
+  that is not one, in orange. A link typed by hand, `[text](address)`, works the same.
+- Renaming a chapter rewrites the links to it in every chapter; deleting one leaves them flagged, and restoring it
+  heals them.
+- A click on a link to a chapter in the preview opens that chapter. In the exports, links lead to their chapter or
+  heading; one whose chapter is not in the export stays as plain text.
+- The ODT's contents no longer show "?" for page numbers when the file is opened: each line is the chapter's title,
+  linked to it, as in the DOCX.
+- **Editor mode**, in Preferences: **Default** or **Advanced**. The text is the same in both, character for
+  character; only the way the editor shows it changes, at once, with no need to reopen the chapter.
+  - **Default**, where every install starts, lets the Markdown recede: a link's `[` and `](address)`, an image's `![`
+    and `](file)`, a comment's `<!--` and `-->` are faded in their element's colour. A link sits on a faint teal tint,
+    an image on a faint green one, a comment on a faint grey; a link that leads nowhere and a missing image on a
+    faint orange. Links and images are blocks: typing inside one does nothing, the caret steps over it, and Backspace
+    right after one or Delete right before one removes it whole, which Undo brings back. They are changed from the
+    right-click menu, **Modify link…** and **Modify image…**, which act on the one under the pointer. A link typed by
+    hand becomes a block as soon as its `)` closes it.
+  - **Advanced** is the editor as it was: the Markdown as written, free to edit anywhere.
+- **Modify image…**, in the right-click menu on an image, in both modes: the image's dialog again, with its caption
+  to change. **Choose another** swaps the file and keeps the caption, and repairs an image whose file is missing; the
+  old file stays in the chapter's media folder, to keep or detach.
+- Images show in sage green in the editor, in both modes, set apart from the text and from the links' teal.
+- Repetitions leave out image lines and links' addresses: a word there is neither highlighted nor counted. A link's
+  text still counts, as prose.
+- Images whose chapter has a space in its name were left out of the ODT, DOCX and EPUB exports, and an image written
+  with `%20` in its path showed as missing in the editor. Both work now.
+
+### For testers
+
+- Default mode: tell us if a link or an image ever refuses an edit you expected to make, or if the caret lands
+  somewhere unexpected around one.
+
 ## 0.4.1 Alpha (2026-11-06)
 
 0.4.0 Alpha with one addition for Windows 11.

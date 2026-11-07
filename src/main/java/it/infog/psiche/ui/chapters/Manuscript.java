@@ -255,7 +255,7 @@ final class Manuscript {
 
         area.pseudoClassStateChanged(DEFAULT_MODE, on);
         area.setBlocks(on ? marks::blocks : List::of);
-        // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will be.
+        // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will.
         for (Node paragraph : area.lookupAll(".paragraph-text"))
             if (paragraph instanceof Parent text)
                 text.requestLayout();
