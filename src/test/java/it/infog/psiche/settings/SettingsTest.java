@@ -5,6 +5,7 @@ import it.infog.psiche.settings.model.enums.ChapterTab;
 import it.infog.psiche.settings.model.RecentBooks;
 import it.infog.psiche.settings.model.SettingsFolder;
 import it.infog.psiche.settings.model.WindowBounds;
+import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -158,7 +159,8 @@ class SettingsTest {
     @Test
     void anAuthorWhoChoseNothingHasTheDefaultPreferences() {
         assertThat(settings().preferences())
-                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16, true, false, true))
+                .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16, true, false, true,
+                        EditorMode.DEFAULT))
                 .isEqualTo(Preferences.defaults());
     }
 
@@ -169,7 +171,7 @@ class SettingsTest {
         settings.bookOpened(alba);
 
         Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false, true,
-                false);
+                false, EditorMode.ADVANCED);
         settings.savePreferences(chosen);
 
         assertThat(settings().preferences()).isEqualTo(chosen);
@@ -177,7 +179,8 @@ class SettingsTest {
         assertThat(Files.readString(folder().path().resolve(Settings.FILE)))
                 .contains("book.language=it-IT", "book.author=Anna Bianchi", "preview.theme=dark",
                         "startup.reopen-last-book=true", "editor.font-size=20", "preview.font-size=14",
-                        "spelling.enabled=false", "spelling.strict=true", "editor.highlight-repetitions=false");
+                        "spelling.enabled=false", "spelling.strict=true", "editor.highlight-repetitions=false",
+                        "editor.mode=advanced");
     }
 
     @Test
@@ -186,9 +189,18 @@ class SettingsTest {
         Files.writeString(folder().path().resolve(Settings.FILE),
                 "book.language=\npreview.theme=sepia\nstartup.reopen-last-book=sometimes\neditor.font-size=big\n"
                         + "preview.font-size=19\nspelling.enabled=no\nspelling.strict=yes\n"
-                        + "editor.highlight-repetitions=maybe\n");
+                        + "editor.highlight-repetitions=maybe\neditor.mode=expert\n");
 
         assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
+    }
+
+    @Test
+    void settingsSavedBeforeTheEditorHadModesOpenInDefaultMode() throws IOException {
+
+        Files.createDirectories(folder().path());
+        Files.writeString(folder().path().resolve(Settings.FILE), "editor.highlight-repetitions=false\n");
+
+        assertThat(settings().preferences().editorMode()).isEqualTo(EditorMode.DEFAULT);
     }
 
     @Test

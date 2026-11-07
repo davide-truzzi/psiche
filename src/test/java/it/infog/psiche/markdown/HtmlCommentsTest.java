@@ -56,6 +56,15 @@ class HtmlCommentsTest {
     }
 
     @Test
+    void aClosedCommentHasItsOpeningAndClosingAsMarkersAndAnOpenOneItsOpeningAlone() {
+
+        assertThat(markers("One <!-- a note --> two.")).containsExactly("<!--", "-->");
+        assertThat(markers("<!---->\n")).containsExactly("<!--", "-->");
+        assertThat(markers("Before.\n\n<!-- left open\n")).containsExactly("<!--");
+        assertThat(markers("Before.\n\n<!-->\n")).containsExactly("<!--");
+    }
+
+    @Test
     void aCommentInCodeIsText() {
 
         assertThat(comments("Write `<!-- this -->` for a note.\n\n```\n<!-- not one either -->\n```\n")).isEmpty();
@@ -77,6 +86,15 @@ class HtmlCommentsTest {
     void stripsCommentsFromHtml() {
 
         assertThat(HtmlComments.strip("<p>Kept<!-- gone --> too</p><!-- open")).isEqualTo("<p>Kept too</p>");
+    }
+
+    /** The text of each comment's markers found in {@code markdown}. */
+    private static List<String> markers(String markdown) {
+
+        return HtmlComments.ranges(markdown).stream()
+                .flatMap(comment -> HtmlComments.markers(markdown, comment).stream())
+                .map(marker -> markdown.substring(marker.start(), marker.end()))
+                .toList();
     }
 
     /** The text of each comment found in {@code markdown}. */

@@ -7,6 +7,7 @@ import it.infog.psiche.markdown.model.TextRange;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,6 +40,26 @@ class TextLinksTest {
             assertThat(link.text()).isEqualTo("the old [harbour]");
             assertThat(link.title()).isEqualTo("The port");
         });
+    }
+
+    @Test
+    void theAddressRunsFromTheBracketClosingTheTextToTheClosingParenthesis() {
+
+        String text = "See [the map](Harbour%20office.md#the-clerk \"Clerk\") today.";
+
+        TextRange address = TextLinks.of(text).getFirst().address();
+        assertThat(text.substring(address.start(), address.end()))
+                .isEqualTo("](Harbour%20office.md#the-clerk \"Clerk\")");
+    }
+
+    @Test
+    void theMarkersAreTheOpeningBracketAndTheAddress() {
+
+        String text = "See [the *old* map](map.md) and [](empty.md).";
+
+        assertThat(TextLinks.of(text)).satisfiesExactly(
+                link -> assertThat(written(text, link.markers())).containsExactly("[", "](map.md)"),
+                link -> assertThat(written(text, link.markers())).containsExactly("[", "](empty.md)"));
     }
 
     @Test
@@ -202,5 +223,10 @@ class TextLinksTest {
     private static String apply(String text, TextEdit edit) {
 
         return text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
+    }
+
+    private static List<String> written(String text, List<TextRange> ranges) {
+
+        return ranges.stream().map(range -> text.substring(range.start(), range.end())).toList();
     }
 }

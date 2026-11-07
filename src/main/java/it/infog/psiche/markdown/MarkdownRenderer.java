@@ -18,10 +18,10 @@ import org.commonmark.renderer.html.HtmlWriter;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -115,9 +115,10 @@ public final class MarkdownRenderer {
     /** When the file at {@code destination} last changed, in milliseconds; {@value #MISSING} if it is not there. */
     private static String version(Path baseDirectory, String destination) {
 
+        Optional<Path> file = ImageLines.file(baseDirectory, destination);
         try {
-            return String.valueOf(Files.getLastModifiedTime(baseDirectory.resolve(destination)).toMillis());
-        } catch (IOException | InvalidPathException e) {
+            return file.isPresent() ? String.valueOf(Files.getLastModifiedTime(file.get()).toMillis()) : MISSING;
+        } catch (IOException e) {
             return MISSING;
         }
     }

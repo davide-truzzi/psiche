@@ -9,6 +9,8 @@ import org.commonmark.node.Paragraph;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,8 +26,11 @@ public final class ImageLines {
     // A destination with a scheme, as https: or data:, which is no file of the book.
     private static final Pattern WEB_ADDRESS = Pattern.compile("[a-zA-Z][a-zA-Z0-9+.-]*:");
     private static final String PARAGRAPH_BREAK = "\n\n";
+    // How every image's Markdown starts: a text without it has none, and need not be parsed.
+    private static final String IMAGE_START = "![";
 
-    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
+    private static final Parser PARSER =
+            Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES).build();
 
     private ImageLines() {
     }
@@ -34,13 +39,16 @@ public final class ImageLines {
     public static List<ImageLine> of(String text) {
 
         List<ImageLine> lines = new ArrayList<>();
+        if (!text.contains(IMAGE_START))
+            return lines;
+
         PARSER.parse(text).accept(new AbstractVisitor() {
             @Override
             public void visit(Paragraph paragraph) {
 
                 if (!paragraph.getSourceSpans().isEmpty())
-                    figure(paragraph).ifPresent(image ->
-                            lines.add(new ImageLine(TextLinks.range(paragraph), PlainText.of(image), image.getDestination())));
+                    figure(paragraph).ifPresent(image -> lines.add(new ImageLine(TextLinks.range(paragraph),
+                            TextLinks.label(image, IMAGE_START), PlainText.of(image), image.getDestination())));
             }
         });
 
@@ -59,6 +67,24 @@ public final class ImageLines {
     public static boolean isWebAddress(String destination) {
 
         return WEB_ADDRESS.matcher(destination).lookingAt();
+    }
+
+    /**
+     * The file an image's {@code destination} names, resolved against {@code chaptersDir}, however it is written: with
+     * spaces, as Psiche writes it between angle brackets, or with percent escapes, as {@code %20}, as a browser reads
+     * it. A percent sign that starts no escape is part of the name. Empty for a web address or no possible path.
+     */
+    public static Optional<Path> file(Path chaptersDir, String destination) {
+
+        if (isWebAddress(destination))
+            return Optional.empty();
+
+        String path = TextLinks.decoded(destination).orElse(destination);
+        try {
+            return Optional.of(chaptersDir.resolve(path).normalize());
+        } catch (InvalidPathException e) {
+            return Optional.empty();
+        }
     }
 
     /** Where the image {@code fileName} of {@code chapter} is, written from a chapter's file in {@code chapters/}. */
@@ -110,6 +136,18 @@ public final class ImageLines {
     public static String withDestination(String text, String from, String to) {
 
         return rewrite(text, from, line -> markdown(line.caption(), to));
+    }
+
+    /**
+     * {@code text} with the image paragraph {@code line} written as {@code markdown}, as Modify image does; as it is
+     * if {@code line} is no longer there, as found then.
+     */
+    public static String withLine(String text, ImageLine line, String markdown) {
+
+        if (!of(text).contains(line))
+            return text;
+
+        return text.substring(0, line.range().start()) + markdown + text.substring(line.range().end());
     }
 
     /**

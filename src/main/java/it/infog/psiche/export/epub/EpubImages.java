@@ -2,6 +2,7 @@ package it.infog.psiche.export.epub;
 
 import it.infog.psiche.export.ImageLinks;
 import it.infog.psiche.export.epub.model.EpubImage;
+import it.infog.psiche.markdown.ImageLines;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +19,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -75,7 +75,7 @@ final class EpubImages implements ImageLinks {
     /** The image a chapter links as {@code destination}, packed the first time it is asked for. */
     Optional<EpubImage> image(String destination) {
 
-        Optional<Path> file = localFile(destination);
+        Optional<Path> file = ImageLines.file(baseDirectory, destination);
         if (file.isEmpty()) {
             leftOut.add(destination + " (not a file of the book)");
             return Optional.empty();
@@ -124,17 +124,6 @@ final class EpubImages implements ImageLinks {
         graphics.dispose();
 
         return jpeg ? jpeg(scaled) : png(scaled);
-    }
-
-    /** The file {@code destination} names, resolved against the chapters; empty for a web address. */
-    private Optional<Path> localFile(String destination) {
-
-        try {
-            URI uri = baseDirectory.toUri().resolve(destination);
-            return "file".equals(uri.getScheme()) ? Optional.of(Path.of(uri).normalize()) : Optional.empty();
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
     }
 
     /**

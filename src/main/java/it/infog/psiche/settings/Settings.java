@@ -7,6 +7,7 @@ import it.infog.psiche.settings.model.RecentBooks;
 import it.infog.psiche.settings.model.SettingsFolder;
 import it.infog.psiche.settings.model.WindowBounds;
 import it.infog.psiche.settings.model.enums.ChapterTab;
+import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,6 +59,7 @@ public final class Settings {
     private static final String CHECK_SPELLING = "spelling.enabled";
     private static final String STRICT_SPELLING = "spelling.strict";
     private static final String HIGHLIGHT_REPETITIONS = "editor.highlight-repetitions";
+    private static final String EDITOR_MODE = "editor.mode";
     private static final String WINDOW = "window.";
     private static final String BOOK_COUNTS_SHOWN = "sidebar.book-counts";
     private static final String OPENING_TAB = "tabs.opening";
@@ -145,12 +147,13 @@ public final class Settings {
         return new Preferences(flag(settings.getProperty(REOPEN_LAST_BOOK), defaults.reopenLastBook()),
                 language(settings.getProperty(NEW_BOOK_LANGUAGE)).orElse(defaults.newBookLanguage()),
                 settings.getProperty(NEW_BOOK_AUTHOR, defaults.newBookAuthor()).strip(),
-                theme(settings.getProperty(PREVIEW_THEME)).orElse(defaults.previewTheme()),
+                named(PreviewTheme.class, settings.getProperty(PREVIEW_THEME)).orElse(defaults.previewTheme()),
                 fontSize(settings.getProperty(EDITOR_FONT_SIZE)).orElse(defaults.editorFontSize()),
                 fontSize(settings.getProperty(PREVIEW_FONT_SIZE)).orElse(defaults.previewFontSize()),
                 flag(settings.getProperty(CHECK_SPELLING), defaults.checkSpelling()),
                 flag(settings.getProperty(STRICT_SPELLING), defaults.strictSpelling()),
-                flag(settings.getProperty(HIGHLIGHT_REPETITIONS), defaults.highlightRepetitions()));
+                flag(settings.getProperty(HIGHLIGHT_REPETITIONS), defaults.highlightRepetitions()),
+                named(EditorMode.class, settings.getProperty(EDITOR_MODE)).orElse(defaults.editorMode()));
     }
 
     /** Remembers what the author chose in Preferences. */
@@ -160,12 +163,13 @@ public final class Settings {
             settings.setProperty(REOPEN_LAST_BOOK, String.valueOf(preferences.reopenLastBook()));
             settings.setProperty(NEW_BOOK_LANGUAGE, preferences.newBookLanguage());
             settings.setProperty(NEW_BOOK_AUTHOR, preferences.newBookAuthor().strip());
-            settings.setProperty(PREVIEW_THEME, preferences.previewTheme().name().toLowerCase(Locale.ROOT));
+            settings.setProperty(PREVIEW_THEME, written(preferences.previewTheme()));
             settings.setProperty(EDITOR_FONT_SIZE, String.valueOf(preferences.editorFontSize()));
             settings.setProperty(PREVIEW_FONT_SIZE, String.valueOf(preferences.previewFontSize()));
             settings.setProperty(CHECK_SPELLING, String.valueOf(preferences.checkSpelling()));
             settings.setProperty(STRICT_SPELLING, String.valueOf(preferences.strictSpelling()));
             settings.setProperty(HIGHLIGHT_REPETITIONS, String.valueOf(preferences.highlightRepetitions()));
+            settings.setProperty(EDITOR_MODE, written(preferences.editorMode()));
         });
     }
 
@@ -227,17 +231,13 @@ public final class Settings {
     /** The tab shown beside the chapter each time a book opens; the preview until the author pins another. */
     public ChapterTab openingTab() {
 
-        String name = read().getProperty(OPENING_TAB, "");
-        return Arrays.stream(ChapterTab.values())
-                .filter(tab -> tab.name().equalsIgnoreCase(name))
-                .findFirst()
-                .orElse(ChapterTab.PREVIEW);
+        return named(ChapterTab.class, read().getProperty(OPENING_TAB)).orElse(ChapterTab.PREVIEW);
     }
 
     /** Remembers {@code tab} as the one to show each time a book opens. */
     public void saveOpeningTab(ChapterTab tab) {
 
-        update(settings -> settings.setProperty(OPENING_TAB, tab.name().toLowerCase(Locale.ROOT)));
+        update(settings -> settings.setProperty(OPENING_TAB, written(tab)));
     }
 
     /** {@code tag} as a language tag, if it names a language. */
@@ -250,9 +250,18 @@ public final class Settings {
         return locale.getLanguage().isEmpty() ? Optional.empty() : Optional.of(locale.toLanguageTag());
     }
 
-    private static Optional<PreviewTheme> theme(String name) {
+    /** The constant of {@code type} named {@code name}, as {@link #written} wrote it, if there is one. */
+    private static <E extends Enum<E>> Optional<E> named(Class<E> type, String name) {
 
-        return Arrays.stream(PreviewTheme.values()).filter(theme -> theme.name().equalsIgnoreCase(name)).findFirst();
+        return Arrays.stream(type.getEnumConstants())
+                .filter(constant -> constant.name().equalsIgnoreCase(name))
+                .findFirst();
+    }
+
+    /** {@code constant} as the file has it, in lower case, as {@code dark} for a preview theme. */
+    private static String written(Enum<?> constant) {
+
+        return constant.name().toLowerCase(Locale.ROOT);
     }
 
     /** {@code value} as true or false, as written in the file; {@code fallback} for anything else or nothing. */

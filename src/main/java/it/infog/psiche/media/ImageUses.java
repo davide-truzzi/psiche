@@ -6,7 +6,6 @@ import it.infog.psiche.media.model.ChapterImage;
 import it.infog.psiche.media.model.MediaImage;
 
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -23,9 +22,6 @@ import java.util.stream.StreamSupport;
  * paragraphs by the file they show, whatever way their destination is written.
  */
 public final class ImageUses {
-
-    // How every image's Markdown starts: a text without it has none, and need not be parsed.
-    private static final String IMAGE_START = "![";
 
     private ImageUses() {
     }
@@ -60,10 +56,13 @@ public final class ImageUses {
      */
     public static List<ImageLine> missing(String text, Path chaptersDir) {
 
-        if (!text.contains(IMAGE_START))
-            return List.of();
+        return missing(ImageLines.of(text), chaptersDir);
+    }
 
-        return ImageLines.of(text).stream()
+    /** The image paragraphs among {@code lines}, found in a text already, whose file is not there. */
+    public static List<ImageLine> missing(List<ImageLine> lines, Path chaptersDir) {
+
+        return lines.stream()
                 .filter(line -> !ImageLines.isWebAddress(line.destination()))
                 .filter(line -> file(chaptersDir, line).filter(Files::isRegularFile).isEmpty())
                 .toList();
@@ -95,9 +94,6 @@ public final class ImageUses {
      */
     public static String withChapter(String text, Path chaptersDir, Path from, String to) {
 
-        if (!text.contains(IMAGE_START))
-            return text;
-
         Path folder = from.normalize();
         Map<String, String> moves = new LinkedHashMap<>();
         for (ImageLine line : ImageLines.of(text))
@@ -115,11 +111,7 @@ public final class ImageUses {
     /** The file {@code line} shows; empty if its destination is no path, such as a web address. */
     public static Optional<Path> file(Path chaptersDir, ImageLine line) {
 
-        try {
-            return Optional.of(chaptersDir.resolve(line.destination()).normalize());
-        } catch (InvalidPathException e) {
-            return Optional.empty();
-        }
+        return ImageLines.file(chaptersDir, line.destination());
     }
 
     /** Where {@code file} is in {@code folder}, its parts joined by slashes as a link writes them. */

@@ -14,13 +14,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * The other places of the word the author is at, in the paragraphs in view, so they see a repetition as they write
  * it, as Kate shows them: a light help that never moves the text. The word is the selection, exactly as selected, or
  * else the word at the caret, once it rests a moment after typing, a click, a key or a scroll; it is found capitals
  * or not, inside longer words too. Each place shows on a faint red, as a selection of its own drawn behind the text,
- * and the status bar shows how many times the word is in the whole chapter.
+ * and the status bar shows how many times the word is in the whole chapter. Image lines and links' addresses are no
+ * prose, and a word comes back there as expected: places there neither show nor count, and the author at one finds
+ * none.
  * <p>
  * The places are never styles of the text: restyling a paragraph in view makes RichTextFX measure it again, and its
  * scroll bar can then move the view, far from where the author is.
@@ -35,6 +38,7 @@ final class Repetitions {
     private static final String STYLE = "repeated";
 
     private final StyleClassedTextArea area;
+    private final Supplier<List<TextRange>> notProse;
     private final BiConsumer<String, Integer> counted;
     private final PauseTransition findDelay = new PauseTransition(FIND_DELAY);
     private final List<Selection<Collection<String>, String, Collection<String>>> marks = new ArrayList<>();
@@ -42,12 +46,15 @@ final class Repetitions {
     private List<TextRange> ranges = List.of();
 
     /**
-     * @param counted told the word and how many times it is in the chapter, its own place included; none as an empty
-     *                word and 0
+     * @param notProse the parts of the text that are no prose, as image lines and links' addresses, where a word
+     *                 comes back as expected: they are neither looked in nor looked for
+     * @param counted  told the word and how many times it is in the chapter, its own place included; none as an empty
+     *                 word and 0
      */
-    Repetitions(StyleClassedTextArea area, BiConsumer<String, Integer> counted) {
+    Repetitions(StyleClassedTextArea area, Supplier<List<TextRange>> notProse, BiConsumer<String, Integer> counted) {
 
         this.area = area;
+        this.notProse = notProse;
         this.counted = counted;
         findDelay.setOnFinished(event -> findNow());
         area.selectionProperty().addListener((obs, old, selection) -> findLater());
@@ -81,7 +88,10 @@ final class Repetitions {
 
         findDelay.stop();
         String text = area.getText();
-        Optional<TextRange> word = on ? wanted(text) : Optional.empty();
+        List<TextRange> skipped = notProse.get();
+        Optional<TextRange> word = on
+                ? wanted(text).filter(found -> skipped.stream().noneMatch(part -> part.overlaps(found)))
+                : Optional.empty();
         if (word.isEmpty()) {
             show(List.of(), "", 0);
             return;
@@ -89,7 +99,7 @@ final class Repetitions {
 
         TextRange own = word.get();
         String wanted = text.substring(own.start(), own.end());
-        List<TextRange> all = Occurrences.of(text, wanted);
+        List<TextRange> all = Occurrences.of(text, wanted, skipped);
         TextRange view = view();
         List<TextRange> others = all.stream()
                 .filter(range -> range.end() <= own.start() || range.start() >= own.end())

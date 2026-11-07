@@ -2,6 +2,8 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.markdown.model.ImageLine;
+import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -11,6 +13,7 @@ import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableSet;
 import javafx.scene.Node;
+import javafx.scene.control.ContextMenu;
 
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -36,6 +39,7 @@ public final class ChapterEditor {
     private final ChapterEdits edits;
     private final ChapterLinks links;
     private Runnable insertImage = () -> {};
+    private Consumer<ImageLine> modifyImage = line -> {};
 
     private BookFolder book;
     private Chapter chapter;
@@ -58,8 +62,9 @@ public final class ChapterEditor {
         edits = new ChapterEdits(manuscript, this::isOpen);
         links = new ChapterLinks(manuscript, this::chapter);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
-        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run(), links.actions()), manuscript,
-                spelling::makeRight);
+        ContextMenu menu = FormattingMenu.attach(manuscript, () -> insertImage.run(), line -> modifyImage.accept(line),
+                links.actions());
+        SpellingMenu.attach(menu, manuscript, spelling::makeRight);
     }
 
     // The page
@@ -108,6 +113,8 @@ public final class ChapterEditor {
     public void setSpelling(boolean on, boolean strict) { spelling.setOn(on, strict); }
     /** Shows, or not, as Preferences asks, the other places of the word the author is at, and how many there are. */
     public void setHighlightRepetitions(boolean on) { manuscript.highlightRepetitions(on); }
+    /** Shows the Markdown receding, in {@link EditorMode#DEFAULT}, or as written, as Preferences asks. */
+    public void setEditorMode(EditorMode mode) { manuscript.setMode(mode); }
     /** Checks the spelling in the open book's language, a BCP 47 tag; none with {@code null} while no book is open. */
     void setBookLanguage(String tag) { spelling.setBookLanguage(tag); }
 
@@ -139,6 +146,8 @@ public final class ChapterEditor {
     public void setBrowser(Consumer<String> browser) { links.setBrowser(browser); }
     /** Runs {@code action} when the author asks to insert an image, from the manuscript's right-click menu. */
     public void setOnInsertImage(Runnable action) { insertImage = action; }
+    /** Runs {@code action}, Modify image…, with the image line the author asked to change. */
+    public void setOnModifyImage(Consumer<ImageLine> action) { modifyImage = action; }
 
     // Opening, closing and saving
 

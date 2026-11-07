@@ -6,6 +6,9 @@ import it.infog.psiche.markdown.model.TextRange;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ImageLinesTest {
@@ -19,7 +22,7 @@ class ImageLinesTest {
 
         int start = text.indexOf(MAP);
         assertThat(ImageLines.of(text)).containsExactly(new ImageLine(new TextRange(start, start + MAP.length()),
-                "Map of the coast", "../media/01-departure/map.png"));
+                new TextRange(start + 2, start + 18), "Map of the coast", "../media/01-departure/map.png"));
     }
 
     @Test
@@ -39,6 +42,30 @@ class ImageLinesTest {
             assertThat(line.caption()).isEqualTo("The [old] harbour \\ dawn");
             assertThat(line.destination()).isEqualTo("../media/03-harbour/old harbour.jpg");
         });
+    }
+
+    @Test
+    void theMarkersAreTheMarkdownAroundTheCaptionAsWritten() {
+
+        String text = "Before.\n\n![The *old* harbour](<../media/03-harbour/old harbour.jpg>)\n\n![](map.png)\n";
+
+        assertThat(ImageLines.of(text)).satisfiesExactly(
+                line -> assertThat(written(text, line.markers()))
+                        .containsExactly("![", "](<../media/03-harbour/old harbour.jpg>)"),
+                line -> assertThat(written(text, line.markers())).containsExactly("![", "](map.png)"));
+    }
+
+    @Test
+    void modifyingAnImageRewritesItsLineInPlaceOnlyIfItIsStillThere() {
+
+        String text = "Before.\n\n" + MAP + "\n\nAfter.\n";
+        ImageLine line = ImageLines.of(text).getFirst();
+        String modified = ImageLines.markdown("The coast", "../media/01-departure/coast.png");
+
+        assertThat(ImageLines.withLine(text, line, modified))
+                .isEqualTo("Before.\n\n![The coast](../media/01-departure/coast.png)\n\nAfter.\n");
+        String moved = "Now. " + text;
+        assertThat(ImageLines.withLine(moved, line, modified)).isEqualTo(moved);
     }
 
     @Test
@@ -125,5 +152,28 @@ class ImageLinesTest {
     private static String apply(String text, TextEdit edit) {
 
         return text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
+    }
+
+    @Test
+    void anImagesFileIsFoundWithSpacesOrPercentEscapesAndAPercentSignAloneIsPartOfTheName() {
+
+        Path chapters = Path.of("/books/Lantern/chapters");
+        Path file = Path.of("/books/Lantern/media/Chapter three/map.png");
+
+        assertThat(ImageLines.file(chapters, "../media/Chapter three/map.png")).contains(file);
+        assertThat(ImageLines.file(chapters, "../media/Chapter%20three/map.png")).contains(file);
+        assertThat(ImageLines.file(chapters, "../media/50%off.png"))
+                .contains(Path.of("/books/Lantern/media/50%off.png"));
+    }
+
+    @Test
+    void anImageOnTheWebIsNoFile() {
+
+        assertThat(ImageLines.file(Path.of("/books/Lantern/chapters"), "https://example.com/map.png")).isEmpty();
+    }
+
+    private static List<String> written(String text, List<TextRange> ranges) {
+
+        return ranges.stream().map(range -> text.substring(range.start(), range.end())).toList();
     }
 }

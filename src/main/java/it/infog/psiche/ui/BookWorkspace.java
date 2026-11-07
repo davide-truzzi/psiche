@@ -108,6 +108,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapterEditor.setFontSize(preferences.editorFontSize());
         chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         chapterEditor.setHighlightRepetitions(preferences.highlightRepetitions());
+        chapterEditor.setEditorMode(preferences.editorMode());
         unsavedChanges = new UnsavedChanges(chapterEditor, this::window);
         gitControls = new GitControls(() -> unsavedChanges.settle("Save them before committing?"),
                 this::committed, statusBar, this::reportError);
@@ -118,6 +119,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         images = new ImageInsertion(chapterEditor, statusBar, this::reportError, this::window,
                 () -> gitControls.ignoreQuietly(ChapterMedia.GIT_IGNORE, "Keep chapter images out of Git"));
         chapterEditor.setOnInsertImage(images::insert);
+        chapterEditor.setOnModifyImage(images::modify);
         chapterEditor.setBrowser(browser);
         media = new MediaPane(chapterEditor, images, statusBar, this::reportError, this::window,
                 settings.mediaPreviewHeight(), settings::saveMediaPreviewHeight);
@@ -345,6 +347,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapterEditor.setFontSize(preferences.editorFontSize());
         chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         chapterEditor.setHighlightRepetitions(preferences.highlightRepetitions());
+        chapterEditor.setEditorMode(preferences.editorMode());
         statusBar.info("Preferences saved");
     }
 

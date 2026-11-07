@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.preferences;
 
 import it.infog.psiche.settings.model.Preferences;
+import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
@@ -83,6 +84,7 @@ public final class PreferencesDialog {
         TextField author = new TextField();
         author.setPromptText("Your name, as it goes on the cover");
         author.setMaxWidth(Double.MAX_VALUE);
+        ComboBox<EditorMode> editorMode = Controls.choices(List.of(EditorMode.values()), EditorMode::label);
         ComboBox<PreviewTheme> theme = Controls.choices(List.of(PreviewTheme.values()), PreviewTheme::label);
         ComboBox<Integer> editorFontSize = Controls.choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
         ComboBox<Integer> previewFontSize = Controls.choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
@@ -96,9 +98,12 @@ public final class PreferencesDialog {
             checkSpelling.setSelected(shown.checkSpelling());
             strictSpelling.setSelected(shown.strictSpelling());
             highlightRepetitions.setSelected(shown.highlightRepetitions());
+            editorMode.setValue(shown.editorMode());
         };
         fill.accept(preferences);
 
+        Label editorModeHint = Controls.hint("Default fades the Markdown and keeps links and images whole; Advanced "
+                + "shows it as written.");
         Label spellingHint = Controls.hint("In the languages Psiche has a dictionary for.");
         Label strictHint = Controls.hint("Also checks the words with a capital, as names have.");
         Label repetitionsHint = Controls.hint("Shows where the selected word, or the one being written, comes back.");
@@ -107,15 +112,17 @@ public final class PreferencesDialog {
         //groups
         GridPane general = new GridPane();
         general.addRow(0, new Label("Startup"), reopen);
-        general.addRow(1, new Label("Editor font size"), editorFontSize);
-        general.addRow(2, new Label("Preview theme"), theme);
-        general.addRow(3, new Label("Preview font size"), previewFontSize);
-        general.addRow(4, new Label("Spelling"), checkSpelling);
-        general.add(spellingHint, 1, 5);
-        general.add(strictSpelling, 1, 6);
-        general.add(strictHint, 1, 7);
-        general.addRow(8, new Label("Repetitions"), highlightRepetitions);
-        general.add(repetitionsHint, 1, 9);
+        general.addRow(1, new Label("Editor mode"), editorMode);
+        general.add(editorModeHint, 1, 2);
+        general.addRow(3, new Label("Editor font size"), editorFontSize);
+        general.addRow(4, new Label("Preview theme"), theme);
+        general.addRow(5, new Label("Preview font size"), previewFontSize);
+        general.addRow(6, new Label("Spelling"), checkSpelling);
+        general.add(spellingHint, 1, 7);
+        general.add(strictSpelling, 1, 8);
+        general.add(strictHint, 1, 9);
+        general.addRow(10, new Label("Repetitions"), highlightRepetitions);
+        general.add(repetitionsHint, 1, 11);
 
         GridPane newBooks = new GridPane();
         newBooks.addRow(0, new Label("Language"), DictionaryMark.after(language));
@@ -130,7 +137,7 @@ public final class PreferencesDialog {
         Supplier<Preferences> chosen = () -> new Preferences(reopen.isSelected(),
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
                 editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected(),
-                strictSpelling.isSelected(), highlightRepetitions.isSelected());
+                strictSpelling.isSelected(), highlightRepetitions.isSelected(), editorMode.getValue());
 
         // Apply and Revert, unlike the dialog's other buttons, leave it open.
         AtomicReference<Preferences> applied = new AtomicReference<>(preferences);

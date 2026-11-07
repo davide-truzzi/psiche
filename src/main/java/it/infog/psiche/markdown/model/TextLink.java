@@ -1,5 +1,7 @@
 package it.infog.psiche.markdown.model;
 
+import java.util.List;
+
 /**
  * A link in a chapter's text, written inline: {@code [text](destination)}, or {@code [text](destination "title")}.
  *
@@ -15,4 +17,16 @@ public record TextLink(TextRange range,
                        String text,
                        String destination,
                        String title) {
+
+    /** Where the link's address is written: from the bracket closing its text to its closing parenthesis. */
+    public TextRange address() {
+
+        return new TextRange(label.end(), range.end());
+    }
+
+    /** Where the Markdown around the link's text is written: its opening bracket, and its {@link #address}. */
+    public List<TextRange> markers() {
+
+        return List.of(new TextRange(range.start(), label.start()), address());
+    }
 }

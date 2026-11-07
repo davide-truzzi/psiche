@@ -21,6 +21,15 @@ public final class Occurrences {
      */
     public static List<TextRange> of(String text, String wanted) {
 
+        return of(text, wanted, List.of());
+    }
+
+    /**
+     * Every place {@code wanted} appears in {@code text}, as {@link #of(String, String)} finds them, but those in or
+     * across one of {@code skipped}, parts of the text that are no prose, as an image's line or a link's address.
+     */
+    public static List<TextRange> of(String text, String wanted, List<TextRange> skipped) {
+
         List<TextRange> found = new ArrayList<>();
         if (wanted.isEmpty())
             return found;
@@ -29,7 +38,9 @@ public final class Occurrences {
         int from = 0;
         while (from + length <= text.length()) {
             if (text.regionMatches(true, from, wanted, 0, length)) {
-                found.add(new TextRange(from, from + length));
+                TextRange place = new TextRange(from, from + length);
+                if (skipped.stream().noneMatch(part -> part.overlaps(place)))
+                    found.add(place);
                 from += length;
             } else
                 from++;
