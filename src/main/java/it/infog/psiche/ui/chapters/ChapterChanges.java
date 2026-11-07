@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.BookFolder;
+import it.infog.psiche.book.BookLinks;
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.exceptions.GitCommandException;
@@ -18,6 +19,7 @@ import javafx.stage.Window;
 
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -73,7 +75,9 @@ final class ChapterChanges {
 
     /**
      * Renames {@code chapter} under the title the author gives, moves its notes and images along, links its text to
-     * the images in their new folder, and commits the rename alone, so its history follows it to the new name.
+     * the images in their new folder, makes every chapter's links to it lead to its new name, and commits the rename
+     * alone, with those links, so its history follows it to the new name. The open chapter, if its links changed, shows
+     * them; a renamed open chapter is left for the caller to open again.
      *
      * @return the chapter under its new name, or empty if it kept its name
      */
@@ -117,8 +121,15 @@ final class ChapterChanges {
             errors.report("Cannot move the images of " + chapter.title(), e);
         }
 
+        // The links to it from every chapter follow it too, saved before the commit, which holds them with the rename.
+        List<Chapter> relinked = BookLinks.followRename(book, chapter.title(), renamed.title());
+        List<Path> files = new ArrayList<>(List.of(chapter.file(), renamed.file()));
+        relinked.stream().map(Chapter::file).filter(file -> !files.contains(file)).forEach(files::add);
+
         gitControls.commitChange("Rename chapter \"%s\" to \"%s\"".formatted(chapter.title(), renamed.title()),
-                List.of(chapter.file(), renamed.file()));
+                files);
+        // Everything was saved before the rename, so reading the open chapter again loses nothing.
+        chapterEditor.chapter().filter(relinked::contains).ifPresent(open -> chapterEditor.open(book, open));
         return Optional.of(renamed);
     }
 
