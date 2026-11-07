@@ -58,7 +58,8 @@ public final class ChapterEditor {
         edits = new ChapterEdits(manuscript, this::isOpen);
         headings = new BookHeadings(manuscript::setBookAnchors);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
-        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run()), manuscript,
+        LinkActions links = new LinkActions(manuscript, this::chapter, headings);
+        SpellingMenu.attach(FormattingMenu.attach(manuscript, () -> insertImage.run(), links), manuscript,
                 spelling::makeRight);
     }
 

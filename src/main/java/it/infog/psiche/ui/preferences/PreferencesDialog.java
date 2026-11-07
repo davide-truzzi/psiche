@@ -20,13 +20,11 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
-import javafx.util.StringConverter;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -85,9 +83,9 @@ public final class PreferencesDialog {
         TextField author = new TextField();
         author.setPromptText("Your name, as it goes on the cover");
         author.setMaxWidth(Double.MAX_VALUE);
-        ComboBox<PreviewTheme> theme = choices(List.of(PreviewTheme.values()), PreviewTheme::label);
-        ComboBox<Integer> editorFontSize = choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
-        ComboBox<Integer> previewFontSize = choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
+        ComboBox<PreviewTheme> theme = Controls.choices(List.of(PreviewTheme.values()), PreviewTheme::label);
+        ComboBox<Integer> editorFontSize = Controls.choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
+        ComboBox<Integer> previewFontSize = Controls.choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
         Consumer<Preferences> fill = shown -> {
             reopen.setSelected(shown.reopenLastBook());
             language.setValue(Locale.forLanguageTag(shown.newBookLanguage()));
@@ -101,10 +99,10 @@ public final class PreferencesDialog {
         };
         fill.accept(preferences);
 
-        Label spellingHint = hint("In the languages Psiche has a dictionary for.");
-        Label strictHint = hint("Also checks the words with a capital, as names have.");
-        Label repetitionsHint = hint("Shows where the selected word, or the one being written, comes back.");
-        Label newBooksHint = hint("A book's own language and authors are in Book properties.");
+        Label spellingHint = Controls.hint("In the languages Psiche has a dictionary for.");
+        Label strictHint = Controls.hint("Also checks the words with a capital, as names have.");
+        Label repetitionsHint = Controls.hint("Shows where the selected word, or the one being written, comes back.");
+        Label newBooksHint = Controls.hint("A book's own language and authors are in Book properties.");
 
         //groups
         GridPane general = new GridPane();
@@ -156,33 +154,5 @@ public final class PreferencesDialog {
             apply.accept(chosen.get());
         else
             undoApplied.run();
-    }
-
-    /** A line of help under a field, in the form's quieter text. */
-    private static Label hint(String text) {
-
-        Label hint = new Label(text);
-        hint.getStyleClass().add("form-hint");
-        return hint;
-    }
-
-    /** A box to pick one of {@code items} by {@code label}, as wide as the form. */
-    private static <T> ComboBox<T> choices(List<T> items, Function<T, String> label) {
-
-        ComboBox<T> combo = new ComboBox<>();
-        combo.getItems().setAll(items);
-        combo.setMaxWidth(Double.MAX_VALUE);
-        combo.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(T item) {
-                return item == null ? "" : label.apply(item);
-            }
-
-            @Override
-            public T fromString(String text) {
-                return null;
-            }
-        });
-        return combo;
     }
 }

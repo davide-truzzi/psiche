@@ -3,6 +3,7 @@ package it.infog.psiche.ui.common;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
@@ -14,8 +15,10 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.StringConverter;
 
 import java.util.List;
+import java.util.function.Function;
 
 /** Factories for the small controls the workspace builds in several places. */
 public final class Controls {
@@ -107,5 +110,33 @@ public final class Controls {
         StackPane fieldset = new StackPane(rows, title);
         fieldset.getStyleClass().add("fieldset");
         return fieldset;
+    }
+
+    /** A line of help under a field, in the form's quieter text. */
+    public static Label hint(String text) {
+
+        Label hint = new Label(text);
+        hint.getStyleClass().add("form-hint");
+        return hint;
+    }
+
+    /** A box to pick one of {@code items} by {@code label}, as wide as the form. */
+    public static <T> ComboBox<T> choices(List<T> items, Function<T, String> label) {
+
+        ComboBox<T> combo = new ComboBox<>();
+        combo.getItems().setAll(items);
+        combo.setMaxWidth(Double.MAX_VALUE);
+        combo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(T item) {
+                return item == null ? "" : label.apply(item);
+            }
+
+            @Override
+            public T fromString(String text) {
+                return null;
+            }
+        });
+        return combo;
     }
 }

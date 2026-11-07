@@ -204,29 +204,32 @@ public final class TextLinks {
      */
     public static String withChapter(String text, String from, String to) {
 
-        StringBuilder relinked = new StringBuilder(text);
+        StringBuilder changed = new StringBuilder(text);
         for (TextLink link : of(text).reversed()) {
             if (link.destination().startsWith(ANCHOR_MARK))
                 continue;
 
             LinkTarget target = target(link.destination(), "");
             if (target.chapter().equals(from))
-                relinked.replace(link.range().start(), link.range().end(),
-                        rewritten(text, link, chapterDestination("", to, target.anchor())));
+                changed.replace(link.range().start(), link.range().end(),
+                        relinked(text, link, chapterDestination("", to, target.anchor())));
         }
 
-        return relinked.toString();
+        return changed.toString();
     }
 
-    // Helpers
-
-    /** {@code link} as written in {@code text}, its text and title kept, leading to {@code destination}. */
-    private static String rewritten(String text, TextLink link, String destination) {
+    /**
+     * The Markdown of {@code link}, found in {@code text}, leading to {@code destination}: its text as written, with
+     * its formatting, and its title are kept, as Modify link… keeps them when only the destination changes.
+     */
+    public static String relinked(String text, TextLink link, String destination) {
 
         String title = link.title().isEmpty() ? "" : " \"" + escape(TITLE_SPECIAL, link.title()) + "\"";
         return "[" + text.substring(link.label().start(), link.label().end()) + "](" + written(destination) + title
                 + ")";
     }
+
+    // Helpers
 
     /** {@code destination} as a link writes it, in angle brackets if it holds spaces or parentheses. */
     private static String written(String destination) {

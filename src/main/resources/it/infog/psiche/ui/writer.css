@@ -1455,6 +1455,19 @@
     -fx-padding: 0;
 }
 
+/* Links */
+
+/* The link dialog: its groups of fields one under the other, the web's or the chapter's shown as the link leads. */
+.link-dialog-content {
+    -fx-spacing: 10;
+    -fx-padding: 16 20 4 20;
+}
+
+/* An address that is no web or mail address: an error, in attention orange. */
+.link-dialog-content .form-hint.wrong-address {
+    -fx-text-fill: -orange;
+}
+
 /* Images */
 
 .insert-image-content {
