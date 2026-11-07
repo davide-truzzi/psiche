@@ -12,12 +12,13 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 ## Status
 
-**0.4.1 Alpha**, the fourth release for testing, with a way round Windows 11 Smart App Control. Psiche Writer does
-what a book needs from first draft to export: create or open a book, write its chapters in Markdown with a typeset
-preview beside them, keep notes on each chapter's board and on the book's own, commit and push with Git, browse or
-restore earlier versions, and export the book to PDF, ODT, DOCX or EPUB. It is not finished: keep a copy of your
-books, read [Limitations](#limitations), and expect things to change before 1.0. What this release holds is in
-[CHANGELOG.md](CHANGELOG.md).
+**0.5.0 Alpha** (not released yet), the fifth release for testing and the last Alpha: the Betas after it fix bugs
+only. Psiche Writer does what a book needs from first draft to export: create or open a book, write its chapters in
+Markdown with a typeset preview beside them, with images and links to the web or between chapters, keep notes on each
+chapter's board and on the book's own, commit with Git and, if you want, keep the book in step with a remote
+repository, browse or restore earlier versions, and export the book to PDF, ODT, DOCX or EPUB. It is not finished:
+keep a copy of your books, read [Limitations](#limitations), and expect things to change before 1.0. What each
+release holds is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Book layout
 
@@ -31,7 +32,9 @@ my-book/              ← the folder; the book's title is set in its properties
 ├── media/            ← what the book needs besides its text
 │   ├── book.properties   ← title, subtitle, authors, language, copyright, identifier
 │   ├── cover.jpg         ← or cover.png, set from Book properties…
-│   └── style.css         ← the ebook's stylesheet, a default you can edit
+│   ├── style.css         ← the ebook's stylesheet, a default you can edit
+│   └── 01-departure/     ← a chapter's images, named like its file
+│       └── map.png
 └── notes/            ← the notes, kept out of Git; only once the book has notes
     ├── 01-departure/     ← a chapter's notes, named like its file
     │   └── 20261101-093000-a1b2/   ← one folder per note: note.md, note.properties, its file
@@ -42,6 +45,9 @@ my-book/              ← the folder; the book's title is set in its properties
 - A chapter's notes follow it when it is renamed in Psiche Writer. When it is deleted, they move to a folder named after
   it and the time, such as `01-departure-del-2026-11-01-09-30-00`, which frees the name for a new chapter; **Detached
   notes** brings them back (see [Notes](#notes)).
+- A chapter's images live in `media/<chapter>/` and are committed with the book. They follow the chapter when it is
+  renamed; when it is deleted they move to `media/<chapter>-del-<time>/`, which stays out of Git, for **Detached
+  images** to bring back (see [Images](#images)).
 
 > [!WARNING]
 > While a book is open in Psiche Writer, don't change its chapter files with another program: another editor, a
@@ -106,6 +112,8 @@ my-book/              ← the folder; the book's title is set in its properties
   - **General**
     - **Startup**: reopen the last book when Psiche Writer starts; off until you turn it on. A book given on the
       command line opens instead, and a last book that is gone is skipped.
+    - **Editor mode**: **Default** or **Advanced**, how the editor shows the Markdown (see [Writing](#writing));
+      Default until you change it. It applies at once, to the chapter open too.
     - **Editor font size**: the size of the manuscript's text, from 12 to 32 px, 16 px until you change it. The space
       between lines grows and shrinks with it.
     - **Preview theme**: **Default**, the page of paper, or **Dark**, light ink on dark paper. The chapter shown
@@ -153,10 +161,12 @@ my-book/              ← the folder; the book's title is set in its properties
   by a `git pull` or a file manager).
 - Right-click a chapter for **Rename** and **Delete**; right-clicking does not open it. Both need the book's Git
   repository, and everything saved and committed first: each is then recorded as a commit of its own, with a message
-  such as `Rename chapter "01-alba" to "01-prologo"` or `Delete chapter "03-baba"`. That commit holds only the
-  chapter's own file, so files Git does not track yet, such as an editor's backup file (`01-alba.md~`), neither
-  stand in the way nor slip into it.
+  such as `Rename chapter "01-alba" to "01-prologo"` or `Delete chapter "03-baba"`. That commit holds only what the
+  change touched, the chapter's own file and its images' folder, so files Git does not track yet, such as an editor's
+  backup file (`01-alba.md~`), neither stand in the way nor slip into it.
   - A renamed chapter keeps its whole history, since a commit that only renames a file is always a rename for Git.
+  - Its notes and images follow it, its image lines lead to their new folder, and the links to it in every chapter
+    are rewritten, keeping their text; the images moved and the chapters rewritten go into the rename's commit.
   - **Delete** asks for confirmation. **Deleted chapters** below the chapter list lists the chapters deleted from
     the book, newest first, and **Restore** (or a double-click, or Enter) brings one back with the text it had when
     it was deleted, as a `Restore chapter "03-baba"` commit. Its history goes on from before the deletion.
@@ -166,15 +176,15 @@ my-book/              ← the folder; the book's title is set in its properties
   next to the book's folder, not inside it, where it would be one more change to commit):
   - **PDF**: a manuscript to send to an editor. A4, 12pt Libertinus Serif (embedded), double-spaced, indented
     paragraphs, the authors, the book's title and the page number at the top of every page, the Psiche mark in black
-    under the chapter's title, and `* * *` for scene breaks. Raw HTML in the chapter is printed as text, and links to
-    the book's own files keep only their text. HTML comments (`<!-- a note -->`) are notes to yourself: the PDF, ODT
-    and DOCX leave them out. A word longer than the line, such as names pasted without their spaces, is broken where
-    the line ends.
+    under the chapter's title, and `* * *` for scene breaks. Raw HTML in the chapter is printed as text. Web and mail
+    links stay links, as does a link to a heading of the chapter; a link to another chapter keeps only its text.
+    HTML comments (`<!-- a note -->`) are notes to yourself: the PDF, ODT and DOCX leave them out. A word longer than
+    the line, such as names pasted without their spaces, is broken where the line ends.
   - **ODT**: the same manuscript as an OpenDocument text file, for an editor to work on in LibreOffice, Word or
     any other word processor. The text is set in named styles (*Text Body*, *First Paragraph*, *Heading 1*,
     *Quotations*, *Scene Break*…), so restyling one changes the whole chapter. It names Liberation Serif without
     embedding it, so where that font is missing the word processor's own serif takes its place. Images are packed
-    into the file; web and mail links stay links, links to the book's own files keep only their text.
+    into the file, centred with their captions; links behave as in the PDF.
   - **DOCX**: the same manuscript as a Word document, laid out like the ODT. Where Word has a style of its own it is
     used (*Heading 1*–*4*, *Title*, *Subtitle*, *Emphasis*, *Strong*), so Word's navigator lists the headings;
     the others keep the ODT's names (*Body Text*, *First Paragraph*, *Quotations*, *Scene Break*…). Each numbered
@@ -187,7 +197,8 @@ my-book/              ← the folder; the book's title is set in its properties
     then the contents (*Indice*, *Contents*… in the book's language), both without the page header, then every
     chapter in the order of the chapter list, each starting on a new page however short it is. Pages are numbered
     from the first chapter. Each line of the contents links to its chapter and shows, past dot leaders, the page it
-    starts on; the contents are also the PDF's bookmarks, which PDF readers list beside the pages.
+    starts on; the contents are also the PDF's bookmarks, which PDF readers list beside the pages. Links between
+    chapters lead to the chapter or the heading they name, in every format of the book.
   - **ODT**: the same book as an OpenDocument text file, in the named styles of a chapter's ODT, plus *Cover*,
     *Title*, *Subtitle* and *Book Authors* for the title page, which has a page style of its own (*Front Matter*)
     without the header. The contents follow on a page of the same style, in LibreOffice's own table of contents
@@ -219,6 +230,17 @@ my-book/              ← the folder; the book's title is set in its properties
 ### Writing
 - Typewriter-style Markdown editor, with a live preview that refreshes 500 ms after you stop typing and keeps its
   scroll position.
+- **Editor mode**, in Preferences, sets how the editor shows the Markdown. The chapter's file is the same in both,
+  character for character:
+  - **Default**, where every install starts, lets the Markdown recede. A link's `[` and `](address)`, an image's `![`
+    and `](file)`, a comment's `<!--` and `-->` are faded in their element's colour. A link sits on a faint teal tint,
+    an image on a faint green one, a comment on a faint grey; a link that leads nowhere and a missing image on a faint
+    orange. Links and image lines are blocks: typing inside one does nothing, the caret steps over it, a selection
+    over part of one takes it whole, and Backspace right after one or Delete right before one removes it whole, which
+    Undo brings back. They are changed from the right-click menu, **Modify link…** and **Modify image…**, which act
+    on the one under the pointer. A link typed by hand becomes a block as soon as its `)` closes it.
+  - **Advanced**: the Markdown as written, free to edit anywhere; the right-click menu acts on the caret or the
+    selection.
 - A chapter reopens where you left it, with the caret where it was and the same paragraph at the top, after switching
   to another chapter, closing the book or restarting Psiche. A chapter never opened before starts at the top. Psiche
   keeps the places in `psiche.properties` at the book's root: every book gets it as it is created or first opened, and
@@ -232,8 +254,9 @@ my-book/              ← the folder; the book's title is set in its properties
 - The preview is styled as a printed novel: Libertinus Serif, indented paragraphs, the Psiche mark under the
   chapter heading, a drop cap after it and ornamental scene breaks (`---`). Courier Prime is used for the editor.
   **Preferences** offers it in a **Dark** theme too, the same page in light ink on dark paper.
-- Clicking a web (`https://…`) or mail (`mailto:…`) link in the preview opens it in your default browser or mail
-  app. Other links, such as one to a chapter file, do nothing, so the preview never leaves the chapter.
+- Clicking a link in the preview follows it: a web (`https://…`) or mail (`mailto:…`) address opens in your default
+  browser or mail app, and a link to a chapter opens that chapter in the editor, at its heading when it names one. A
+  link that leads nowhere shows as plain orange text and does nothing.
 - A line break inside a paragraph is kept as a line break in the preview, so verse and dialogue can be laid out
   line by line.
 - The editor and the preview use flat backgrounds without shadows or textures, because those effects made the
@@ -306,6 +329,67 @@ my-book/              ← the folder; the book's title is set in its properties
 
   If *Save all* cannot write a chapter, that chapter keeps its unsaved changes, the others are saved, and the action is
   cancelled.
+
+### Images
+- **Insert image…**, in the editor's right-click menu, or **Add image** at the foot of the Media tab, puts a JPEG or
+  PNG image into the chapter. When the chapter's folder holds images its text does not show, they are offered first,
+  with **Choose another file…** for a new one. The image's dialog shows it with its format, size in pixels and
+  weight, and a **Caption**, filled in from the file's name. **Insert** copies the file into `media/<chapter>/` under
+  its own name (`map-2.png` when another file has the name; an identical file is reused, never overwritten) and adds
+  the image as a paragraph of its own after the caret's line, with blank lines around it:
+  `![A map of the coast](../media/01-departure/map.png)`. One Undo takes it out. The caption is also the image's
+  description, which ebooks read aloud.
+- The dialog warns when an image **will look poor in the exports**: **too small** (under 900 pixels on its longer
+  side: blurred in print) or **too compressed** (a JPEG whose quality, estimated from the file, is under 60: blocky).
+  You can insert it anyway.
+- **Modify image…**, in the right-click menu on an image, in both editor modes, opens the dialog again to change the
+  caption. **Choose another** swaps the file and keeps the caption, and repairs an image whose file is missing; the
+  old file stays in the chapter's folder, to keep or detach.
+- The **Media** tab, beside Notes, shows the chapter's images: the one selected large, with its caption, file name,
+  format, size, weight and the paragraphs that show it, and below it a card for each, in the order the text shows
+  them. Its title counts them, **Media (5)**, in red pencil while one is not in the text.
+  - A red **NOT IN THE CHAPTER** band marks an image the text does not show, an amber **LOW QUALITY** band one that
+    will look poor.
+  - Clicking a card moves the editor to the image's paragraph; clicking again goes to its next place, if the text
+    shows it more than once.
+  - For an image in the text: **Remove from text**, **Edit caption** and **Replace image**, which keeps the caption
+    and every place. For one not in the text: **Insert at the caret** and **Detach**.
+  - The foot sums them up, as `5 images · 10.8 MB · 2 not in the chapter`.
+- Images show in sage green in the editor. One whose file is missing shows in orange, and the preview puts a box in
+  its place.
+- **Detach** moves an image out of the chapter, to `media/<chapter>-del-<time>/`; so does deleting the chapter, for
+  all its images. **Detached images**, under the chapter list beside Detached notes, shows while some are kept: grouped
+  by chapter and cause, with **Restore to chapter** and **Delete permanently**. Restoring a deleted chapter offers its
+  images back, as it does its notes.
+- Images are committed with the book, so they have a history and travel with Synchronize; a book opened for the first
+  time with 0.5.0 commits its images in a commit of their own. Detached ones stay out of Git.
+- The preview and every export print an image centred, with its caption under it; an empty caption prints nothing.
+  The EPUB makes it a `<figure>` with its `<figcaption>`.
+- Spelling checks the caption, never the file's name. Repetitions leave image lines out.
+
+### Links
+- **Insert link…** in the editor's right-click menu, or `Ctrl+K` (`Cmd+K` on macOS), links the selection to a web
+  address, or to a chapter of the book, at its start or at one of its headings. The dialog takes the **Text**, filled
+  in from the selection, and **Link to**: *A web address*, where `www.example.com` gets `https://` in front and a mail
+  address `mailto:`, or *A chapter of the book*, with the chapters in the book's order and then the chapter's
+  sections. A link to another chapter is written from the chapter's file, `[the storm](02-the-crossing.md#the-storm)`,
+  so it works on GitHub and in other Markdown viewers too.
+- With the caret in a link, the item reads **Modify link…** (`Ctrl+K` too), and **Remove link** drops the link and
+  keeps its text. Each is one step for Undo.
+- A link typed by hand, `[text](address)`, works the same, however the address is written. Only inline links are
+  Psiche's: links by reference and `<https://…>` addresses stay plain Markdown, and an address pasted as text is not
+  made a link.
+- Links show in teal in the editor. One that leads nowhere shows in orange: to a chapter or heading the book does not
+  have, to a file of the book that is no chapter, or to a web address that is not one (a scheme other than
+  `https:`, `http:` or `mailto:`, or no host). Psiche never checks that a web address can be reached: it works
+  offline.
+- Hold `Ctrl` (`Cmd` on macOS) over a link that leads somewhere and the pointer becomes a hand with an *Open link*
+  tip: `Ctrl+click` opens it as the preview does.
+- Renaming a chapter rewrites the links to it in every chapter. Deleting one leaves them in orange, and restoring it
+  heals them. A heading you rename is not followed: the links to it turn orange.
+- The PDF, ODT, DOCX and EPUB keep links clickable. A link to a chapter or a heading leads there in the file; one
+  whose chapter is not in the export, such as a chapter exported alone, prints its text alone.
+- Spelling checks a link's text, never its address; repetitions skip addresses too.
 
 ### Notes
 - The **Notes** tab, between Preview and History, holds the open chapter's notes, like post-its on a board of 1600 ×
@@ -502,14 +586,15 @@ What each package holds:
 
 | Package | Responsibility |
 |---|---|
-| `it.infog.psiche.book` | `BookFolder` (create, open and validate a book; create, list, read and write chapters; and, through `BookMedia`, what `media/` keeps: read and save the book's properties and how its pages are counted, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `BookState` keeps `psiche.properties`, where each chapter was left (`book.model.ChapterPlace`). `ProjectArchive` writes a whole book folder to a Psiche project file, and unpacks one in place of the folder of that name, refusing entries that would leave the book's folder. `book.model.BookProperties` holds the properties, `book.model.ProjectManifest` what a project file says about its book |
+| `it.infog.psiche.book` | `BookLinks` rewrites every chapter's links to a chapter renamed. `BookFolder` (create, open and validate a book; create, list, read and write chapters; and, through `BookMedia`, what `media/` keeps: read and save the book's properties and how its pages are counted, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `BookState` keeps `psiche.properties`, where each chapter was left (`book.model.ChapterPlace`). `ProjectArchive` writes a whole book folder to a Psiche project file, and unpacks one in place of the folder of that name, refusing entries that would leave the book's folder. `book.model.BookProperties` holds the properties, `book.model.ProjectManifest` what a project file says about its book |
 | `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), push, and the files changed since the last commit, via JGit; `GitIgnore`, from `BookRepository.gitignore()`, adds a line to `.gitignore` and commits it alone, and brings a folder kept out into Git. `BookRemote` is the book's `origin`: its address checked by `RemoteAddresses` (`model.RemoteAddress`) and a folder's by `RemoteFolder`, connected or removed, and **Test**, which tells a `model.enums.RemoteState`, as `RemoteErrors` reads JGit's failures, with addresses cleaned of user info. `Synchronization` fetches, compares, fast-forwards or merges (`BookMerge`, file by file in memory, a conflict as a copy beside the chapter, `model.Conflict`) and pushes, reporting a `model.SyncReport`; it also checks the remote as a book opens, and puts a remote's book in place of an empty one. `BookHistory`, from `BookRepository.history()`, reads what the commits recorded: a file's history as `FileRevision`s with lines added and removed, whether a name was ever used, the deleted chapters, and a file as a commit recorded it. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
 | `it.infog.psiche.settings` | The app's own settings, and `Keychain`, the books' tokens (`model.Credentials`) in a PKCS12 file locked by a master password. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties` and `words.txt`, the author's own words for the spell checker, shared by every book, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was, beside whether the book's counts under the chapter list are open and which tab beside the chapter (`model.enums.ChapterTab`) shows when a book opens. A value missing or unreadable reads as its default |
-| `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports. `Occurrences`: every place a text appears, capitals or not, and the word at a position, for the editor's repetitions |
+| `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports. `Occurrences`: every place a text appears, capitals or not, and the word at a position, for the editor's repetitions. `ImageLines`: a chapter's image paragraphs (`model.ImageLine`: range, caption, file) and the Markdown of a new one. `TextLinks`: the inline links (`model.TextLink`), where each leads (`model.LinkTarget`, `model.enums.LinkKind`) and whether nowhere, and the Markdown of a new or changed one. `HeadingAnchors`: each heading's anchor (`model.HeadingAnchor`), by GitHub's rule, one for the editor, the preview and the exports. `TextBlocks`: where an edit, a caret or a selection goes among the blocks of the editor's Default mode. `FigureRenderer` renders an image alone as a figure with its caption, `PlainText` a part as a reader sees it, `HtmlChildren` a node's children |
+| `it.infog.psiche.media` | A chapter's images. `ChapterMedia`: its folder in `media/`, images copied in under unique names, an identical file reused, and the folder moved with a renamed chapter, kept apart for a deleted one, an image detached; `DetachedMedia`, from `ChapterMedia.detached()`, the images kept for no chapter. `ImageFiles` tells an image's format (`model.enums.ImageFormat`) and size from its content, `ImageQuality` whether it will look poor (`model.enums.QualityIssue`), `ImageUses` which of a chapter's image paragraphs show each file however written, and changes them by file. `model` holds `MediaImage`, `ChapterImage` and `DetachedGroup` |
 | `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter, and the book's own in `_book/` (`NoteStore.BOOK`, a name `BookFolder` refuses for a chapter), and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, go to `DetachedNoteStore`, from `NoteStore.detached()`, and so does a file replaced or removed, with a copy of its note. `DetachedNoteStore` keeps them in a `-del-` folder with the time and why, and lists the folders that match no chapter as orphans, for Detached notes to restore or delete for good. How a note sits on disk, read and written whole, and how notes move between folders, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
 | `it.infog.psiche.spelling` | Spell checking, offline. `SpellChecker` checks words in one language with the Hunspell dictionary the app brings for it, through Lucene's Hunspell, and suggests others; it takes the author's own words, a curly apostrophe as a straight one, and a closing quote after a word. `ProseWords` finds the words of a chapter's prose, leaving out code, HTML and comments, link and image targets, addresses, entities and words with digits. `Dictionaries` reads the list of the dictionaries the app brings, `dictionaries.txt` in the resources (English, Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal), and picks a book's: its country's, or else the first of its language; each is a `model.SpellingLanguage`. A dictionary, from LibreOffice, is a folder named by its tag with its licence, and adding or removing one takes its folder and its line, no code; `SOURCES.md` says where each came from and how |
-| `it.infog.psiche.common` | `Template`: a resource file with `{{placeholders}}`, filled in by name: the exports' XML parts, the PDF's and the preview's pages, and the script the preview follows the editor with. `SafeFiles`: files written through a temporary file beside them, moved in one step, copied with their progress told to a `CopyProgress`, and folders deleted whole, for the notes and the Psiche projects |
-| `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF, ODT or DOCX. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `ZipContainer` is the zip of a document's parts, with its mimetype first for ODT and EPUB, and `XmlText` the one escaping of text for every format's XML |
+| `it.infog.psiche.common` | `ChapterFolders`: how `notes/` and `media/` name a chapter's folder and those of what was deleted from it, and the `.md` of a chapter's file. `Template`: a resource file with `{{placeholders}}`, filled in by name: the exports' XML parts, the PDF's and the preview's pages, and the script the preview follows the editor with. `SafeFiles`: files written through a temporary file beside them, moved in one step, copied with their progress told to a `CopyProgress`, and folders deleted whole, for the notes and the Psiche projects |
+| `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF, ODT or DOCX. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `LinkTargets` tells where a link leads in the exported file (`model.LinkPlace`), or that it prints as text. `ZipContainer` is the zip of a document's parts, with its mimetype first for ODT and EPUB, and `XmlText` the one escaping of text for every format's XML |
 | `it.infog.psiche.export.pdf` | `ManuscriptPdf` lays out XHTML as a manuscript PDF through OpenHTMLtoPDF with Libertinus embedded: `manuscript.css` for a chapter, plus `book.css` for the book's title page and page breaks. `BundledFontMapper` keeps PDFBox from scanning the computer's fonts |
 | `it.infog.psiche.export.epub` | The EPUB export. `EpubWriter` checks the book for what stores may object to, and writes it: `Pages` makes each XHTML page from `page.xhtml` (cover, title page, chapters, copyright), `Navigation` the contents page with its landmarks and `toc.ncx`, `PackageDocument` the `package.opf` with the metadata from `Accessibility`; `EpubImages` packs the cover and the chapters' images, shrinking the large ones |
 | `it.infog.psiche.export.document` | What a word processor's document holds, the same for ODT and DOCX. `Manuscript` writes a chapter, or the whole book in its order (title page, contents, each chapter on a new page), into a `DocumentBody`, the interface each format implements: `ChapterRenderer` the Markdown, `TitlePageRenderer` and `ContentsRenderer` the book's front matter, all as paragraphs, headings, spans and lists that only name a `Style`, and the `PageStart`s between them. `Pictures` finds the images and their sizes, packed where each format keeps them |
@@ -524,8 +609,8 @@ and they have unit tests; `export` reads the book's properties from `book.model`
 
 ```
 WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open book · Close book · Save chapters · Book properties · Export · Export notes · Import notes) · Preferences · GitControls
-                            ├─ sidebar:   ChapterContext (chapter list · New chapter · Deleted chapters · Detached notes)
-                            ├─ pages:     ChapterEditor (Manuscript · MarginMarks · Mistakes · FormattingMenu) │ tabs: PreviewPane · NotesPane · HistoryPane ── RevisionDialog
+                            ├─ sidebar:   ChapterContext (chapter list · New chapter · Book counts · Deleted chapters · Detached notes · Detached images)
+                            ├─ pages:     ChapterEditor (Manuscript · MarginMarks · Mistakes · FormattingMenu · ChapterLinks) │ tabs: PreviewPane · NotesPane · MediaPane · HistoryPane ── RevisionDialog
                             └─ StatusBar
 ```
 
@@ -537,7 +622,11 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `book.RecentBooksMenu` | **Open recent** in the Book menu, filled from the settings each time the menu opens: the books by title, a missing one greyed out, and Clear list |
 | `book.BookPropertiesDialog` | The *Book properties* form: title, subtitle, authors, language and copyright, plus the cover's thumbnail with *Choose image…* and *Remove*. It returns the edit, and the workspace writes it |
 | `chapters.ChapterContext` | The open book's chapters: the chapter list, drawn by `ChapterCell`, and its right-click menu (`ChapterMenu`), opening a chapter in the editor, restoring a past version into it, and keeping the preview, notes, history, counts and status bar in step with the editor (what the status bar and the book's counts tell is `ChapterStatus`'); creating, renaming and deleting a chapter are left to `ChapterChanges`, exporting one to `Exports`, restoring a deleted one to `DeletedChapters`, and the notes left without a chapter to `DetachedNotes`, whose button it shows only while there are any |
-| `chapters.ChapterChanges` | Creates, renames and deletes chapters after asking the author; a renamed or deleted chapter's notes move with it, through `NoteStore`, and the rename or deletion is committed alone, once everything else is saved and committed |
+| `chapters.ChapterChanges` | Creates, renames and deletes chapters after asking the author; a renamed or deleted chapter's notes and images move with it, through `NoteStore` and `ChapterMedia`, a renamed one's links follow it through `BookLinks`, and the rename or deletion is committed alone, once everything else is saved and committed |
+| `chapters.ChapterView` | The open chapter in the editor and in what follows it, the preview, the history, the notes, the images and the status bar: opens and closes it, reads it again after Synchronize, shows a past version |
+| `chapters.BookReading`, `BookHeadings` | Reads the saved chapters once, on a thread of its own, when the book opens and a chapter is saved, added, removed or renamed, for the book's counts and for the headings links are checked against, which `BookHeadings` keeps in the book's order |
+| `chapters.ChapterLinks`, `LinkActions`, `LinkDialog`, `LinkHover` | The links: which lead nowhere, following one from the editor or the preview; Insert link…, Modify link… and Remove link with `Ctrl+K`; the link's dialog; the hand and *Open link* tip while `Ctrl` is held over one |
+| `chapters.ChapterEdits`, `ChapterSpelling`, `ChapterPlaces`, `DetachedButtons` | Changes to the open chapter from outside its text, each one Undo; the spell checking as Preferences asks; where each chapter was left; the Detached notes and Detached images buttons, shown while something is kept |
 | `chapters.ChapterCell` | A chapter in the list: its revision dot, its title, the *unsaved* mark while it has unsaved changes, and its menu |
 | `chapters.ChapterRevisions` | Which chapters changed since the last commit, for the revision dots: read from Git on the Git thread when the list is refreshed, a chapter is saved or gains unsaved changes, after a commit, and when the window gets the focus back, so commits made outside Psiche Writer show too |
 | `chapters.DeletedChapters` | *Deleted chapters*: lists the chapters deleted from the book in `DeletedChaptersDialog`, writes the one picked back with its last text, offers back the notes it had then, and commits it on its own, once everything else is saved and committed |
@@ -558,6 +647,9 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `git.Synchronizer` | Synchronize, clicked or automatic: the check as a book opens, after a commit, and before the book is left, which the workspace waits for; a remote that cannot be reached only in the status bar. `SyncReports` tells what it did and the conflicts, `SyncQuestions` asks to commit before closing |
 | `git.KeychainDialogs` | The keychain's dialogs: the master password chosen, typed once a session, typed again to delete a token, and Reset keychain |
 | `book.RemoteSection`, `RemoteTest` | The Remote repository section of *Book properties*: the address, the username and token, Synchronize automatically, Test and Remove remote; Save waits for a good Test; Test's outcome as the author reads it |
+| `media.MediaPane`, `MediaPreview`, `MediaCards`, `MediaActions` | The Media tab: the image selected, large, with its details and buttons, the cards under it, the jump to the image's paragraph, and what the buttons do to the text, each one Undo |
+| `media.ImageInsertion`, `InsertImageDialog`, `UnshownImagesDialog`, `ImageLabels` | Insert image… and Modify image…: the images not in the text offered first, the file chosen, the dialog with the caption and the quality warning, the copy off the FX thread, the paragraph added; how an image is told about |
+| `media.DetachedImages`, `DetachedImagesDialog`, `common.DetachedDialog` | *Detached images*, on the same dialog as Detached notes: the groups, Restore to chapter, Delete permanently |
 | `notes.NotesPane` | The Notes tab: the open chapter's `NoteBoard`, or the book's, as the `BoardSwitch` above it says, shown in a `BoardViewport` with a `BoardBar` in its corner, and the board's keys (`BoardKeys`); remembers in the book's state which board was looked at last; `BoardCounts` gives the tab its *Notes (3+2)* title and the switch its dots, reading the board not on screen; reads a chapter's notes as it opens, again after notes are restored to it, and keeps each chapter's view; asks for pictures only while the tab is showing. `settle()` saves what is pending before a chapter is renamed or deleted, or the app closes |
 | `notes.NoteBoard` | The board itself: the notes as cards, the one selected and the order they lie in; makes new notes, by a double-click, New note, or for files dropped or pasted, writes each change a card reports, and moves a deleted note to Detached notes and says so |
 | `notes.NoteMoves` | The notes leaving the board, as the `NoteMoveActions` a card asks its board for: to another chapter's board, picked from a list, or to the other board the Notes tab shows, from the note's menu or dropped on that board's half of the switch, which `CardDrag` tells where the pointer is |
@@ -574,7 +666,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `git.HistoryPane` | The History tab: the open chapter's commits with lines added and removed, read on a background thread while the tab is showing; a double-click or Enter reads that version and hands it on to be shown |
 | `git.RevisionDialog` | A past version compared with the saved chapter as tracked changes (written since: underlined; removed since: struck through), with a summary in words, *Close* and *Restore this version* |
 | `export.Exports` | Exports a chapter or the whole book: settles unsaved changes, asks about empty chapters, picks the file and writes it on an export thread of its own, reporting in the status bar |
-| `preferences.PreferencesDialog` | The *Preferences* form, in two fieldsets: General (reopen the last book at startup, the editor's font size, the preview's theme and font size, spelling, repetitions) and New book defaults (language and author). It hands the workspace what the author applies or saves, and the opening values again on Revert, closing only for Save; the workspace remembers it and changes the editor's and the preview's look |
+| `preferences.PreferencesDialog` | The *Preferences* form, in two fieldsets: General (reopen the last book at startup, the editor mode, the editor's font size, the preview's theme and font size, spelling, repetitions) and New book defaults (language and author). It hands the workspace what the author applies or saves, and the opening values again on Revert, closing only for Save; the workspace remembers it and changes the editor's and the preview's look |
 | `common.StatusBar` | The open chapter's characters, words and pages on the left, lined up with the editor's text (right-click the pages to choose how they are counted), and the latest message (`info` / `error`) and the chapter's saved/unsaved state on the right |
 | `common.Dialogs` | Title prompt, choice between buttons, error alert and folder chooser, owned by and styled like the main window |
 | `preferences.AboutDialog` | *About Psiche Writer*, opened from Preferences: logo, version (read from the module, where the build writes it), author, licence, the Buy Me a Coffee button, and the licences of the fonts and libraries, shown in the app or opened in the browser |
@@ -616,8 +708,12 @@ callbacks (`ErrorReporter`, the check before committing, the after-commit hook, 
 - A file still copying into a note when the app closes is not attached; only a hidden temporary file is left in the
   note's folder.
 - A chapter exports to a manuscript PDF, ODT or DOCX, or to Markdown; the whole book to a manuscript PDF, ODT or
-  DOCX, or to EPUB, each with the same contents after the title page. Links between chapters are not there yet.
+  DOCX, or to EPUB, each with the same contents after the title page.
 - The book's DOCX lists its chapters without their pages (see Export above).
+- Images are JPEG or PNG only, and live in their chapter's folder: the book has no images of its own besides its
+  cover.
+- Links lead to chapters and their headings, or to the web; not to notes or other files of the book. A heading
+  renamed by hand is not followed by the links to it.
 - The EPUB declares no accessibility conformance (`dcterms:conformsTo`): that needs someone to evaluate the book.
 
 ## Licence
