@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -113,7 +114,7 @@ class BookRepositoryTest extends GitBookTest {
             write("chapters/01-departure.md", "It began at dawn.");
             ObjectId head = commitAll("Draft chapter one").getId();
 
-            String pushed = repository.push();
+            String pushed = repository.push(Optional.empty());
 
             assertThat(pushed).isEqualTo(BRANCH);
             assertThat(origin.getRepository().resolve("refs/heads/" + BRANCH)).isEqualTo(head);
@@ -125,7 +126,7 @@ class BookRepositoryTest extends GitBookTest {
         write("chapters/01-departure.md", "It began at dawn.");
         commitAll("initial");
 
-        assertThatThrownBy(() -> repository.push())
+        assertThatThrownBy(() -> repository.push(Optional.empty()))
                 .isInstanceOf(GitCommandException.class)
                 .hasMessage("No 'origin' remote is configured for this book");
     }
@@ -144,7 +145,7 @@ class BookRepositoryTest extends GitBookTest {
             write("chapters/01-departure.md", "Unrelated history");
             commitAll("Draft chapter one");
 
-            assertThatThrownBy(() -> repository.push())
+            assertThatThrownBy(() -> repository.push(Optional.empty()))
                     .isInstanceOf(GitCommandException.class)
                     .hasMessageStartingWith("Push of refs/heads/main was rejected (REJECTED_NONFASTFORWARD)");
         }

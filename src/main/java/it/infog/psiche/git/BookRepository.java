@@ -12,8 +12,6 @@ import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.transport.CredentialsProvider;
-import org.eclipse.jgit.transport.NetRCCredentialsProvider;
 import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteRefUpdate;
@@ -21,6 +19,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 
 import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.Commit;
+import it.infog.psiche.settings.model.Credentials;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 /**
  * The Git repository at the root of a book folder, limited to what an author needs: commit, push, and what has
  * changed since the last commit. What the commits recorded, such as the history of a chapter, is read through
- * {@link #history()}.
+ * {@link #history()}, and the book's remote repository is reached through {@link #remote()}.
  */
 public final class BookRepository implements AutoCloseable {
 
@@ -51,26 +51,25 @@ public final class BookRepository implements AutoCloseable {
             EnumSet.of(RemoteRefUpdate.Status.OK, RemoteRefUpdate.Status.UP_TO_DATE);
 
     private final Git git;
-    private final CredentialsProvider credentials;
     private final BookHistory history;
+    private final BookRemote remote;
 
-    public BookRepository(Git git, CredentialsProvider credentials) {
+    public BookRepository(Git git) {
 
         this.git = git;
-        this.credentials = credentials;
         history = new BookHistory(git.getRepository());
+        remote = new BookRemote(git.getRepository());
     }
 
     /**
      * Opens the repository whose working tree is exactly {@code bookRoot}; parent repositories are not searched.
-     * HTTPS remotes authenticate with credentials from {@code ~/.netrc}.
      *
      * @throws GitCommandException if {@code bookRoot} has no Git repository
      */
     public static BookRepository open(Path bookRoot) {
 
         try {
-            return new BookRepository(Git.open(bookRoot.toFile()), new NetRCCredentialsProvider());
+            return new BookRepository(Git.open(bookRoot.toFile()));
         } catch (RepositoryNotFoundException e) {
             throw new GitCommandException(
                     "%s is not a Git repository. Run 'git init' in the book folder to enable commits.".formatted(bookRoot), e);
@@ -240,13 +239,20 @@ public final class BookRepository implements AutoCloseable {
         return history;
     }
 
+    /** The book's remote repository: its address, and Test before connecting it. */
+    public BookRemote remote() {
+
+        return remote;
+    }
+
     /**
      * Pushes the current branch to the branch of the same name on {@code origin}.
      *
+     * @param credentials the username and token of an HTTPS remote; none for a folder
      * @return the pushed branch name
      * @throws GitCommandException if there is no {@code origin}, HEAD is detached, or the remote rejects the push
      */
-    public String push() {
+    public String push(Optional<Credentials> credentials) {
 
         String fullBranch = currentBranch();
         if (!git.getRepository().getRemoteNames().contains(REMOTE)) {
@@ -257,16 +263,16 @@ public final class BookRepository implements AutoCloseable {
             results = git.push()
                     .setRemote(REMOTE)
                     .setRefSpecs(new RefSpec(fullBranch + ":" + fullBranch))
-                    .setCredentialsProvider(credentials)
+                    .setCredentialsProvider(BookRemote.provider(credentials))
                     .call();
         } catch (GitAPIException e) {
-            throw new GitCommandException("git push failed: " + e.getMessage(), e);
+            throw new GitCommandException("git push failed: " + RemoteErrors.cleaned(e.getMessage()), e);
         }
         // JGit reports rejected updates in the result rather than throwing.
         for (PushResult result : results) {
             for (RemoteRefUpdate update : result.getRemoteUpdates()) {
                 if (!PUSHED.contains(update.getStatus())) {
-                    String reason = update.getMessage() == null ? "" : ": " + update.getMessage();
+                    String reason = update.getMessage() == null ? "" : ": " + RemoteErrors.cleaned(update.getMessage());
                     throw new GitCommandException("Push of %s was rejected (%s)%s"
                             .formatted(update.getRemoteName(), update.getStatus(), reason));
                 }

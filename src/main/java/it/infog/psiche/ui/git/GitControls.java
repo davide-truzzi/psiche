@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BooleanSupplier;
@@ -148,7 +149,9 @@ public final class GitControls extends HBox {
     }
 
     private void push() {
-        run("Push", BookRepository::push, branch -> statusBar.info("Pushed %s to origin".formatted(branch)));
+        // No credentials until Book properties keeps the book's token in the keychain: folders only, meanwhile.
+        run("Push", repository -> repository.push(Optional.empty()),
+                branch -> statusBar.info("Pushed %s to origin".formatted(branch)));
     }
 
     /** Runs a command the author asked for, saying so in the status bar, and busy until it ends. */
