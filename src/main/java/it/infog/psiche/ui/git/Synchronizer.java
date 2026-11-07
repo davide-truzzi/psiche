@@ -39,6 +39,7 @@ final class Synchronizer {
     // A remote that is not there: offline, or a drive that is not plugged in.
     private static final Set<RemoteState> UNREACHABLE = EnumSet.of(RemoteState.UNREACHABLE,
             RemoteState.NOT_A_REPOSITORY);
+    private static final String SYNCHRONIZE = "Synchronize";
     private static final String OFFLINE = "Remote not reachable; working locally";
     private static final String LOCKED = "Not synchronized: the keychain is locked";
 
@@ -92,7 +93,7 @@ final class Synchronizer {
         }
 
         // Saved but not committed is known only from the disk, so on the Git thread.
-        git.run("Synchronize", BookRepository::isCommitted, committed -> {
+        git.run(SYNCHRONIZE, BookRepository::isCommitted, committed -> {
             if (committed)
                 synchronize(Duration.ZERO, this::clickedFailed, () -> {});
             else
@@ -159,7 +160,7 @@ final class Synchronizer {
             leaving = false;
             then.run();
         };
-        git.run("Synchronize", BookRepository::isCommitted, committed -> {
+        git.run(SYNCHRONIZE, BookRepository::isCommitted, committed -> {
             if (committed) {
                 synchronize(SHORT_TIMEOUT, this::leavingFailed, left);
                 return;
@@ -209,7 +210,7 @@ final class Synchronizer {
         }
 
         synchronizing.set(true);
-        git.run("Synchronize", repo -> repo.synchronize(git.savedCredentials(kind), timeout), report -> {
+        git.run(SYNCHRONIZE, repo -> repo.synchronize(git.savedCredentials(kind), timeout), report -> {
             synchronizing.set(false);
             afterSynchronize.accept(report);
             statusBar.info(SyncReports.summary(report));

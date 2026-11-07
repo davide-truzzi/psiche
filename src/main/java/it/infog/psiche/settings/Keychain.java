@@ -44,27 +44,31 @@ public final class Keychain {
     private static final String TYPE = "PKCS12";
     private static final String PROTECTION = "PBEWithHmacSHA256AndAES_256";
     // The derivations of the key from the master password, as OWASP advises for PBKDF2 with HMAC-SHA256.
-    private static final int ITERATIONS = 600_000;
+    static final int ITERATIONS = 600_000;
     // The JDK takes the derivations of the file's integrity check, which also tells a wrong password, only from this
     // property, read as each file is written; its default, 10,000, would make guessing the password from the file
-    // sixty times cheaper than from the entries.
-    private static final String MAC_ITERATIONS_PROPERTY = "keystore.pkcs12.macIterationCount";
+    // sixty times cheaper than from the entries. So it is set to the entries' own before each write.
+    static final String MAC_ITERATIONS_PROPERTY = "keystore.pkcs12.macIterationCount";
     private static final int SALT_LENGTH = 16;
     // PKCS12 keeps a secret as a key of a named algorithm; the bytes inside are the credentials, not an AES key.
     private static final String ENTRY_ALGORITHM = "AES";
 
-    static {
-        System.setProperty(MAC_ITERATIONS_PROPERTY, String.valueOf(ITERATIONS));
-    }
-
     private final Path file;
+    private final int iterations;
     private final SecureRandom random = new SecureRandom();
     // Null while locked.
     private char[] password;
 
     public Keychain(SettingsFolder folder) {
 
+        this(folder, ITERATIONS);
+    }
+
+    /** A keychain whose key derivations are {@code iterations}, fewer than the app's, for tests that need speed. */
+    Keychain(SettingsFolder folder, int iterations) {
+
         this.file = folder.path().resolve(FILE);
+        this.iterations = iterations;
     }
 
     /** True if the keychain has been created, so it is unlocked with its master password rather than created. */
@@ -156,7 +160,7 @@ public final class Keychain {
         SecretKeySpec secret = new SecretKeySpec(encoded(credentials), ENTRY_ALGORITHM);
         try {
             store.setEntry(alias(book), new KeyStore.SecretKeyEntry(secret),
-                    new KeyStore.PasswordProtection(password, PROTECTION, new PBEParameterSpec(salt, ITERATIONS)));
+                    new KeyStore.PasswordProtection(password, PROTECTION, new PBEParameterSpec(salt, iterations)));
         } catch (GeneralSecurityException e) {
             throw failure("Cannot keep the credentials of " + book, e);
         }
@@ -239,6 +243,7 @@ public final class Keychain {
             // Made readable and writable by its owner only, on systems with POSIX permissions.
             Path temporary = SafeFiles.temporaryBeside(file);
             try {
+                System.setProperty(MAC_ITERATIONS_PROPERTY, String.valueOf(iterations));
                 try (OutputStream out = Files.newOutputStream(temporary)) {
                     store.store(out, masterPassword);
                 }

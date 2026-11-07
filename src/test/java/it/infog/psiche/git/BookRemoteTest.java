@@ -8,7 +8,6 @@ import it.infog.psiche.git.model.enums.RemoteState;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.StoredConfig;
-import org.eclipse.jgit.transport.RefSpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -116,7 +115,7 @@ class BookRemoteTest extends GitBookTest {
     @Test
     void anEmptyRepositoryIsEmpty() throws Exception {
 
-        bare("empty.git").close();
+        bare("empty.git");
 
         assertThat(test(folder(tempDir.resolve("empty.git"))))
                 .isEqualTo(RemoteState.EMPTY);
@@ -167,14 +166,10 @@ class BookRemoteTest extends GitBookTest {
     @Test
     void aRepositoryStartedWithAReadmeIsUnrelated() throws Exception {
 
-        Path hosted = tempDir.resolve("hosted.git");
-        bare("hosted.git").close();
+        Path hosted = bare("hosted.git");
         try (Git host = Git.init().setDirectory(tempDir.resolve("host-readme").toFile()).setInitialBranch(BRANCH)
                 .call()) {
-            Files.writeString(tempDir.resolve("host-readme/README.md"), "# alba");
-            host.add().addFilepattern(".").call();
-            host.commit().setMessage("Initial commit").call();
-            host.push().setRemote(hosted.toString()).setRefSpecs(new RefSpec("HEAD:refs/heads/" + BRANCH)).call();
+            commitAndPush(host, "README.md", "# alba", hosted.toString());
         }
 
         assertThat(test(folder(hosted))).isEqualTo(RemoteState.UNRELATED);
@@ -207,14 +202,9 @@ class BookRemoteTest extends GitBookTest {
     /** Commits {@code file} in a clone of the book's repository in the backup folder, and pushes it there. */
     private void commitOnAnotherDevice(String file, String text) throws Exception {
 
-        Path device = tempDir.resolve("other-device");
         try (Git other = Git.cloneRepository().setURI(bookRepository().toString())
-                .setDirectory(device.toFile()).call()) {
-            Files.createDirectories(device.resolve(file).getParent());
-            Files.writeString(device.resolve(file), text);
-            other.add().addFilepattern(".").call();
-            other.commit().setMessage("From the other device").call();
-            other.push().call();
+                .setDirectory(tempDir.resolve("other-device").toFile()).call()) {
+            commitAndPush(other, file, text, BookRepository.REMOTE);
         }
     }
 
@@ -224,19 +214,9 @@ class BookRemoteTest extends GitBookTest {
         return backup.resolve(RemoteFolder.BACKUPS).resolve("book.git");
     }
 
-    private Git bare(String name) throws Exception {
-
-        return Git.init().setBare(true).setDirectory(tempDir.resolve(name).toFile()).setInitialBranch(BRANCH).call();
-    }
-
     /** Test, without credentials, for a book that has chapters. */
     private RemoteState test(RemoteAddress address) {
 
         return remote.test(address, Optional.empty(), Optional.empty(), TIMEOUT);
-    }
-
-    private static RemoteAddress folder(Path folder) {
-
-        return new RemoteAddress(RemoteKind.FOLDER, folder.toString());
     }
 }

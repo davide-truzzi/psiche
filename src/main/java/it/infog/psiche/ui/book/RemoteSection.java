@@ -69,6 +69,8 @@ final class RemoteSection {
     private final Path book;
     private final Optional<String> saved;
     private final boolean inGit;
+    // True if the saved remote is an HTTPS one, whose token is in the keychain.
+    private final boolean savedHttps;
 
     private final TextField address = new TextField();
     private final TextField username = new TextField();
@@ -107,6 +109,7 @@ final class RemoteSection {
         this.book = book;
         this.saved = saved;
         this.inGit = inGit;
+        savedHttps = saved.map(RemoteAddresses::kind).filter(RemoteKind.HTTPS::equals).isPresent();
 
         address.setText(saved.orElse(""));
         this.autoSync.setSelected(autoSync);
@@ -151,7 +154,6 @@ final class RemoteSection {
         addressRow.getStyleClass().add("remote-address");
         HBox.setHgrow(address, Priority.ALWAYS);
 
-        boolean savedHttps = saved.map(RemoteAddresses::kind).filter(RemoteKind.HTTPS::equals).isPresent();
         username.setPromptText(savedHttps ? SAVED : "Your account's name on the host");
         token.setPromptText(savedHttps ? SAVED : "A personal access token that can write");
         Label usernameLabel = new Label("Username");
@@ -302,8 +304,7 @@ final class RemoteSection {
     /** Asks to confirm, with the master password for a token in the keychain, then marks the remote for removal. */
     private void remove() {
 
-        boolean hasToken = saved.map(RemoteAddresses::kind).filter(RemoteKind.HTTPS::equals).isPresent()
-                && keychain.exists();
+        boolean hasToken = savedHttps && keychain.exists();
         ButtonType removeType = new ButtonType("Remove remote", ButtonData.OK_DONE);
         boolean confirmed = hasToken
                 ? KeychainDialogs.confirmed(window(), keychain)

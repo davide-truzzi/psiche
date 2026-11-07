@@ -54,8 +54,8 @@ public final class BookRemote {
     // Where Test fetches the remote's main branch, deleted as soon as it is compared.
     static final String TEST_REF = "refs/psiche/test/" + BookRepository.DEFAULT_BRANCH;
 
-    private static final String MAIN = Constants.R_HEADS + BookRepository.DEFAULT_BRANCH;
-    private static final String TRACKING = Constants.R_REMOTES + BookRepository.REMOTE + "/";
+    private static final String MAIN = BookRepository.MAIN;
+    private static final String TRACKING = BookRepository.TRACKING;
     private static final String FETCH_SPEC = "+" + Constants.R_HEADS + "*:" + TRACKING + "*";
 
     private final Repository repository;

@@ -3,7 +3,6 @@ package it.infog.psiche.git;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.revwalk.RevCommit;
-import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.junit.jupiter.api.Test;
@@ -139,10 +138,7 @@ class BookRepositoryTest extends GitBookTest {
                      .setURI(origin.getRepository().getDirectory().toURI().toString())
                      .setDirectory(tempDir.resolve("co-author").toFile())
                      .call()) {
-            Files.writeString(tempDir.resolve("co-author/preface.md"), "Their preface");
-            coAuthor.add().addFilepattern(".").call();
-            coAuthor.commit().setMessage("Add preface").call();
-            coAuthor.push().setRefSpecs(new RefSpec("HEAD:refs/heads/" + BRANCH)).call();
+            commitAndPush(coAuthor, "preface.md", "Their preface", BookRepository.REMOTE);
             write("chapters/01-departure.md", "Unrelated history");
             commitAll("Draft chapter one");
 
@@ -298,9 +294,8 @@ class BookRepositoryTest extends GitBookTest {
     }
 
     private Git bareOrigin() throws Exception {
-        Path originDir = tempDir.resolve("origin.git");
-        Git origin = Git.init().setBare(true).setDirectory(originDir.toFile()).setInitialBranch(BRANCH).call();
+        Path originDir = bare("origin.git");
         git.remoteAdd().setName(BookRepository.REMOTE).setUri(new URIish(originDir.toUri().toString())).call();
-        return origin;
+        return Git.open(originDir.toFile());
     }
 }

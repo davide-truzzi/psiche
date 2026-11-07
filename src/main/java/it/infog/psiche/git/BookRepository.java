@@ -45,6 +45,9 @@ public final class BookRepository implements AutoCloseable {
 
     static final String REMOTE = "origin";
     static final String DEFAULT_BRANCH = "main";
+    // The book's branch, and where a fetch keeps the remote's branches, as refs.
+    static final String MAIN = Constants.R_HEADS + DEFAULT_BRANCH;
+    static final String TRACKING = Constants.R_REMOTES + REMOTE + "/";
     // As many characters of a commit's id as Git shows in a log.
     private static final int SHORT_ID_LENGTH = 7;
 

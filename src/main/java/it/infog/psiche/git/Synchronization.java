@@ -44,9 +44,9 @@ import java.util.Optional;
  */
 final class Synchronization {
 
-    private static final String MAIN = Constants.R_HEADS + BookRepository.DEFAULT_BRANCH;
-    private static final String TRACKING = Constants.R_REMOTES + BookRepository.REMOTE + "/"
-            + BookRepository.DEFAULT_BRANCH;
+    private static final String MAIN = BookRepository.MAIN;
+    // Where a fetch keeps the remote's main.
+    private static final String TRACKING = BookRepository.TRACKING + BookRepository.DEFAULT_BRANCH;
     private static final String MERGE_MESSAGE = "Merge with the remote";
 
     private final BookRepository book;

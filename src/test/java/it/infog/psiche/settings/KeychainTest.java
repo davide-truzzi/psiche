@@ -23,9 +23,25 @@ class KeychainTest {
     private static final String ALBA = "urn:uuid:7d1f0a52-3b8e-4c43-9a51-0f3a8d5e2b10";
     private static final String SERA = "urn:uuid:c2a9e4d1-58f6-4b7a-8e0c-6d2b1f9a7c35";
     private static final Credentials DAVIDE = new Credentials("davide", "ghp_secret0123456789");
+    // Few derivations, so the tests run fast; one test checks the app's own count.
+    private static final int FAST = 1_000;
 
     @TempDir
     Path tempDir;
+
+    @Test
+    void theAppsKeychainDerivesTheKeysAndTheIntegrityCheckAsOwaspAdvises() {
+
+        Keychain created = new Keychain(new SettingsFolder(tempDir, false));
+        created.create(password("master"));
+        created.save(ALBA, DAVIDE);
+        assertThat(System.getProperty(Keychain.MAC_ITERATIONS_PROPERTY))
+                .isEqualTo(String.valueOf(Keychain.ITERATIONS));
+
+        Keychain next = new Keychain(new SettingsFolder(tempDir, false));
+        assertThat(next.unlock(password("master"))).isTrue();
+        assertThat(next.credentials(ALBA)).contains(DAVIDE);
+    }
 
     @Test
     void aKeychainNeverCreatedDoesNotExistAndIsLocked() {
@@ -242,7 +258,7 @@ class KeychainTest {
 
     private Keychain keychain() {
 
-        return new Keychain(new SettingsFolder(tempDir, false));
+        return new Keychain(new SettingsFolder(tempDir, false), FAST);
     }
 
     private static char[] password(String text) {

@@ -4,9 +4,7 @@ import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.exceptions.RemoteStateException;
 import it.infog.psiche.git.exceptions.UncommittedWorkException;
 import it.infog.psiche.git.model.Conflict;
-import it.infog.psiche.git.model.RemoteAddress;
 import it.infog.psiche.git.model.SyncReport;
-import it.infog.psiche.git.model.enums.RemoteKind;
 import it.infog.psiche.git.model.enums.RemoteState;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
@@ -43,7 +41,7 @@ class SynchronizationTest extends GitBookTest {
         backup = Files.createDirectories(tempDir.resolve("Backup"));
         write(DEPARTURE_FILE, DEPARTURE);
         commitAll("First draft");
-        String saved = repository.remote().connect(new RemoteAddress(RemoteKind.FOLDER, backup.toString()));
+        String saved = repository.remote().connect(folder(backup));
         repository.push(Optional.empty(), Duration.ZERO);
 
         device = tempDir.resolve("other-device");
@@ -83,8 +81,7 @@ class SynchronizationTest extends GitBookTest {
     @Test
     void anEmptyRemoteGetsTheBook() throws Exception {
 
-        Path empty = tempDir.resolve("empty.git");
-        Git.init().setBare(true).setDirectory(empty.toFile()).setInitialBranch(BRANCH).call().close();
+        Path empty = bare("empty.git");
         git.getRepository().getConfig().setString("remote", "origin", "url", empty.toString());
         git.getRepository().getConfig().save();
 
@@ -334,12 +331,7 @@ class SynchronizationTest extends GitBookTest {
     /** Commits {@code file} with {@code text} on the other device, and sends it to the remote. */
     private RevCommit commitOnTheOtherDevice(String file, String text) throws Exception {
 
-        Files.createDirectories(device.resolve(file).getParent());
-        Files.writeString(device.resolve(file), text);
-        other.add().addFilepattern(".").call();
-        RevCommit commit = other.commit().setMessage("From the other device").call();
-        other.push().call();
-        return commit;
+        return commitAndPush(other, file, text, BookRepository.REMOTE);
     }
 
     private ObjectId head() throws Exception {

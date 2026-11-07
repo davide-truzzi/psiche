@@ -1,7 +1,5 @@
 package it.infog.psiche.git;
 
-import it.infog.psiche.git.model.RemoteAddress;
-import it.infog.psiche.git.model.enums.RemoteKind;
 import it.infog.psiche.git.model.enums.RemoteState;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
@@ -32,8 +30,7 @@ class EmptyBookTest extends GitBookTest {
     @BeforeEach
     void writeTheBookOnTheFirstDevice() throws Exception {
 
-        hosted = tempDir.resolve("hosted.git");
-        Git.init().setBare(true).setDirectory(hosted.toFile()).setInitialBranch(BRANCH).call().close();
+        hosted = bare("hosted.git");
         Path first = tempDir.resolve("first-device");
         try (Git device = Git.init().setDirectory(first.toFile()).setInitialBranch(BRANCH).call()) {
             Files.createDirectories(first.resolve("chapters"));
@@ -75,7 +72,7 @@ class EmptyBookTest extends GitBookTest {
     @Test
     void takingTheBookOverwritesTheEmptyOneSilently() throws Exception {
 
-        repository.remote().connect(new RemoteAddress(RemoteKind.FOLDER, hosted.toString()));
+        repository.remote().connect(folder(hosted));
 
         String identifier = repository.adopt(Optional.empty());
 
@@ -90,7 +87,6 @@ class EmptyBookTest extends GitBookTest {
 
     private RemoteState test(Optional<String> emptyBookTitle) {
 
-        return repository.remote().test(new RemoteAddress(RemoteKind.FOLDER, hosted.toString()), Optional.empty(),
-                emptyBookTitle, TIMEOUT);
+        return repository.remote().test(folder(hosted), Optional.empty(), emptyBookTitle, TIMEOUT);
     }
 }
