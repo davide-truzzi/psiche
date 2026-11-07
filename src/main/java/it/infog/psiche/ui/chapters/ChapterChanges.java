@@ -111,10 +111,9 @@ final class ChapterChanges {
             errors.report("Cannot move the notes of " + chapter.title(), e);
         }
 
-        // So do its images, which are not in Git either; the links to them are rewritten and saved before the commit,
-        // which holds them with the rename.
+        // So do its images, in the rename's commit with the links to them, rewritten and saved before it.
+        ChapterMedia media = new ChapterMedia(book.mediaDir());
         try {
-            ChapterMedia media = new ChapterMedia(book.mediaDir());
             media.rename(chapter.title(), renamed.title());
             relinkImages(book, renamed, media.folder(chapter.title()));
         } catch (UncheckedIOException e) {
@@ -123,7 +122,8 @@ final class ChapterChanges {
 
         // The links to it from every chapter follow it too, saved before the commit, which holds them with the rename.
         List<Chapter> relinked = BookLinks.followRename(book, chapter.title(), renamed.title());
-        List<Path> files = new ArrayList<>(List.of(chapter.file(), renamed.file()));
+        List<Path> files = new ArrayList<>(List.of(chapter.file(), renamed.file(), media.folder(chapter.title()),
+                media.folder(renamed.title())));
         relinked.stream().map(Chapter::file).filter(file -> !files.contains(file)).forEach(files::add);
 
         gitControls.commitChange("Rename chapter \"%s\" to \"%s\"".formatted(chapter.title(), renamed.title()),
@@ -166,13 +166,16 @@ final class ChapterChanges {
         } catch (UncheckedIOException e) {
             errors.report("Cannot keep the notes of " + chapter.title(), e);
         }
+        // Its images too, out of Git where they are kept, so the deletion's commit takes them out of the book.
+        ChapterMedia media = new ChapterMedia(book.mediaDir());
         try {
-            new ChapterMedia(book.mediaDir()).binChapter(chapter.title());
+            media.binChapter(chapter.title());
         } catch (UncheckedIOException e) {
             errors.report("Cannot keep the images of " + chapter.title(), e);
         }
 
-        gitControls.commitChange("Delete chapter \"%s\"".formatted(chapter.title()), List.of(chapter.file()));
+        gitControls.commitChange("Delete chapter \"%s\"".formatted(chapter.title()),
+                List.of(chapter.file(), media.folder(chapter.title())));
         return true;
     }
 

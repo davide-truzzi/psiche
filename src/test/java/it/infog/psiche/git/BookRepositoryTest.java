@@ -247,6 +247,38 @@ class BookRepositoryTest extends GitBookTest {
     }
 
     @Test
+    void commitOnlyRecordsAFolderMovedWithItsChapter() throws Exception {
+        write("chapters/01-departure.md", DEPARTURE);
+        write("media/01-departure/map.png", "an image");
+        commitAll("First draft");
+
+        move("chapters/01-departure.md", "chapters/01-the-storm.md");
+        move("media/01-departure", "media/01-the-storm");
+        repository.commitOnly("Rename chapter", List.of(bookRoot.resolve("chapters/01-departure.md"),
+                bookRoot.resolve("chapters/01-the-storm.md"), bookRoot.resolve("media/01-departure"),
+                bookRoot.resolve("media/01-the-storm")));
+
+        assertThat(repository.isCommitted()).isTrue();
+        assertThat(repository.isCommitted(bookRoot.resolve("media/01-the-storm/map.png"))).isTrue();
+    }
+
+    @Test
+    void commitOnlyRecordsAFolderMovedOutOfGitAndSkipsOneThatNeverWas() throws Exception {
+        write(".gitignore", "media/*-del-[0-9]*/\n");
+        write("chapters/01-departure.md", DEPARTURE);
+        write("media/01-departure/map.png", "an image");
+        commitAll("First draft");
+
+        Files.delete(bookRoot.resolve("chapters/01-departure.md"));
+        move("media/01-departure", "media/01-departure-del-2026");
+        repository.commitOnly("Delete chapter", List.of(bookRoot.resolve("chapters/01-departure.md"),
+                bookRoot.resolve("media/01-departure"), bookRoot.resolve("media/02-never")));
+
+        assertThat(repository.isCommitted()).isTrue();
+        assertThat(repository.isCommitted(bookRoot.resolve("media/01-departure/map.png"))).isFalse();
+    }
+
+    @Test
     void commitOnlyWithoutChangesToTheFilesFails() throws Exception {
         write("chapters/01-departure.md", DEPARTURE);
         commitAll("First draft");

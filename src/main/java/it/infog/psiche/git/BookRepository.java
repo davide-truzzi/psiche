@@ -125,16 +125,21 @@ public final class BookRepository implements AutoCloseable {
      * Records only {@code files} as one commit: each as it is on disk, or as deleted if it is gone. Every other
      * change, and every file Git does not track yet, such as an editor's backup file, stays out of the commit.
      *
-     * @param files files in the book, each tracked, on disk, or both
+     * @param files files or folders in the book; one neither on disk nor in the last commit is left out
      * @throws GitCommandException if none of {@code files} changed since the last commit
      */
     public Commit commitOnly(String message, List<Path> files) {
 
-        List<String> paths = files.stream().map(this::repositoryPath).toList();
+        // A path Git never knew, such as the images folder of a chapter that has none, would fail the commit.
+        List<Path> known = files.stream().filter(file -> Files.exists(file) || isCommitted(file)).toList();
+        if (known.isEmpty())
+            throw new GitCommandException("Nothing to commit: no changes since the last commit");
+
+        List<String> paths = known.stream().map(this::repositoryPath).toList();
         try {
             //stage the files on disk, so a new one can be committed
-            for (int i = 0; i < files.size(); i++)
-                if (Files.exists(files.get(i)))
+            for (int i = 0; i < known.size(); i++)
+                if (Files.exists(known.get(i)))
                     git.add().addFilepattern(paths.get(i)).call();
 
             //commit them alone
@@ -188,7 +193,7 @@ public final class BookRepository implements AutoCloseable {
     }
 
     /**
-     * True if the last commit has {@code file}.
+     * True if the last commit has {@code file}, or files in it for a folder.
      *
      * @throws IllegalArgumentException if {@code file} is outside the book folder
      */
