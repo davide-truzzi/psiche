@@ -7,6 +7,7 @@ import it.infog.psiche.book.model.enums.PageMeasure;
 import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.media.ChapterMedia;
 import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
@@ -88,6 +89,8 @@ public final class BookContext implements AutoCloseable {
 
         bookTitle.getStyleClass().add("book-title");
         statusBar.setOnPageMeasureChosen(this::choosePageMeasure);
+        // An empty book that took its remote's is another book now: open it again, from its new files.
+        gitControls.setOnBookTaken(() -> openBook(book.root()));
     }
 
     /** The open book's title, for the toolbar. */
@@ -289,6 +292,9 @@ public final class BookContext implements AutoCloseable {
         }
         // Where the author left each chapter is theirs, not the book's.
         gitControls.ignoreQuietly(BookState.FILE, "Keep Psiche's own file out of Git");
+        // Images travel with Synchronize, and have a history; what was deleted from a chapter stays on this device.
+        gitControls.track(ChapterMedia.FORMER_GIT_IGNORE, ChapterMedia.GIT_IGNORE, book.mediaDir(),
+                "Keep chapter images in Git");
         chapterWatch.start(book);
         chapters.show(book, repository);
         settings.bookOpened(book.root());

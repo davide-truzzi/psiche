@@ -4,7 +4,6 @@ import it.infog.psiche.book.Chapter;
 import it.infog.psiche.export.model.enums.ExportFormat;
 import it.infog.psiche.git.model.FileRevision;
 import it.infog.psiche.markdown.MarkdownRenderer;
-import it.infog.psiche.media.ChapterMedia;
 import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.model.Preferences;
@@ -30,6 +29,7 @@ import it.infog.psiche.ui.notes.NotesTransfer;
 import it.infog.psiche.ui.preferences.PreferencesDialog;
 import it.infog.psiche.ui.preview.PreviewPane;
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -118,8 +118,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
                 "Notes are kept out of Git");
         notes = new NotesPane(statusBar, this::reportError, keepNotesOutOfGit::run, browser);
         notesTransfer = new NotesTransfer(notes, statusBar, this::reportError, this::window, keepNotesOutOfGit);
-        images = new ImageInsertion(chapterEditor, statusBar, this::reportError, this::window,
-                () -> gitControls.ignoreQuietly(ChapterMedia.GIT_IGNORE, "Keep chapter images out of Git"));
+        images = new ImageInsertion(chapterEditor, statusBar, this::reportError, this::window);
         chapterEditor.setOnInsertImage(images::insert);
         chapterEditor.setOnModifyImage(images::modify);
         chapterEditor.setBrowser(browser);
@@ -184,16 +183,17 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     /**
-     * Keeps the book from changing while a Psiche project is exported or imported: the chapter list, the notes, the
-     * images, and Commit and Push are disabled, and the open chapter can be read but not edited. The Book menu waits
-     * too; see {@link #bookMenuButton}.
+     * Keeps the book from changing while a Psiche project is exported or imported, or Synchronize runs: the chapter
+     * list, the notes, the images are disabled, and the open chapter can be read but not edited; Commit and
+     * Synchronize too during a transfer. The Book menu waits too; see {@link #bookMenuButton}.
      */
     private void freezeWhileTransferring() {
 
         ReadOnlyBooleanProperty transferring = projectTransfer.busyProperty();
-        for (Node part : List.of(chapters.sidebar(), gitControls))
-            part.disableProperty().bind(transferring);
-        transferring.addListener((obs, was, frozen) -> {
+        BooleanBinding frozenBook = transferring.or(gitControls.synchronizingProperty());
+        chapters.sidebar().disableProperty().bind(frozenBook);
+        gitControls.disableProperty().bind(transferring);
+        frozenBook.addListener((obs, was, frozen) -> {
             chapterEditor.setFrozen(frozen);
             notes.setFrozen(frozen);
             media.setFrozen(frozen);

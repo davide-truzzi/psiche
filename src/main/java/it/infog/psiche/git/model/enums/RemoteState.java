@@ -19,6 +19,12 @@ public enum RemoteState {
     UNRELATED(false, "This repository holds something else than this book. If it was created with a README, a "
             + "licence or a .gitignore, create a new one without any of them and connect to that. If it holds this "
             + "book from another device, import a Psiche project of it instead."),
+    // An empty book connected to a repository holding a book of its title: the repository's replaces it at Save.
+    HOLDS_BOOK(true, "This repository holds this book from another device: Save brings it into this empty book, "
+            + "in place of what it has now."),
+    // An empty book connected to a repository holding a book of another title.
+    OTHER_TITLE(false, "This repository holds a book with another title. If it is this book, give this one the same "
+            + "title, then Test again."),
     UNREACHABLE(false, "The repository cannot be reached: check the address and the connection."),
     CERTIFICATE(false, "The host's certificate is not trusted, so the connection is not safe."),
     // Hosts such as GitHub answer so for a repository that is not there too, so as not to tell that it exists.

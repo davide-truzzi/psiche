@@ -260,38 +260,26 @@ class BookRepositoryTest extends GitBookTest {
     }
 
     @Test
-    void ignoringAPatternCommitsGitignoreAloneAndOnlyOnce() throws Exception {
+    void aBookIsCommittedOnlyWithNothingChangedAndNothingNew() throws Exception {
         write("chapters/01-departure.md", DEPARTURE);
+        write(".gitignore", "notes/\n");
         commitAll("First draft");
-        write("chapters/01-departure.md", DEPARTURE + "A new line, not committed.\n");
+        write("notes/01-departure/idea.md", "Ignored.\n");
+        assertThat(repository.isCommitted()).isTrue();
 
-        assertThat(repository.ignores("notes/")).isFalse();
-        assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isTrue();
-        assertThat(repository.ignores("notes/")).isTrue();
-        assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isFalse();
+        write("chapters/02-crossing.md", "Saved, not committed.\n");
+        assertThat(repository.isCommitted()).isFalse();
 
-        assertThat(bookRoot.resolve(".gitignore")).hasContent("notes/");
-        assertThat(git.log().call()).extracting(RevCommit::getShortMessage)
-                .containsExactly("Keep chapter notes out of Git", "First draft");
-        assertThat(git.status().call().getModified()).containsExactly("chapters/01-departure.md");
-    }
-
-    @Test
-    void anIgnoredPatternGoesOnALineOfItsOwn() throws Exception {
-        write("chapters/01-departure.md", DEPARTURE);
-        write(".gitignore", "*.bak");
-        commitAll("First draft");
-
-        repository.ignore("notes/", "Keep chapter notes out of Git");
-
-        assertThat(Files.readString(bookRoot.resolve(".gitignore"))).isEqualTo("*.bak\nnotes/\n");
+        commitAll("Crossing");
+        write("chapters/01-departure.md", DEPARTURE + "Saved, not committed.\n");
+        assertThat(repository.isCommitted()).isFalse();
     }
 
     @Test
     void aCommitLeavesIgnoredNotesOut() throws Exception {
         write("chapters/01-departure.md", DEPARTURE);
         commitAll("First draft");
-        repository.ignore("notes/", "Keep chapter notes out of Git");
+        repository.gitignore().add("notes/", "Keep chapter notes out of Git");
         write("notes/01-departure/20261101-093000-a1b2/note.md", "Marco lies about the letter.\n");
         write("chapters/01-departure.md", DEPARTURE + "The bells rang.\n");
 
@@ -307,18 +295,6 @@ class BookRepositoryTest extends GitBookTest {
         }
         assertThat(repository.hasUncommittedChanges()).isFalse();
     }
-
-    @Test
-    void aBookWithoutCommitsCanIgnoreAPattern() throws Exception {
-        write("chapters/01-departure.md", DEPARTURE);
-
-        assertThat(repository.ignore("notes/", "Keep chapter notes out of Git")).isTrue();
-
-        assertThat(git.log().call()).extracting(RevCommit::getShortMessage)
-                .containsExactly("Keep chapter notes out of Git");
-        assertThat(git.status().call().getUntracked()).containsExactly("chapters/01-departure.md");
-    }
-
 
     private Git bareOrigin() throws Exception {
         Path originDir = tempDir.resolve("origin.git");

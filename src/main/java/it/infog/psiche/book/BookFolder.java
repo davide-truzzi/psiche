@@ -36,6 +36,12 @@ public final class BookFolder {
 
     static final String CHAPTERS_DIR = "chapters";
     static final String MEDIA_DIR = "media";
+
+    /** The book's properties file, relative to the book folder with '/' separators, as Git names it. */
+    public static final String PROPERTIES_PATH = MEDIA_DIR + "/" + BookMedia.PROPERTIES_FILE;
+    /** The keys of the book's title and identifier in its properties file. */
+    public static final String TITLE_KEY = BookMedia.TITLE_KEY;
+    public static final String IDENTIFIER_KEY = BookMedia.IDENTIFIER_KEY;
     static final String NOTES_DIR = "notes";
     static final String CHAPTER_EXTENSION = ChapterFolders.CHAPTER_EXTENSION;
 

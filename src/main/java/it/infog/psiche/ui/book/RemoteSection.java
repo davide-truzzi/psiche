@@ -1,18 +1,16 @@
 package it.infog.psiche.ui.book;
 
-import it.infog.psiche.git.BookRepository;
 import it.infog.psiche.git.RemoteAddresses;
-import it.infog.psiche.git.RemoteFolder;
 import it.infog.psiche.git.model.RemoteAddress;
 import it.infog.psiche.git.model.enums.AddressProblem;
-import it.infog.psiche.git.model.enums.FolderState;
 import it.infog.psiche.git.model.enums.RemoteKind;
-import it.infog.psiche.git.model.enums.RemoteState;
 import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.model.Credentials;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.git.GitControls;
+import it.infog.psiche.ui.book.RemoteTest.Outcome;
+import it.infog.psiche.ui.book.RemoteTest.Tone;
 import it.infog.psiche.ui.git.KeychainDialogs;
 
 import javafx.application.Platform;
@@ -21,6 +19,8 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar.ButtonData;
@@ -38,54 +38,30 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.Optional;
 
 /**
  * The Remote repository section of Book properties, closed unless the book has a remote: its address, an
- * {@code https://} one with a username and a token, or a folder; Test, and Remove remote.
+ * {@code https://} one with a username and a token, or a folder; Test, which {@link RemoteTest} runs, and Remove
+ * remote.
  * <p>
  * Save waits for a good Test while the remote's fields are changed: editing a field after a good test asks for
  * another. Nothing is changed until Save, when {@link #apply} connects or removes the remote on the Git thread.
  */
 final class RemoteSection {
 
-    /** How a Test's result reads: good, good with something to know, or refused. */
-    private enum Tone {
-
-        OK("remote-ok"),
-        NOTE("remote-note"),
-        WRONG("remote-wrong");
-
-        private final String styleClass;
-
-        Tone(String styleClass) {
-
-            this.styleClass = styleClass;
-        }
-    }
-
-    /** What a Test found, as the author is told. */
-    private record Outcome(boolean accepted,
-                           String message,
-                           Tone tone) {
-    }
-
-    // Longer than the check as a book opens: the author is waiting for this one, and a slow host still answers.
-    private static final Duration TEST_TIMEOUT = Duration.ofSeconds(30);
     private static final String ABOUT = "For advanced use: the book's own history and the Psiche project export are "
             + "enough for most authors. A remote repository keeps a copy of the book's history on a host, such as "
             + "GitHub, or on another drive, and Synchronize keeps the two in step.";
     private static final String ADDRESS_HINT = "An https:// address, as GitHub or GitLab show it, or a folder.";
     private static final String DRIVE_NOTE = "Choose a folder on another drive than the book's, so one failing disk "
             + "cannot take both copies. Psiche keeps the book in a PsicheRepository folder inside it.";
-    private static final String SAME_DRIVE = "This folder is on the same drive as the book: if that disk fails, "
-            + "both copies are lost. Choose another drive if you can.";
     private static final String SAVED = "Saved in the keychain";
     private static final String REMOVE_ABOUT = "The book stays as it is, and so does the repository, with what was "
             + "sent to it. Synchronize goes away until you connect a remote again.";
 
     private final GitControls git;
+    private final RemoteTest remoteTest;
     private final Keychain keychain;
     private final Path book;
     private final Optional<String> saved;
@@ -107,6 +83,9 @@ final class RemoteSection {
     private int edits;
     private RemoteAddress testedAddress;
     private Optional<Credentials> testedCredentials = Optional.empty();
+    private boolean takesBook;
+    // The title in the form, which an empty book must share with the repository's to take it.
+    private ObservableValue<String> title = new SimpleStringProperty("");
 
     /**
      * @param git   runs Test, and at Save connects or removes the remote, on the Git thread
@@ -117,6 +96,7 @@ final class RemoteSection {
     RemoteSection(GitControls git, Keychain keychain, Path book, Optional<String> saved, boolean inGit) {
 
         this.git = git;
+        remoteTest = new RemoteTest(git, book);
         this.keychain = keychain;
         this.book = book;
         this.saved = saved;
@@ -130,6 +110,13 @@ final class RemoteSection {
                 && (removing.get() || !changed.get() || tested.get()), changed, tested, testing, removing);
         for (Observable field : fields)
             field.addListener(observable -> edited());
+    }
+
+    /** Takes the book's title from the form's {@code title} field; editing it asks for another Test. */
+    void followTitle(ObservableValue<String> title) {
+
+        this.title = title;
+        title.addListener(observable -> edited());
     }
 
     /** True while Save may close the form: the remote's fields are as they were, tested, or the remote removed. */
@@ -234,7 +221,7 @@ final class RemoteSection {
         if (removing.get())
             git.removeRemote();
         else if (changed.get() && tested.get())
-            git.connectRemote(testedAddress, testedCredentials);
+            git.connectRemote(testedAddress, testedCredentials, takesBook);
     }
 
     private void edited() {
@@ -271,9 +258,10 @@ final class RemoteSection {
             return;
 
         int started = edits;
+        String bookTitle = title.getValue();
         testing.set(true);
         show(new Outcome(false, "Testing…", Tone.NOTE));
-        git.ask(repository -> outcome(repository, target, typed), outcome -> {
+        git.ask(repository -> remoteTest.outcome(repository, target, typed, bookTitle), outcome -> {
             testing.set(false);
             if (started != edits)
                 return;
@@ -281,32 +269,12 @@ final class RemoteSection {
             tested.set(outcome.accepted());
             testedAddress = target;
             testedCredentials = typed;
+            takesBook = outcome.takesBook();
             show(outcome);
         }, error -> {
             testing.set(false);
             show(new Outcome(false, error.getMessage(), Tone.WRONG));
         });
-    }
-
-    /** What Test finds at {@code target}, on the Git thread. */
-    private Outcome outcome(BookRepository repository, RemoteAddress target, Optional<Credentials> typed) {
-
-        Optional<Path> folder = target.kind() == RemoteKind.FOLDER ? Optional.of(Path.of(target.address()))
-                : Optional.empty();
-        Optional<FolderState> refused = folder.map(chosen -> RemoteFolder.state(chosen, book))
-                .filter(state -> !state.usable());
-        if (refused.isPresent())
-            return new Outcome(false, refused.get().problem(), Tone.WRONG);
-
-        Optional<Credentials> credentials = typed.isPresent() ? typed : git.savedCredentials(target.kind());
-        RemoteState state = repository.remote().test(target, credentials, TEST_TIMEOUT);
-        if (!state.accepted())
-            return new Outcome(false, state.message(), Tone.WRONG);
-
-        boolean sameDrive = folder.filter(chosen -> RemoteFolder.samePartition(chosen, book)).isPresent();
-        boolean newer = state == RemoteState.AHEAD || state == RemoteState.DIVERGED;
-        return new Outcome(true, sameDrive ? state.message() + " " + SAME_DRIVE : state.message(),
-                sameDrive || newer ? Tone.NOTE : Tone.OK);
     }
 
     /** Asks to confirm, with the master password for a token in the keychain, then marks the remote for removal. */
@@ -345,17 +313,17 @@ final class RemoteSection {
         Optional<AddressProblem> problem = RemoteAddresses.problem(address.getText())
                 .filter(found -> found != AddressProblem.BLANK);
         addressHint.setText(problem.map(AddressProblem::message).orElse(ADDRESS_HINT));
-        addressHint.getStyleClass().remove(Tone.WRONG.styleClass);
+        addressHint.getStyleClass().remove(Tone.WRONG.styleClass());
         if (problem.isPresent())
-            addressHint.getStyleClass().add(Tone.WRONG.styleClass);
+            addressHint.getStyleClass().add(Tone.WRONG.styleClass());
     }
 
     private void show(Outcome outcome) {
 
         result.setText(outcome.message());
         for (Tone tone : Tone.values())
-            result.getStyleClass().remove(tone.styleClass);
-        result.getStyleClass().add(outcome.tone().styleClass);
+            result.getStyleClass().remove(tone.styleClass());
+        result.getStyleClass().add(outcome.tone().styleClass());
         Controls.setShown(result, true);
         fit();
     }

@@ -109,7 +109,7 @@ class BookRemoteTest extends GitBookTest {
     @Test
     void aFolderWithoutTheBooksRepositoryYetIsEmpty() {
 
-        assertThat(remote.test(folder(backup), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.EMPTY);
+        assertThat(test(folder(backup))).isEqualTo(RemoteState.EMPTY);
         assertThat(backup).isEmptyDirectory();
     }
 
@@ -118,7 +118,7 @@ class BookRemoteTest extends GitBookTest {
 
         bare("empty.git").close();
 
-        assertThat(remote.test(folder(tempDir.resolve("empty.git")), Optional.empty(), TIMEOUT))
+        assertThat(test(folder(tempDir.resolve("empty.git"))))
                 .isEqualTo(RemoteState.EMPTY);
     }
 
@@ -128,7 +128,7 @@ class BookRemoteTest extends GitBookTest {
         remote.connect(folder(backup));
         repository.push(Optional.empty());
 
-        assertThat(remote.test(folder(backup), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.SAME);
+        assertThat(test(folder(backup))).isEqualTo(RemoteState.SAME);
     }
 
     @Test
@@ -139,7 +139,7 @@ class BookRemoteTest extends GitBookTest {
         write("chapters/02-crossing.md", "The river was high.");
         commitAll("Crossing");
 
-        assertThat(remote.test(folder(backup), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.BEHIND);
+        assertThat(test(folder(backup))).isEqualTo(RemoteState.BEHIND);
     }
 
     @Test
@@ -149,7 +149,7 @@ class BookRemoteTest extends GitBookTest {
         repository.push(Optional.empty());
         commitOnAnotherDevice("chapters/03-harbour.md", "Ships at anchor.");
 
-        assertThat(remote.test(folder(backup), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.AHEAD);
+        assertThat(test(folder(backup))).isEqualTo(RemoteState.AHEAD);
     }
 
     @Test
@@ -161,7 +161,7 @@ class BookRemoteTest extends GitBookTest {
         write("chapters/02-crossing.md", "The river was high.");
         commitAll("Crossing");
 
-        assertThat(remote.test(folder(backup), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.DIVERGED);
+        assertThat(test(folder(backup))).isEqualTo(RemoteState.DIVERGED);
     }
 
     @Test
@@ -177,7 +177,7 @@ class BookRemoteTest extends GitBookTest {
             host.push().setRemote(hosted.toString()).setRefSpecs(new RefSpec("HEAD:refs/heads/" + BRANCH)).call();
         }
 
-        assertThat(remote.test(folder(hosted), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.UNRELATED);
+        assertThat(test(folder(hosted))).isEqualTo(RemoteState.UNRELATED);
     }
 
     @Test
@@ -185,7 +185,7 @@ class BookRemoteTest extends GitBookTest {
 
         Git.init().setDirectory(backup.toFile()).call().close();
 
-        assertThat(remote.test(folder(backup), Optional.empty(), TIMEOUT)).isEqualTo(RemoteState.NOT_A_REPOSITORY);
+        assertThat(test(folder(backup))).isEqualTo(RemoteState.NOT_A_REPOSITORY);
     }
 
     @Test
@@ -196,7 +196,7 @@ class BookRemoteTest extends GitBookTest {
         commitOnAnotherDevice("chapters/03-harbour.md", "Ships at anchor.");
         ObjectId head = git.getRepository().resolve("HEAD");
 
-        remote.test(folder(backup), Optional.empty(), TIMEOUT);
+        test(folder(backup));
 
         assertThat(git.getRepository().resolve("HEAD")).isEqualTo(head);
         assertThat(git.getRepository().resolve(BookRemote.TEST_REF)).isNull();
@@ -227,6 +227,12 @@ class BookRemoteTest extends GitBookTest {
     private Git bare(String name) throws Exception {
 
         return Git.init().setBare(true).setDirectory(tempDir.resolve(name).toFile()).setInitialBranch(BRANCH).call();
+    }
+
+    /** Test, without credentials, for a book that has chapters. */
+    private RemoteState test(RemoteAddress address) {
+
+        return remote.test(address, Optional.empty(), Optional.empty(), TIMEOUT);
     }
 
     private static RemoteAddress folder(Path folder) {

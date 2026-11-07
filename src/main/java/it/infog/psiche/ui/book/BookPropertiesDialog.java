@@ -69,6 +69,7 @@ public final class BookPropertiesDialog {
 
         //text fields
         TextField title = new TextField(properties.title());
+        remote.followTitle(title.textProperty());
         TextField subtitle = new TextField(properties.subtitle());
         TextArea authors = new TextArea(String.join("\n", properties.authors()));
         authors.setPrefRowCount(3);

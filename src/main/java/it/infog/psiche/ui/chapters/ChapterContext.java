@@ -12,7 +12,6 @@ import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.git.HistoryPane;
-import it.infog.psiche.ui.git.RevisionDialog;
 import it.infog.psiche.ui.media.DetachedImages;
 import it.infog.psiche.ui.media.MediaPane;
 import it.infog.psiche.ui.notes.DetachedNotes;
@@ -24,9 +23,6 @@ import javafx.collections.SetChangeListener;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -45,13 +41,10 @@ import static it.infog.psiche.ui.common.Controls.hSpacer;
  * The open book's chapters: the chapter list with its menus, opening a chapter in the editor, and keeping the preview,
  * notes, history and status bar in step with it. A chapter's right-click menu is {@link ChapterMenu}'s, and what the
  * status bar and the book's counts tell is {@link ChapterStatus}'. Creating, renaming and deleting a chapter are left
- * to {@link ChapterChanges}, exporting one to {@link Exports}, restoring a deleted one to {@link DeletedChapters}, and
- * the notes left without a chapter to {@link DetachedNotes}.
+ * to {@link ChapterChanges}, exporting one to {@link Exports}, restoring a deleted one to {@link DeletedChapters}, the
+ * notes left without a chapter to {@link DetachedNotes}, and showing the open chapter to {@link ChapterView}.
  */
 public final class ChapterContext {
-
-    // The text area's own Undo shortcut, named in messages as the platform shows it (Ctrl+Z, or ⌘Z on macOS).
-    private static final KeyCombination UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN);
 
     private final ListView<Chapter> chapterList = new ListView<>();
     private final ChapterEditor chapterEditor;
@@ -72,6 +65,7 @@ public final class ChapterContext {
     private final ChapterRevisions revisions;
     private final ChapterStatus status;
     private final BookReading reading;
+    private final ChapterView view;
 
     private final BooleanProperty bookOpen = new SimpleBooleanProperty();
     private final BooleanProperty hasRepository = new SimpleBooleanProperty();
@@ -110,6 +104,8 @@ public final class ChapterContext {
                 detached::offerRestore, this::showChapter);
         status = new ChapterStatus(chapterEditor, statusBar, bookCountsShown, rememberBookCounts);
         reading = new BookReading(status::showBookCount, chapterEditor.links()::takeHeadings);
+        view = new ChapterView(chapterEditor, preview, history, notesPane, mediaPane, status, revisions, statusBar,
+                window);
         sidebar = buildSidebar();
 
         // listeners
@@ -134,6 +130,8 @@ public final class ChapterContext {
         chapterEditor.links().setChapters(chapterList::getItems, chapterList.getSelectionModel()::select);
         preview.setOnLink(chapterEditor.links()::follow);
         chapterEditor.links().setOnChecked(() -> followEditor(chapterEditor.text()));
+        gitControls.setSynchronization(chapterEditor::hasUnsavedChanges,
+                report -> view.synchronizedBook(report, this::refresh, chapterList::getItems));
     }
 
     /**
@@ -151,6 +149,7 @@ public final class ChapterContext {
         this.book = book;
         this.repository = repository;
         notes = new NoteStore(book.notesDir());
+        view.setBook(book, repository, notes);
         // One state for the book, shared, as the editor and the notes keep theirs in the same file.
         BookState state = BookState.of(book);
         Optional<BookProperties> properties = properties(book);
@@ -190,6 +189,7 @@ public final class ChapterContext {
         book = null;
         repository = null;
         notes = null;
+        view.setBook(null, null, null);
         bookOpen.set(false);
         hasRepository.set(false);
         detached.check();
@@ -240,18 +240,7 @@ public final class ChapterContext {
      */
     public void showRevision(Chapter chapter, FileRevision revision, Optional<String> text) {
 
-        // The version was read in the background; the author may have opened another chapter meanwhile.
-        if (!chapterEditor.isOpen(chapter))
-            return;
-
-        boolean restore = RevisionDialog.show(
-                window.get(), revision, text, chapterEditor.savedText(), chapterEditor.isDirty());
-
-        if (restore && text.isPresent()) {
-            chapterEditor.replaceAll(text.get());
-            statusBar.info("Restored %s from %s, not saved yet; %s brings back your text".formatted(
-                    chapter.title(), revision.shortId(), UNDO.getDisplayText()));
-        }
+        view.showRevision(chapter, revision, text);
     }
 
     /** The book's properties; none, and the author told, if they cannot be read: its spelling is then not checked. */
@@ -280,7 +269,7 @@ public final class ChapterContext {
         // Re-selecting the open chapter, as refresh() does, must not reload it.
         chapterList.getSelectionModel().selectedItemProperty().addListener((obs, old, chapter) -> {
             if (chapter != null && !chapterEditor.isOpen(chapter)) {
-                openChapter(chapter);
+                view.open(chapter);
             }
         });
 
@@ -318,18 +307,6 @@ public final class ChapterContext {
         changes.create(book, repository, chapterList.getItems().size()).ifPresent(this::showChapter);
     }
 
-    private void openChapter(Chapter chapter) {
-
-        if (chapterEditor.open(book, chapter)) {
-            preview.render(chapterEditor.text(), book.chaptersDir());
-            history.show(repository, chapter);
-            notesPane.show(notes, chapter.title());
-            mediaPane.show(book, chapter);
-            status.showChapter();
-            status.countChapter();
-        }
-    }
-
     /** Renames {@code chapter}; the open chapter is reopened under its new name, with no draft to carry over. */
     private void renameChapter(Chapter chapter) {
 
@@ -357,11 +334,7 @@ public final class ChapterContext {
             return;
         }
 
-        chapterEditor.close();
-        history.show(repository, null);
-        notesPane.show(notes, null);
-        mediaPane.show(null, null);
-        status.showChapter();
+        view.close();
         refresh();
         if (!chapterList.getItems().isEmpty())
             chapterList.getSelectionModel().select(Math.min(index, chapterList.getItems().size() - 1));

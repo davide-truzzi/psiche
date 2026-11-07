@@ -1,5 +1,7 @@
 package it.infog.psiche.git;
 
+import it.infog.psiche.book.BookFolder;
+import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.RemoteAddress;
 import it.infog.psiche.git.model.enums.FolderState;
@@ -25,14 +27,20 @@ import org.eclipse.jgit.transport.RemoteConfig;
 import org.eclipse.jgit.transport.Transport;
 import org.eclipse.jgit.transport.URIish;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.eclipse.jgit.treewalk.TreeWalk;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 
 /**
  * The book's remote repository, {@code origin} in the repository's configuration, so command-line Git sees it too,
@@ -123,12 +131,15 @@ public final class BookRemote {
     /**
      * Checks {@code address} as the book's remote, changing nothing the author sees: that it can be reached and
      * written to with {@code credentials}, and what it holds compared with the book. A folder for backups that does
-     * not have the book's repository yet is empty.
+     * not have the book's repository yet is empty. An empty book, one without chapters, may take the repository's
+     * book in its place if that has its title: {@link RemoteState#HOLDS_BOOK}, see {@link BookRepository#adopt}.
      *
-     * @param timeout how long to wait for the host to answer
+     * @param emptyBookTitle the book's title, if it has no chapters; empty for a book that has some
+     * @param timeout        how long to wait for the host to answer
      * @throws GitCommandException for a failure none of the {@link RemoteState}s describe
      */
-    public RemoteState test(RemoteAddress address, Optional<Credentials> credentials, Duration timeout) {
+    public RemoteState test(RemoteAddress address, Optional<Credentials> credentials, Optional<String> emptyBookTitle,
+                            Duration timeout) {
 
         String url = address.address();
         if (address.kind() == RemoteKind.FOLDER) {
@@ -159,7 +170,20 @@ public final class BookRemote {
                 return RemoteState.EMPTY;
 
             transport.fetch(NullProgressMonitor.INSTANCE, List.of(new RefSpec("+" + MAIN + ":" + TEST_REF)));
-            return compared(repository.resolve(TEST_REF));
+            ObjectId fetched = repository.resolve(TEST_REF);
+            RemoteState state = compare(repository, fetched);
+            boolean ownHistory = state == RemoteState.UNRELATED || repository.resolve(Constants.HEAD) == null;
+            if (emptyBookTitle.isEmpty() || !ownHistory)
+                return state;
+
+            //an empty book, which may take the repository's if it is the same book
+            Optional<String> title = propertiesIn(repository, fetched)
+                    .map(properties -> properties.getProperty(BookFolder.TITLE_KEY));
+            if (title.isEmpty())
+                return state;
+
+            return title.get().strip().equalsIgnoreCase(emptyBookTitle.get().strip())
+                    ? RemoteState.HOLDS_BOOK : RemoteState.OTHER_TITLE;
         } catch (URISyntaxException e) {
             return RemoteState.NOT_A_REPOSITORY;
         } catch (IOException e) {
@@ -167,6 +191,21 @@ public final class BookRemote {
                     "Test failed: " + RemoteErrors.cleaned(e.getMessage()), e));
         } finally {
             delete(TEST_REF);
+        }
+    }
+
+    /** The book's properties as {@code commit} has them; empty if it has none. */
+    static Optional<Properties> propertiesIn(Repository repository, ObjectId commit) throws IOException {
+
+        try (RevWalk walk = new RevWalk(repository);
+             TreeWalk file = TreeWalk.forPath(repository, BookFolder.PROPERTIES_PATH,
+                     walk.parseCommit(commit).getTree())) {
+            if (file == null)
+                return Optional.empty();
+
+            byte[] bytes = repository.open(file.getObjectId(0), Constants.OBJ_BLOB).getBytes();
+            Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8);
+            return Optional.of(PropertiesFiles.load(reader, BookFolder.PROPERTIES_PATH));
         }
     }
 
@@ -188,8 +227,11 @@ public final class BookRemote {
         return RemoteFolder.createRepository(folder, workTree());
     }
 
-    /** The remote's commit {@code fetched} compared with the book's last one. */
-    private RemoteState compared(ObjectId fetched) throws IOException {
+    /**
+     * The remote's commit {@code fetched} compared with the book's last one: {@link RemoteState#SAME}, {@code BEHIND},
+     * {@code AHEAD}, {@code DIVERGED} or {@code UNRELATED}.
+     */
+    static RemoteState compare(Repository repository, ObjectId fetched) throws IOException {
 
         ObjectId head = repository.resolve(Constants.HEAD);
         if (head == null)

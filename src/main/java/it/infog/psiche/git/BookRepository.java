@@ -19,12 +19,12 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 
 import it.infog.psiche.git.exceptions.GitCommandException;
 import it.infog.psiche.git.model.Commit;
+import it.infog.psiche.git.model.SyncReport;
 import it.infog.psiche.settings.model.Credentials;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -43,7 +43,6 @@ public final class BookRepository implements AutoCloseable {
 
     static final String REMOTE = "origin";
     static final String DEFAULT_BRANCH = "main";
-    static final String GITIGNORE = ".gitignore";
     // As many characters of a commit's id as Git shows in a log.
     private static final int SHORT_ID_LENGTH = 7;
 
@@ -53,12 +52,14 @@ public final class BookRepository implements AutoCloseable {
     private final Git git;
     private final BookHistory history;
     private final BookRemote remote;
+    private final GitIgnore gitignore;
 
     public BookRepository(Git git) {
 
         this.git = git;
         history = new BookHistory(git.getRepository());
         remote = new BookRemote(git.getRepository());
+        gitignore = new GitIgnore(this, git.getRepository());
     }
 
     /**
@@ -143,46 +144,6 @@ public final class BookRepository implements AutoCloseable {
     }
 
     /**
-     * Keeps {@code pattern} out of Git in every copy of the book: adds it to the book's {@code .gitignore}, unless
-     * it is there already, and commits that file alone with {@code message}.
-     *
-     * @param pattern a line of {@code .gitignore}, such as {@code notes/}
-     * @return false if {@code .gitignore} already had it, so nothing was committed
-     * @throws GitCommandException if the commit fails
-     */
-    public boolean ignore(String pattern, String message) {
-
-        Path file = gitignore();
-        try {
-            String text = Files.exists(file) ? Files.readString(file, StandardCharsets.UTF_8) : "";
-            if (text.lines().map(String::strip).anyMatch(pattern::equals))
-                return false;
-
-            //add the line, after a line break if the file does not end with one
-            String separator = text.isEmpty() || text.endsWith("\n") ? "" : "\n";
-            Files.writeString(file, text + separator + pattern + "\n", StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot update " + file, e);
-        }
-
-        commitOnly(message, List.of(file));
-        return true;
-    }
-
-    /** True if the book's {@code .gitignore} has {@code pattern} as one of its lines; false if it cannot be read. */
-    public boolean ignores(String pattern) {
-
-        try {
-            Path file = gitignore();
-            return Files.exists(file) && Files.readAllLines(file, StandardCharsets.UTF_8).stream()
-                    .map(String::strip)
-                    .anyMatch(pattern::equals);
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    /**
      * True if a file Git tracks is not committed as it is on disk: modified, added or deleted. Files Git does not
      * track yet don't count, nor do ignored ones.
      *
@@ -191,6 +152,17 @@ public final class BookRepository implements AutoCloseable {
     public boolean hasUncommittedChanges() {
 
         return status().hasUncommittedChanges();
+    }
+
+    /**
+     * True if everything in the book is committed: no file Git tracks is changed, and no new file waits to be added.
+     * Ignored files don't count.
+     *
+     * @throws GitCommandException if the status cannot be read
+     */
+    public boolean isCommitted() {
+
+        return status().isClean();
     }
 
     /**
@@ -239,10 +211,43 @@ public final class BookRepository implements AutoCloseable {
         return history;
     }
 
+    /** The book's {@code .gitignore}: what Git keeps out of every copy of the book. */
+    public GitIgnore gitignore() {
+
+        return gitignore;
+    }
+
     /** The book's remote repository: its address, and Test before connecting it. */
     public BookRemote remote() {
 
         return remote;
+    }
+
+    /**
+     * Synchronize: brings in the remote's revisions, merges them with the book's, and sends the book's; see
+     * {@link Synchronization}.
+     *
+     * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @throws it.infog.psiche.git.exceptions.UncommittedWorkException if the book has changes that are not committed
+     * @throws GitCommandException if the remote cannot be reached, holds something else, or refuses the book
+     */
+    public SyncReport synchronize(Optional<Credentials> credentials) {
+
+        return new Synchronization(this, git.getRepository()).run(credentials);
+    }
+
+    /**
+     * Puts the remote's book in place of this one, an empty book Test found to have its title
+     * ({@link it.infog.psiche.git.model.enums.RemoteState#HOLDS_BOOK}): its chapters, history and properties, silently
+     * overwriting what the empty book had.
+     *
+     * @param credentials the username and token of an HTTPS remote; none for a folder
+     * @return the identifier of the book now in the folder, the remote's; blank if it has none
+     * @throws GitCommandException if the remote cannot be reached, or holds no book
+     */
+    public String adopt(Optional<Credentials> credentials) {
+
+        return new Synchronization(this, git.getRepository()).adopt(credentials);
     }
 
     /**
@@ -303,7 +308,7 @@ public final class BookRepository implements AutoCloseable {
     }
 
     /** @throws GitCommandException if the status cannot be read */
-    private Status status() {
+    Status status() {
 
         try {
             return git.status().call();
@@ -352,10 +357,5 @@ public final class BookRepository implements AutoCloseable {
     public void close() {
 
         git.close();
-    }
-
-    private Path gitignore() {
-
-        return git.getRepository().getWorkTree().toPath().resolve(GITIGNORE);
     }
 }
