@@ -149,19 +149,18 @@ class BookExporterTest {
         for (String part : List.of("content.xml", "styles.xml", "meta.xml", "META-INF/manifest.xml"))
             parse(entry(target, part));
         String content = entry(target, "content.xml");
+        assertThat(content).doesNotContain("bookmark-ref");
         assertThat(content).containsSubsequence(
                 // the title page, on the page style without header
                 "<text:p text:style-name=\"Title_Page_Title\">La strada del sale</text:p>",
                 "<text:p text:style-name=\"Subtitle\">Romanzo</text:p>",
                 "<text:p text:style-name=\"Book_20_Authors\">Anna Bianchi, Marco Rossi</text:p>",
-                // the contents, on a new page of the same page style, a line per chapter with its page
+                // the contents, on a new page of the same page style, a line per chapter linked to it, without its page
                 "<text:p text:style-name=\"Contents_Page_Contents_20_Heading\"><text:bookmark text:name=\"toc\"/>"
                         + "Indice</text:p>",
                 "<text:p text:style-name=\"Contents_20_1\"><text:a xlink:type=\"simple\" "
                         + "xlink:href=\"#chapter-2\" text:style-name=\"Index_20_Link\" "
-                        + "text:visited-style-name=\"Index_20_Link\">02-vuoto</text:a>"
-                        + "<text:tab/><text:bookmark-ref text:reference-format=\"page\" text:ref-name=\"chapter-2\">?"
-                        + "</text:bookmark-ref></text:p>",
+                        + "text:visited-style-name=\"Index_20_Link\">02-vuoto</text:a></text:p>",
                 // the first chapter, back on the manuscript page numbered from 1, then a page break before each other
                 "<text:h text:style-name=\"First_Chapter_Heading_20_1\" text:outline-level=\"1\">"
                         + "<text:bookmark text:name=\"chapter-1\"/><text:bookmark text:name=\"chapter-1--alba\"/>"

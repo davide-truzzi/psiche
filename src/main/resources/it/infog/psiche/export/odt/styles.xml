@@ -135,7 +135,8 @@
             <style:text-properties fo:font-size="14pt"/>
         </style:style>
 
-        <!-- The whole book's contents, after the title page: a line per chapter, with dot leaders to its page. -->
+        <!-- The whole book's contents, after the title page: a line per chapter, linked to it, without its page, which
+             a word processor only works out when asked to, so a page field would show nothing on opening. -->
         <style:style style:name="Contents_20_Heading" style:display-name="Contents Heading" style:family="paragraph"
                      style:parent-style-name="Standard" style:class="index">
             <style:paragraph-properties fo:text-align="center" fo:line-height="140%" fo:margin-top="4cm"
@@ -145,12 +146,7 @@
 
         <style:style style:name="Contents_20_1" style:display-name="Contents 1" style:family="paragraph"
                      style:parent-style-name="Standard" style:class="index">
-            <style:paragraph-properties fo:line-height="200%">
-                <style:tab-stops>
-                    <style:tab-stop style:position="16cm" style:type="right" style:leader-style="dotted"
-                                    style:leader-text="."/>
-                </style:tab-stops>
-            </style:paragraph-properties>
+            <style:paragraph-properties fo:line-height="200%"/>
         </style:style>
 
         <style:style style:name="Index_20_Link" style:display-name="Index Link" style:family="text">

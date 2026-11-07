@@ -58,7 +58,7 @@ public final class OdtWriter {
     /**
      * Writes the whole book: the title page and the contents, without the header, then every chapter on a new page,
      * the first one numbered page 1. Each chapter starts with a bookmark named after its id, which its line in the
-     * contents links to and takes its page from.
+     * contents links to.
      *
      * @param header the authors and the book's title, for the top of every page
      */
