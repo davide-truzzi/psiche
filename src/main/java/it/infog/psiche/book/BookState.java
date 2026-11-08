@@ -38,18 +38,22 @@ public final class BookState {
 
     private final Path file;
     private final Path chaptersDir;
-    private final Properties properties;
+    private Properties properties;
+    // False while the file could not be read: written then, it would hold only this session's changes.
+    private boolean loaded;
 
-    private BookState(Path file, Path chaptersDir, Properties properties) {
+    private BookState(Path file, Path chaptersDir, Optional<Properties> saved) {
 
         this.file = file;
         this.chaptersDir = chaptersDir;
-        this.properties = properties;
+        this.properties = saved.orElseGet(Properties::new);
+        this.loaded = saved.isPresent();
     }
 
     /**
      * The state of {@code book}, writing {@value #FILE} if the book has none yet. A file that cannot be read counts as
-     * empty, and one that cannot be written is only logged: nothing of the book depends on it.
+     * empty, and is left alone until it can be, when this session's changes join what it holds; one that cannot be
+     * written is only logged: nothing of the book depends on it.
      */
     public static BookState of(BookFolder book) {
 
@@ -57,6 +61,7 @@ public final class BookState {
         BookState state = new BookState(file, book.chaptersDir(), read(file));
         if (!Files.exists(file))
             state.write();
+
         return state;
     }
 
@@ -147,19 +152,34 @@ public final class BookState {
                 .forEach(properties::remove);
     }
 
-    /** The properties in {@code file}; none, and logged, if they cannot be read: nothing depends on them. */
-    private static Properties read(Path file) {
+    /** The properties in {@code file}; empty, and logged, if they cannot be read: nothing depends on them. */
+    private static Optional<Properties> read(Path file) {
 
         try {
-            return PropertiesFiles.readLeniently(file);
+            return Optional.of(PropertiesFiles.readLeniently(file));
         } catch (UncheckedIOException e) {
-            log.warn("Reading {} as empty: it cannot be read", file, e);
-            return new Properties();
+            log.warn("Cannot read {}; leaving it as it is", file, e);
+            return Optional.empty();
         }
     }
 
-    /** Writes the file; if it cannot be, that is only logged: where chapters were left is not remembered. */
+    /**
+     * Writes the file; if it cannot be, that is only logged: where chapters were left is not remembered. A file not
+     * read yet is read first, and this session's changes join what it holds; while it still cannot be, it is left
+     * alone.
+     */
     private void write() {
+
+        if (!loaded) {
+            Optional<Properties> saved = read(file);
+            if (saved.isEmpty())
+                return;
+
+            saved.get().putAll(properties);
+            properties = saved.get();
+            loaded = true;
+            dropGoneChapters();
+        }
 
         properties.setProperty(FORMAT_KEY, FORMAT);
         try {

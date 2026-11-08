@@ -244,19 +244,21 @@ public final class BookFolder {
         }
     }
 
+    /** {@code chapter}'s text; read again if another program holds it up, as {@link SafeFiles#patiently} does. */
     public String read(Chapter chapter) {
 
         try {
-            return Files.readString(chapter.file());
+            return SafeFiles.patiently(() -> Files.readString(chapter.file()));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + chapter.file(), e);
         }
     }
 
+    /** Saves {@code chapter}'s text; again if another program holds it up, as {@link SafeFiles#patiently} does. */
     public void write(Chapter chapter, String markdown) {
 
         try {
-            Files.writeString(chapter.file(), markdown);
+            SafeFiles.patiently(() -> Files.writeString(chapter.file(), markdown));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot save " + chapter.file(), e);
         }

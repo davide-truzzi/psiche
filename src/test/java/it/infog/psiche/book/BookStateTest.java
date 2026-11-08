@@ -9,6 +9,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -85,6 +86,27 @@ class BookStateTest {
 
         assertThat(BookState.of(book).autoSync()).isTrue();
         assertThat(Files.readString(book.root().resolve("psiche.properties"))).contains("remote.autosync=true");
+    }
+
+    @Test
+    void aFileThatCannotBeReadIsLeftAloneAndLaterGetsTheSessionsChanges() throws IOException {
+        BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
+        Chapter alba = book.createChapter("01 alba");
+        Chapter notte = book.createChapter("02 notte");
+        BookState.of(book).savePlace(alba, new ChapterPlace(10, 1));
+        Path file = book.root().resolve(BookState.FILE);
+        Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("-w-------"));
+
+        BookState state = BookState.of(book);
+        state.savePlace(notte, new ChapterPlace(20, 2));
+        Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-r--r--"));
+        assertThat(BookState.of(book).place(notte)).isEmpty();
+
+        state.saveNotesBoard(NotesBoard.BOOK);
+        BookState again = BookState.of(book);
+        assertThat(again.place(alba)).contains(new ChapterPlace(10, 1));
+        assertThat(again.place(notte)).contains(new ChapterPlace(20, 2));
+        assertThat(again.notesBoard()).isEqualTo(NotesBoard.BOOK);
     }
 
     @Test

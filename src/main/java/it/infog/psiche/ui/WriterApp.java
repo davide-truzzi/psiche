@@ -2,6 +2,7 @@ package it.infog.psiche.ui;
 
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.settings.Keychain;
+import it.infog.psiche.settings.LogFile;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.settings.SettingsFolders;
 import it.infog.psiche.settings.model.SettingsFolder;
@@ -35,6 +36,11 @@ import java.util.function.Function;
  * and without one the book opened last opens if the author chose that in Preferences.
  */
 public final class WriterApp extends Application {
+
+    // Before the first logger, which is made below: slf4j-simple reads where to write only once.
+    static {
+        LogFile.useWhenPackaged();
+    }
 
     private static final Logger log = LoggerFactory.getLogger(WriterApp.class);
 
@@ -71,6 +77,9 @@ public final class WriterApp extends Application {
         //settings, in the user's settings folder, or next to the app when it runs portable
         this.stage = stage;
         SettingsFolder settingsFolder = SettingsFolders.resolve();
+        log.info("{} {} on {} {}, Java {}; settings in {}", AppInfo.NAME, AppInfo.version().orElse("(build)"),
+                System.getProperty("os.name"), System.getProperty("os.version"), System.getProperty("java.version"),
+                settingsFolder.path());
         settings = new Settings(settingsFolder);
         keychain = new Keychain(settingsFolder);
 

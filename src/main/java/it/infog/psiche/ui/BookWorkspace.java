@@ -341,17 +341,23 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         PreferencesDialog.show(window(), settings.preferences(), browser, this::applyPreferences);
     }
 
-    /** Remembers {@code preferences}, and shows the editor and the preview as they ask. */
+    /**
+     * Remembers {@code preferences}, and shows the editor and the preview as they ask. If they cannot be saved, they
+     * still apply until the app closes, and the status bar says so.
+     */
     private void applyPreferences(Preferences preferences) {
 
-        settings.savePreferences(preferences);
+        boolean saved = settings.savePreferences(preferences);
         preview.setTheme(preferences.previewTheme());
         preview.setFontSize(preferences.previewFontSize());
         chapterEditor.setFontSize(preferences.editorFontSize());
         chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         chapterEditor.setHighlightRepetitions(preferences.highlightRepetitions());
         chapterEditor.setEditorMode(preferences.editorMode());
-        statusBar.info("Preferences saved");
+        if (saved)
+            statusBar.info("Preferences saved");
+        else
+            statusBar.error("Cannot save the preferences: they last until Psiche Writer closes");
     }
 
     // Shared by the parts

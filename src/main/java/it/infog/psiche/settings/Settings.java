@@ -41,7 +41,8 @@ import java.util.stream.Collectors;
  * Settings never stand in the author's way: a missing or damaged file reads as no settings, and a file that cannot
  * be written is logged and left as it was. Each change reads the file again first, so two windows of the app do not
  * undo each other's changes, and is written whole to a temporary file that then takes the file's place, so a crash
- * cannot leave half a file behind.
+ * cannot leave half a file behind. A file that cannot be read is not changed either: written back, it would hold the
+ * change alone, and every other setting would be lost.
  */
 public final class Settings {
 
@@ -156,10 +157,14 @@ public final class Settings {
                 named(EditorMode.class, settings.getProperty(EDITOR_MODE)).orElse(defaults.editorMode()));
     }
 
-    /** Remembers what the author chose in Preferences. */
-    public void savePreferences(Preferences preferences) {
+    /**
+     * Remembers what the author chose in Preferences.
+     *
+     * @return false if they cannot be saved, which is logged: they then last until the app closes
+     */
+    public boolean savePreferences(Preferences preferences) {
 
-        update(settings -> {
+        return update(settings -> {
             settings.setProperty(REOPEN_LAST_BOOK, String.valueOf(preferences.reopenLastBook()));
             settings.setProperty(NEW_BOOK_LANGUAGE, preferences.newBookLanguage());
             settings.setProperty(NEW_BOOK_AUTHOR, preferences.newBookAuthor().strip());
@@ -340,33 +345,51 @@ public final class Settings {
         }
     }
 
-    /** Applies {@code change} to the settings read afresh, so changes another window made meanwhile are kept. */
-    private void update(Consumer<Properties> change) {
+    /**
+     * Applies {@code change} to the settings read afresh, so changes another window made meanwhile are kept; nothing if
+     * they cannot be read, as the file would then lose every other setting.
+     *
+     * @return true if the change is saved
+     */
+    private boolean update(Consumer<Properties> change) {
 
-        Properties settings = read();
-        change.accept(settings);
-        write(settings);
+        Optional<Properties> settings = saved();
+        settings.ifPresent(change);
+
+        return settings.map(this::write).orElse(false);
     }
 
     /** The settings as saved; none if there is no file yet or it cannot be read. */
     private Properties read() {
 
+        return saved().orElseGet(Properties::new);
+    }
+
+    /** The settings as saved, none if there is no file yet; empty, and logged, if it cannot be read. */
+    private Optional<Properties> saved() {
+
         try {
-            return PropertiesFiles.readLeniently(folder.path().resolve(FILE));
+            return Optional.of(PropertiesFiles.readLeniently(folder.path().resolve(FILE)));
         } catch (UncheckedIOException e) {
-            log.warn("Cannot read the settings in {}; using none", folder.path(), e);
-            return new Properties();
+            log.warn("Cannot read the settings in {}", folder.path(), e);
+            return Optional.empty();
         }
     }
 
-    /** Writes {@code settings} whole, in place of the file, with the keys in order and no timestamp. */
-    private void write(Properties settings) {
+    /**
+     * Writes {@code settings} whole, in place of the file, with the keys in order and no timestamp.
+     *
+     * @return true if they are written; false, and logged, if they cannot be
+     */
+    private boolean write(Properties settings) {
 
         try {
             Files.createDirectories(folder.path());
             PropertiesFiles.write(folder.path().resolve(FILE), settings, COMMENT);
+            return true;
         } catch (IOException | UncheckedIOException e) {
             log.warn("Cannot save {} in {}", FILE, folder.path(), e);
+            return false;
         }
     }
 
