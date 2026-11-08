@@ -1,17 +1,23 @@
 package it.infog.psiche.common;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.CopyOption;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -21,11 +27,53 @@ import java.util.stream.Stream;
  */
 public final class SafeFiles {
 
+    private static final Logger log = LoggerFactory.getLogger(SafeFiles.class);
     private static final int COPY_BUFFER = 1 << 20;
     private static final String TEMPORARY_PREFIX = ".";
     private static final String TEMPORARY_SUFFIX = ".tmp";
+    // How long to wait before each new try of a step another program held up, in milliseconds: a few tenths of a
+    // second in all, the time a virus scanner takes over a small file.
+    private static final List<Long> RETRY_PAUSES = List.of(20L, 50L, 100L, 200L);
 
     private SafeFiles() {
+    }
+
+    /** A step on the disk, which may fail. */
+    @FunctionalInterface
+    public interface DiskStep<T> {
+
+        T run() throws IOException;
+    }
+
+    /**
+     * Runs {@code step}, and again after a pause each time another program may have held it up: on Windows, a virus
+     * scanner, the search indexer or OneDrive often opens a file just written, and while they have it, it cannot be
+     * read or replaced. Any other failure, and the last one, goes to the caller; a step that works after waiting is
+     * logged, as it tells why saving is slow on some computers.
+     */
+    public static <T> T patiently(DiskStep<T> step) throws IOException {
+
+        IOException heldUp = null;
+        for (int tried = 0; ; tried++) {
+            try {
+                T result = step.run();
+                if (heldUp != null)
+                    log.info("Done at try {}, after another program held up {}", tried + 1, heldUp.getMessage());
+                return result;
+            } catch (IOException e) {
+                if (!mayPass(e) || tried == RETRY_PAUSES.size())
+                    throw e;
+                heldUp = e;
+            }
+
+            try {
+                Thread.sleep(RETRY_PAUSES.get(tried));
+            } catch (InterruptedException e) {
+                // A thread asked to stop does not wait.
+                Thread.currentThread().interrupt();
+                throw heldUp;
+            }
+        }
     }
 
     /** True if {@code name} is the name of a temporary file, as {@link #temporaryBeside} makes them. */
@@ -42,16 +90,17 @@ public final class SafeFiles {
 
     /**
      * Moves {@code source} to {@code target} in one step where the file system allows it, so a move that fails leaves
-     * the file or folder whole where it was; elsewhere, as the file system can.
+     * the file or folder whole where it was; elsewhere, as the file system can. A move another program holds up is
+     * tried again, as {@link #patiently} does.
      */
     public static void move(Path source, Path target, CopyOption... options) throws IOException {
 
         CopyOption[] atomic = Arrays.copyOf(options, options.length + 1);
         atomic[options.length] = StandardCopyOption.ATOMIC_MOVE;
         try {
-            Files.move(source, target, atomic);
+            patiently(() -> Files.move(source, target, atomic));
         } catch (AtomicMoveNotSupportedException e) {
-            Files.move(source, target, options);
+            patiently(() -> Files.move(source, target, options));
         }
     }
 
@@ -114,5 +163,15 @@ public final class SafeFiles {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot delete " + folder, e);
         }
+    }
+
+    /**
+     * True if {@code error} may be another program holding the file for a moment: Windows reports it as access denied,
+     * or as a sharing violation, which Java gives as a plain {@link FileSystemException}. Told by the error's type,
+     * not its message, which is in the system's language.
+     */
+    private static boolean mayPass(IOException error) {
+
+        return error instanceof AccessDeniedException || error.getClass() == FileSystemException.class;
     }
 }

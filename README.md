@@ -12,12 +12,13 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 ## Status
 
-**0.5.0 Alpha**, the fifth release for testing. Psiche Writer does what a book needs from first draft to export: create
-or open a book, write its chapters in Markdown with a typeset preview beside them, with images and links to the web or
-between chapters, keep notes on each chapter's board and on the book's own, commit with Git and, if you want, keep the
-book in step with a remote repository, browse or restore earlier versions, and export the book to PDF, ODT, DOCX or
-EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and expect things to change
-before 1.0. What each release holds is in [CHANGELOG.md](CHANGELOG.md).
+**0.5.1 Alpha**, the fifth release for testing, with fixes for saving on Windows. Psiche Writer does what a book needs
+from first draft to export: create or open a book, write its chapters in Markdown with a typeset preview beside them,
+with images and links to the web or between chapters, keep notes on each chapter's board and on the book's own, commit
+with Git and, if you want, keep the book in step with a remote repository, browse or restore earlier versions, and
+export the book to PDF, ODT, DOCX or EPUB. It is not finished: keep a copy of your books, read
+[Limitations](#limitations), and expect things to change before 1.0. What each release holds is in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Book layout
 
@@ -142,6 +143,8 @@ my-book/              ← the folder; the book's title is set in its properties
   - Portable: a `settings` folder made next to the app's launcher is used instead, and books on the same drive are
     remembered relative to it, so a USB stick works whatever its drive letter.
   - The system property `psiche.settings.dir` names another folder, as for development.
+  - Run from its package, Psiche keeps its log there too, as `psiche.log`, with the run before's as
+    `psiche.previous.log`: the packages have no console to show it. Run from the build, it stays on the console.
 - **Book properties** edits what a future ebook needs besides the chapters, in a simple form:
   - title (required) and subtitle, shown in the toolbar instead of the folder name;
   - authors, one per line;

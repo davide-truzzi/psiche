@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.5.1 Alpha (2026-11-08)
+
+0.5.0 Alpha with fixes for saving on Windows.
+
+### What is fixed
+
+- **Preferences that were not kept on Windows**: on some computers, a program that briefly opens each file just
+  written, such as the virus scanner, the search indexer or OneDrive, could keep the settings from being read or saved.
+  Psiche now waits a moment and tries again, for the settings and for chapters, notes, images and the keychain alike.
+- A settings file that could not be read for a moment no longer loses the preferences: the next change, such as where
+  the window was, used to save over it with that change alone. Where each chapter was left is kept the same way.
+- When the preferences really cannot be saved, the status bar says so, instead of "Preferences saved"; they then last
+  until Psiche Writer closes.
+
+### For testers
+
+- Psiche run from its package now keeps a log, `psiche.log`, in its settings folder (on Windows `%APPDATA%\psiche`),
+  and the one of the run before as `psiche.previous.log`. If something goes wrong, send both along with the report.
+
 ## 0.5.0 Alpha (2026-11-07)
 
 The fifth release for testing: images and links in the chapters, a Default editor mode where the Markdown recedes,

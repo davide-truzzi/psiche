@@ -27,16 +27,21 @@ public final class PropertiesFiles {
     }
 
     /**
-     * The properties in {@code file}; none if it does not exist.
+     * The properties in {@code file}; none if it does not exist. A file another program holds up is read again, as
+     * {@link SafeFiles#patiently} does.
      *
      * @throws UncheckedIOException if it cannot be read, or is damaged
      */
     public static Properties read(Path file) {
 
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            Properties properties = new Properties();
-            properties.load(reader);
-            return properties;
+        try {
+            return SafeFiles.patiently(() -> {
+                try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                    Properties properties = new Properties();
+                    properties.load(reader);
+                    return properties;
+                }
+            });
         } catch (NoSuchFileException e) {
             // Nothing saved yet; every value has its default.
             return new Properties();
@@ -49,14 +54,18 @@ public final class PropertiesFiles {
 
     /**
      * The properties in {@code file}; none if it does not exist, or is damaged, which is logged: for files whose
-     * values all have defaults.
+     * values all have defaults. A file another program holds up is read again, as {@link SafeFiles#patiently} does.
      *
      * @throws UncheckedIOException if it cannot be read
      */
     public static Properties readLeniently(Path file) {
 
-        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-            return load(reader, file.toString());
+        try {
+            return SafeFiles.patiently(() -> {
+                try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+                    return load(reader, file.toString());
+                }
+            });
         } catch (NoSuchFileException e) {
             return new Properties();
         } catch (IOException e) {

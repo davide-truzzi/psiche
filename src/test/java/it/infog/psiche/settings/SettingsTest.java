@@ -184,6 +184,32 @@ class SettingsTest {
     }
 
     @Test
+    void savingPreferencesSaysWhetherTheyAreSaved() throws IOException {
+        Path locked = Files.createDirectory(tempDir.resolve("locked"));
+        Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("r-xr-xr-x"));
+
+        assertThat(settings().savePreferences(Preferences.defaults())).isTrue();
+        assertThat(new Settings(new SettingsFolder(locked.resolve("psiche"), false))
+                .savePreferences(Preferences.defaults())).isFalse();
+        Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("rwxr-xr-x"));
+    }
+
+    @Test
+    void aFileThatCannotBeReadIsNotOverwrittenByTheNextChange() throws IOException {
+        Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false, true,
+                false, EditorMode.ADVANCED);
+        settings().savePreferences(chosen);
+        Path file = folder().path().resolve(Settings.FILE);
+        Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("-w-------"));
+
+        settings().saveWindowBounds(new WindowBounds(10, 20, 800, 600, false));
+
+        Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("rw-r--r--"));
+        assertThat(settings().preferences()).isEqualTo(chosen);
+        assertThat(settings().windowBounds()).isEmpty();
+    }
+
+    @Test
     void aPreferenceThatCannotBeReadIsItsDefault() throws IOException {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE),
