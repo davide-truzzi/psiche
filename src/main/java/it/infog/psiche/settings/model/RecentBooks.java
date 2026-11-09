@@ -39,6 +39,13 @@ public record RecentBooks(List<Path> books) {
         return new RecentBooks(books);
     }
 
+    /** The list without {@code book}, however it was reached, the others kept in their order. */
+    public RecentBooks without(Path book) {
+
+        Path removed = identity(book);
+        return new RecentBooks(books.stream().filter(recent -> !identity(recent).equals(removed)).toList());
+    }
+
     /**
      * The path a book is known by, so that one reached through a link, or in another letter case where the file
      * system ignores it, is still the same book: its real path if it exists, its absolute path otherwise.

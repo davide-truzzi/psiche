@@ -130,6 +130,12 @@ public final class BookContext implements AutoCloseable {
         settings.clearRecentBooks();
     }
 
+    /** Takes {@code directory}, a book that is not found, off the recent list. */
+    void forgetRecentBook(Path directory) {
+
+        settings.forgetRecentBook(directory);
+    }
+
     public void chooseBook() {
 
         if (!unsavedChanges.settle("Save them before opening another book?"))

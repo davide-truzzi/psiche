@@ -80,6 +80,20 @@ class SettingsTest {
     }
 
     @Test
+    void aBookThatIsGoneCanBeForgottenAloneTheOthersKeepingTheirOrder() throws IOException {
+        Path alba = book("alba"), notte = book("notte"), sera = book("sera");
+        Settings settings = settings();
+        settings.bookOpened(alba);
+        settings.bookOpened(notte);
+        settings.bookOpened(sera);
+        Files.delete(notte);
+
+        settings.forgetRecentBook(notte);
+
+        assertThat(settings.recentBooks().books()).containsExactly(sera, alba);
+    }
+
+    @Test
     void savedSettingsAreReadBackByTheNextRunAndASecondWindowKeepsTheFirstsChanges() throws IOException {
         Path alba = book("alba"), sera = book("sera");
         Settings first = settings();

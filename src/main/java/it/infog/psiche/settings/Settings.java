@@ -128,6 +128,12 @@ public final class Settings {
         updateRecentBooks(recent -> RecentBooks.none());
     }
 
+    /** Forgets {@code book} alone, as one that was moved or deleted; the other books keep their places. */
+    public void forgetRecentBook(Path book) {
+
+        updateRecentBooks(recent -> recent.without(book));
+    }
+
     private void updateRecentBooks(UnaryOperator<RecentBooks> change) {
 
         update(settings -> {

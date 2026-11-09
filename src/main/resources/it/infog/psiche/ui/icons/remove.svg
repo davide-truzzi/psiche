@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 10 10" fill="none"
+     stroke="#b9ad96" stroke-width="1.6" stroke-linecap="round">
+  <!-- A cross: takes a book that is not found off the Open recent list. The app reads only the paths;
+       .recent-book-remove-icon in writer.css gives the colour and stroke. -->
+  <path d="M1 1 L9 9"/>
+  <path d="M9 1 L1 9"/>
+</svg>

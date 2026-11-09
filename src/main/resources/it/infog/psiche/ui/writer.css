@@ -1139,6 +1139,34 @@
     -fx-opacity: 0.35;
 }
 
+/* A recent book that is not found: greyed out like a disabled item, but its row stays enabled for the cross that
+   takes it off the list, drawn in icons/remove.svg. */
+.recent-book-missing-row {
+    -fx-spacing: 10;
+}
+
+.context-menu .menu-item .recent-book-missing {
+    -fx-opacity: 0.35;
+}
+
+.recent-book-remove {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 2 4;
+    -fx-cursor: hand;
+}
+
+.recent-book-remove-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -paper-dim;
+    -fx-stroke-width: 1.6;
+    -fx-stroke-line-cap: round;
+}
+
+.recent-book-remove:hover .recent-book-remove-icon {
+    -fx-stroke: -paper;
+}
+
 .context-menu .menu > .right-container > .arrow {
     -fx-background-color: -paper-dim;
 }
