@@ -96,7 +96,7 @@ final class Manuscript {
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             marks.follow(change);
-            repetitions.textChanged();
+            repetitions.textChanged(!area.isAppEdit());
         });
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, this::menuRequested);
         this.welcome = new Welcome(area, page, welcome);

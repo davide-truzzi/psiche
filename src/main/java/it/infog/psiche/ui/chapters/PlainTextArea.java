@@ -60,6 +60,12 @@ final class PlainTextArea extends StyleClassedTextArea {
         this.blocks = blocks;
     }
 
+    /** True while an edit of the app's own runs, as a chapter's text shown, a formatting or an Undo. */
+    boolean isAppEdit() {
+
+        return free;
+    }
+
     /** Runs {@code edit}, an edit of the app's own, which blocks do not refuse or widen. */
     void freely(Runnable edit) {
 

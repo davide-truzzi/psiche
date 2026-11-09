@@ -20,6 +20,9 @@ import java.util.function.Supplier;
  * and the status bar shows how many times the word is in the whole chapter. Image lines and links' addresses are no
  * prose, and a word comes back there as expected: places there neither show nor count, and the author at one finds
  * none.
+ * <p>
+ * While the author types, {@link FastRepetitions} shows the places near the caret at each key; these take their place
+ * once the author pauses. The Preferences switch turns both on and off.
  */
 final class Repetitions {
 
@@ -35,6 +38,7 @@ final class Repetitions {
     private final BiConsumer<String, Integer> counted;
     private final PauseTransition findDelay = new PauseTransition(FIND_DELAY);
     private final Highlights places;
+    private final FastRepetitions fast;
     private boolean on = true;
 
     /**
@@ -49,6 +53,7 @@ final class Repetitions {
         this.notProse = notProse;
         this.counted = counted;
         places = new Highlights(area, STYLE);
+        fast = new FastRepetitions(area, notProse);
         findDelay.setOnFinished(event -> findNow());
         area.selectionProperty().addListener((obs, old, selection) -> findLater());
         area.caretPositionProperty().addListener((obs, old, caret) -> findLater());
@@ -63,10 +68,16 @@ final class Repetitions {
         findNow();
     }
 
-    /** Lets the places go once the text changes, as the word may be another now, until the author pauses. */
-    void textChanged() {
+    /**
+     * Lets the places go once the text changes, as the word may be another now, until the author pauses; meanwhile,
+     * the fast check shows those near the caret if {@code byAuthor}, not an edit of the app's own, as opening a
+     * chapter.
+     */
+    void textChanged(boolean byAuthor) {
 
         show(List.of(), "", 0);
+        if (on && byAuthor)
+            fast.textChanged();
         findLater();
     }
 
@@ -80,10 +91,11 @@ final class Repetitions {
     private void findNow() {
 
         findDelay.stop();
+        fast.clear();
         String text = area.getText();
         List<TextRange> skipped = notProse.get();
         Optional<TextRange> word = on
-                ? wanted(text).filter(found -> skipped.stream().noneMatch(part -> part.overlaps(found)))
+                ? wanted(text).filter(found -> Occurrences.outside(found, skipped))
                 : Optional.empty();
         if (word.isEmpty()) {
             show(List.of(), "", 0);
@@ -95,7 +107,7 @@ final class Repetitions {
         List<TextRange> all = Occurrences.of(text, wanted, skipped);
         TextRange view = view();
         List<TextRange> others = all.stream()
-                .filter(range -> range.end() <= own.start() || range.start() >= own.end())
+                .filter(range -> !own.overlaps(range))
                 .filter(range -> range.start() >= view.start() && range.end() <= view.end())
                 .toList();
 
