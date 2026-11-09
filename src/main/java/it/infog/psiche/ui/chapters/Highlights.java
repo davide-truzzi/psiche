@@ -36,15 +36,17 @@ final class Highlights {
             return;
 
         ranges = places;
-        // Removing one also disposes of it.
-        marks.forEach(area::removeSelection);
-        marks.clear();
-        for (TextRange place : places) {
+        // Those drawn already move to the new places, far cheaper than new ones, as when a key shifts them all.
+        while (marks.size() > places.size())
+            // Removing one also disposes of it.
+            area.removeSelection(marks.removeLast());
+        while (marks.size() < places.size()) {
             // Named apart: the area keeps its selections in a set ordered by name, where one name is one selection.
             var mark = new SelectionImpl<>(style + marks.size(), area, path -> path.getStyleClass().add(style));
             area.addSelection(mark);
-            mark.selectRange(place.start(), place.end());
             marks.add(mark);
         }
+        for (int index = 0; index < places.size(); index++)
+            marks.get(index).selectRange(places.get(index).start(), places.get(index).end());
     }
 }

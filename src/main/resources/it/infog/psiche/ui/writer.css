@@ -430,6 +430,15 @@
     -fx-fill: rgba(224, 74, 47, 0.2);
 }
 
+/* The places found while the author types, near the caret: a box in the same red, so they tell apart from those
+   above, found once the author pauses; drawn inside the word's bounds, clear of the letters beside it. */
+.manuscript .repeated-fast {
+    -fx-fill: transparent;
+    -fx-stroke: rgba(224, 74, 47, 0.7);
+    -fx-stroke-width: 1;
+    -fx-stroke-type: inside;
+}
+
 /* The page sits a pixel in from the left, where the text area had its border; the scroll pane itself ignores its
    padding, so the stack it is in has it. */
 .manuscript-page {
