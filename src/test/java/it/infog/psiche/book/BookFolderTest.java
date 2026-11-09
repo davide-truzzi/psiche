@@ -64,6 +64,38 @@ class BookFolderTest {
     }
 
     @Test
+    void aBookFolderChosenIsTheBookItself() throws IOException {
+        Path root = book("novel");
+
+        assertThat(BookFolder.containing(root)).contains(root);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"chapters", "media", "media/departure", "notes/departure"})
+    void aFolderInsideABookLeadsToTheBook(String inside) throws IOException {
+        Path root = book("novel");
+        Path chosen = Files.createDirectories(root.resolve(inside));
+
+        assertThat(BookFolder.containing(chosen)).contains(root);
+    }
+
+    @Test
+    void aChapterFileLeadsToItsBook() throws IOException {
+        Path root = book("novel");
+        Path chapter = Files.writeString(root.resolve("chapters").resolve("01-departure.md"), "# Departure");
+
+        assertThat(BookFolder.containing(chapter)).contains(root);
+    }
+
+    @Test
+    void aFolderOutsideAnyBookLeadsNowhereEvenWithBooksInside() throws IOException {
+        book("novel");
+
+        assertThat(BookFolder.containing(tempDir)).isEmpty();
+        assertThat(BookFolder.containing(Files.createDirectories(tempDir.resolve("drafts")))).isEmpty();
+    }
+
+    @Test
     void listsOnlyMarkdownChaptersOrderedByFileName() throws IOException {
         Path root = book("novel");
         Path chapters = root.resolve("chapters");

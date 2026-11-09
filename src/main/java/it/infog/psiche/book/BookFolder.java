@@ -66,17 +66,27 @@ public final class BookFolder {
             throw new IllegalArgumentException(directory + " is not a directory");
         }
 
-        List<String> missing = Stream.of(CHAPTERS_DIR, MEDIA_DIR)
-                .filter(name -> !Files.isDirectory(directory.resolve(name)))
-                .map(name -> name + "/")
-                .toList();
-
+        List<String> missing = missingFolders(directory);
         if (!missing.isEmpty()) {
             throw new IllegalArgumentException(
                     "%s is not a book folder: missing %s".formatted(directory, String.join(" and ", missing)));
         }
 
         return new BookFolder(directory.toAbsolutePath().normalize());
+    }
+
+    /**
+     * The folder of the book {@code chosen} belongs to: {@code chosen} itself if it is a book's folder, otherwise the
+     * nearest folder above it that is one, as for its chapters or images folder, or a chapter's file. Empty if none
+     * is, as for a folder outside any book.
+     */
+    public static Optional<Path> containing(Path chosen) {
+
+        for (Path folder = chosen.toAbsolutePath().normalize(); folder != null; folder = folder.getParent())
+            if (Files.isDirectory(folder) && missingFolders(folder).isEmpty())
+                return Optional.of(folder);
+
+        return Optional.empty();
     }
 
     /**
@@ -366,5 +376,14 @@ public final class BookFolder {
         } catch (InvalidPathException e) {
             throw new IllegalArgumentException("'%s' cannot be used as a %s name".formatted(stripped, kind), e);
         }
+    }
+
+    /** The folders a book's folder holds that {@code directory} lacks, as {@code chapters/}; none for a book. */
+    private static List<String> missingFolders(Path directory) {
+
+        return Stream.of(CHAPTERS_DIR, MEDIA_DIR)
+                .filter(name -> !Files.isDirectory(directory.resolve(name)))
+                .map(name -> name + "/")
+                .toList();
     }
 }

@@ -20,12 +20,15 @@ import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.notes.NotesTransfer;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.scene.control.ButtonBar.ButtonData;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.stage.Window;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +44,11 @@ public final class BookContext implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(BookContext.class);
     private static final String NO_BOOK = "No book open";
+    private static final String CHOOSE_TITLE = "Choose the book's folder, the one holding chapters and media";
+    private static final String NOT_A_BOOK_HEADER = "This is not a Psiche book";
+    private static final String NOT_A_BOOK = "A book's folder is the one holding the chapters and media folders. "
+            + "Choose that folder, or any folder inside it.";
+    private static final ButtonType CHOOSE_AGAIN = new ButtonType("Choose again", ButtonData.OK_DONE);
 
     private final Label bookTitle = new Label(NO_BOOK);
     private final ReadOnlyBooleanWrapper bookOpen = new ReadOnlyBooleanWrapper();
@@ -141,8 +149,16 @@ public final class BookContext implements AutoCloseable {
         if (!unsavedChanges.settle("Save them before opening another book?"))
             return;
 
-        Dialogs.chooseDirectory(window.get(), "Open book folder", locations.booksDirectory(book))
-                .ifPresent(directory -> gitControls.leave(() -> openBook(directory)));
+        chooseBookFrom(locations.booksDirectory(book));
+    }
+
+    /**
+     * Opens the book {@code dropped} on the welcome belongs to, a book's folder or anything inside it; see
+     * {@link #openChosen}. Only while no book is open, so nothing is left unsaved.
+     */
+    public void openDropped(Path dropped) {
+
+        openChosen(dropped);
     }
 
     /** Creates a book where the author chooses, and opens it in place of the open one. */
@@ -401,5 +417,30 @@ public final class BookContext implements AutoCloseable {
     public void close() {
 
         closeBook();
+    }
+
+    /** Asks for a book's folder, starting in {@code start}, and opens the book it belongs to. */
+    private void chooseBookFrom(Path start) {
+
+        Dialogs.chooseDirectory(window.get(), CHOOSE_TITLE, start).ifPresent(this::openChosen);
+    }
+
+    /**
+     * Opens the book {@code chosen} belongs to: the book itself, or the one it is inside, as its chapters or images
+     * folder, which authors pick when they look for a file to open. Anything else is no book: the author is told what
+     * a book's folder is, and may choose again from there.
+     */
+    private void openChosen(Path chosen) {
+
+        Optional<Path> found = BookFolder.containing(chosen);
+        if (found.isPresent()) {
+            gitControls.leave(() -> openBook(found.get()));
+            return;
+        }
+
+        Path folder = Files.isDirectory(chosen) ? chosen : chosen.getParent();
+        Dialogs.choose(window.get(), NOT_A_BOOK_HEADER, NOT_A_BOOK, CHOOSE_AGAIN, ButtonType.CANCEL)
+                .filter(CHOOSE_AGAIN::equals)
+                .ifPresent(choice -> chooseBookFrom(folder));
     }
 }

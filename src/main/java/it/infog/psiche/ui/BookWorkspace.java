@@ -10,6 +10,7 @@ import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.ChapterTab;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.book.BookContext;
+import it.infog.psiche.ui.book.BookDrop;
 import it.infog.psiche.ui.book.ProjectTransfer;
 import it.infog.psiche.ui.book.RecentBooksMenu;
 import it.infog.psiche.ui.chapters.ChapterContext;
@@ -152,6 +153,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         setCenter(pages());
         setBottom(statusBar);
         freezeWhileTransferring();
+        BookDrop.install(this, books,
+                () -> !projectTransfer.busyProperty().get() && !gitControls.busyProperty().get());
     }
 
     /** Opens the book in {@code directory}, discarding any unsaved changes; callers settle them first. */
