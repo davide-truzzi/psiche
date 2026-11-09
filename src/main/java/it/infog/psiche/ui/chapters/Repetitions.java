@@ -5,12 +5,8 @@ import it.infog.psiche.markdown.model.TextRange;
 import javafx.animation.PauseTransition;
 import javafx.scene.control.IndexRange;
 import javafx.util.Duration;
-import org.fxmisc.richtext.Selection;
-import org.fxmisc.richtext.SelectionImpl;
 import org.fxmisc.richtext.StyleClassedTextArea;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
@@ -24,9 +20,6 @@ import java.util.function.Supplier;
  * and the status bar shows how many times the word is in the whole chapter. Image lines and links' addresses are no
  * prose, and a word comes back there as expected: places there neither show nor count, and the author at one finds
  * none.
- * <p>
- * The places are never styles of the text: restyling a paragraph in view makes RichTextFX measure it again, and its
- * scroll bar can then move the view, far from where the author is.
  */
 final class Repetitions {
 
@@ -41,9 +34,8 @@ final class Repetitions {
     private final Supplier<List<TextRange>> notProse;
     private final BiConsumer<String, Integer> counted;
     private final PauseTransition findDelay = new PauseTransition(FIND_DELAY);
-    private final List<Selection<Collection<String>, String, Collection<String>>> marks = new ArrayList<>();
+    private final Highlights places;
     private boolean on = true;
-    private List<TextRange> ranges = List.of();
 
     /**
      * @param notProse the parts of the text that are no prose, as image lines and links' addresses, where a word
@@ -56,6 +48,7 @@ final class Repetitions {
         this.area = area;
         this.notProse = notProse;
         this.counted = counted;
+        places = new Highlights(area, STYLE);
         findDelay.setOnFinished(event -> findNow());
         area.selectionProperty().addListener((obs, old, selection) -> findLater());
         area.caretPositionProperty().addListener((obs, old, caret) -> findLater());
@@ -135,23 +128,10 @@ final class Repetitions {
         return Optional.of(new TextRange(selection.getStart(), selection.getEnd()));
     }
 
-    /** Marks {@code places}, unless they are those marked already, and tells the count. */
-    private void show(List<TextRange> places, String word, int count) {
+    /** Marks {@code others}, the word's places but its own, and tells the count. */
+    private void show(List<TextRange> others, String word, int count) {
 
         counted.accept(word, count);
-        if (places.equals(ranges))
-            return;
-
-        ranges = places;
-        // Removing one also disposes of it.
-        marks.forEach(area::removeSelection);
-        marks.clear();
-        for (TextRange place : places) {
-            // Named apart: the area keeps its selections in a set ordered by name, where one name is one selection.
-            var mark = new SelectionImpl<>(STYLE + marks.size(), area, path -> path.getStyleClass().add(STYLE));
-            area.addSelection(mark);
-            mark.selectRange(place.start(), place.end());
-            marks.add(mark);
-        }
+        places.show(others);
     }
 }
