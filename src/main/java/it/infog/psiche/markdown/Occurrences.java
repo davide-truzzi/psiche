@@ -30,16 +30,25 @@ public final class Occurrences {
      */
     public static List<TextRange> of(String text, String wanted, List<TextRange> skipped) {
 
+        return of(text, wanted, skipped, new TextRange(0, text.length()));
+    }
+
+    /**
+     * Every place {@code wanted} appears in {@code text}, as {@link #of(String, String, List)} finds them, but only
+     * those all inside {@code within}, a part of the text.
+     */
+    public static List<TextRange> of(String text, String wanted, List<TextRange> skipped, TextRange within) {
+
         List<TextRange> found = new ArrayList<>();
         if (wanted.isEmpty())
             return found;
 
         int length = wanted.length();
-        int from = 0;
-        while (from + length <= text.length()) {
+        int from = within.start();
+        while (from + length <= within.end()) {
             if (text.regionMatches(true, from, wanted, 0, length)) {
                 TextRange place = new TextRange(from, from + length);
-                if (skipped.stream().noneMatch(part -> part.overlaps(place)))
+                if (outside(place, skipped))
                     found.add(place);
                 from += length;
             } else
@@ -47,6 +56,12 @@ public final class Occurrences {
         }
 
         return found;
+    }
+
+    /** True if {@code range} neither is in nor goes across one of {@code parts}. */
+    public static boolean outside(TextRange range, List<TextRange> parts) {
+
+        return parts.stream().noneMatch(part -> part.overlaps(range));
     }
 
     /**

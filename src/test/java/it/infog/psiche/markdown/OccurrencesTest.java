@@ -81,4 +81,25 @@ class OccurrencesTest {
         assertThat(Occurrences.of(text, "lantern", List.of(address, image)))
                 .containsExactly(new TextRange(4, 11), new TextRange(14, 21));
     }
+
+    @Test
+    void onlyPlacesAllInsideThePartLookedInAreFound() {
+
+        String text = "mare, il mare, amare il mare";
+
+        assertThat(Occurrences.of(text, "mare", List.of(), new TextRange(2, 20)))
+                .containsExactly(new TextRange(9, 13), new TextRange(16, 20));
+        assertThat(Occurrences.of(text, "mare", List.of(), new TextRange(2, 19)))
+                .containsExactly(new TextRange(9, 13));
+    }
+
+    @Test
+    void aRangeIsOutsidePartsItNeitherIsInNorGoesAcross() {
+
+        List<TextRange> parts = List.of(new TextRange(5, 10), new TextRange(20, 30));
+
+        assertThat(Occurrences.outside(new TextRange(10, 20), parts)).isTrue();
+        assertThat(Occurrences.outside(new TextRange(6, 8), parts)).isFalse();
+        assertThat(Occurrences.outside(new TextRange(15, 21), parts)).isFalse();
+    }
 }
