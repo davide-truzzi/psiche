@@ -21,6 +21,15 @@
 - The editor's right-click menu is shorter: the lists are under **List**, images and links under **Insert**, and
   **Modify image…**, **Modify link…** and **Remove link** show only on an image or a link.
 
+### What is fixed
+
+- **Opening a book**: choosing a folder or a file inside a book, such as its `chapters` folder or a chapter, now
+  opens that book, instead of failing because it was not the book's own folder. Anything else says "This is not a
+  Psiche book", with what a book's folder is, and **Choose again**. While no book is open, a book's folder, or
+  anything inside it, dropped on the window opens it too.
+- **Open recent**: a book that is not found, as one moved elsewhere, now says where it was looked for, and a cross
+  beside it takes it alone off the list; before, only **Clear list** could, with all the others.
+
 ## 0.5.1 Alpha (2026-11-08)
 
 0.5.0 Alpha with fixes for saving on Windows.
