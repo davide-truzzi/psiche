@@ -26,8 +26,7 @@ public final class HtmlComments {
     private static final Pattern COMMENT = Pattern.compile("<!--.*?(?:-->|\\z)", Pattern.DOTALL);
     private static final String OPENING = "<!--";
     private static final String CLOSING = "-->";
-    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES)
-            .build();
+    private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS_AND_INLINES);
 
     private HtmlComments() {
     }

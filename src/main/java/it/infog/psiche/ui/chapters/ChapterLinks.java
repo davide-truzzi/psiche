@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.TextLinks;
 import it.infog.psiche.markdown.model.HeadingAnchor;
@@ -103,10 +104,15 @@ final class ChapterLinks {
      * Follows a link the author clicked, in the manuscript or in the preview, the one place that tells where a link
      * leads: a web or mail address opens in the system browser, as from the welcome page with no chapter open; a
      * chapter link of the open chapter's opens that chapter, unless it is open, at the heading it names or at its
-     * start. Nothing for a link that leads nowhere.
+     * start; a footnote's link in the preview goes to the note's opening, or back to the reference. Nothing for a
+     * link that leads nowhere.
      */
     void follow(String destination) {
 
+        if (Footnotes.isFootnoteLink(destination)) {
+            Footnotes.place(manuscript.text(), destination).ifPresent(manuscript::reveal);
+            return;
+        }
         if (!leadsSomewhere(destination))
             return;
 
@@ -120,9 +126,12 @@ final class ChapterLinks {
 
     /**
      * True if {@code destination} leads somewhere: a web or mail address always, as the welcome's with no chapter open;
-     * a link of the open chapter's to a chapter or heading that is there.
+     * a link of the open chapter's to a chapter or heading that is there; a footnote's to its note or reference.
      */
     private boolean leadsSomewhere(String destination) {
+
+        if (Footnotes.isFootnoteLink(destination))
+            return Footnotes.place(manuscript.text(), destination).isPresent();
 
         Optional<Chapter> open = chapter.get();
         LinkTarget target = TextLinks.target(destination, open.map(Chapter::title).orElse(""));

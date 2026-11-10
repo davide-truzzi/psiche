@@ -30,7 +30,7 @@ public final class HeadingAnchors {
     // underscores.
     private static final Pattern LEFT_OUT = Pattern.compile("[^\\p{L}\\p{M}\\p{N}\\p{Pc} -]");
 
-    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
+    private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS);
 
     private HeadingAnchors() {
     }

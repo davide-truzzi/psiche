@@ -321,6 +321,47 @@
         </w:rPr>
     </w:style>
 
+    <w:style w:type="paragraph" w:styleId="FootnoteText">
+        <w:name w:val="footnote text"/>
+        <w:basedOn w:val="Normal"/>
+        <w:pPr>
+            <w:spacing w:before="0" w:after="0" w:line="276" w:lineRule="auto"/>
+            <w:ind w:left="284" w:hanging="284"/>
+        </w:pPr>
+        <w:rPr>
+            <w:sz w:val="20"/>
+            <w:szCs w:val="20"/>
+        </w:rPr>
+    </w:style>
+
+    <w:style w:type="character" w:styleId="FootnoteReference">
+        <w:name w:val="footnote reference"/>
+        <w:rPr>
+            <w:vertAlign w:val="superscript"/>
+        </w:rPr>
+    </w:style>
+
+    <w:style w:type="character" w:styleId="Strikethrough">
+        <w:name w:val="Strikethrough"/>
+        <w:rPr>
+            <w:strike/>
+        </w:rPr>
+    </w:style>
+
+    <w:style w:type="character" w:styleId="Subscript">
+        <w:name w:val="Subscript"/>
+        <w:rPr>
+            <w:vertAlign w:val="subscript"/>
+        </w:rPr>
+    </w:style>
+
+    <w:style w:type="character" w:styleId="Superscript">
+        <w:name w:val="Superscript"/>
+        <w:rPr>
+            <w:vertAlign w:val="superscript"/>
+        </w:rPr>
+    </w:style>
+
     <w:style w:type="character" w:styleId="Hyperlink">
         <w:name w:val="Hyperlink"/>
         <w:rPr>

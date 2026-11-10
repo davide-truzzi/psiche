@@ -8,6 +8,7 @@ import it.infog.psiche.markdown.FigureRenderer;
 import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.HtmlChildren;
 import it.infog.psiche.markdown.HtmlComments;
+import it.infog.psiche.markdown.MarkdownSyntax;
 import it.infog.psiche.markdown.PlainText;
 import org.commonmark.node.Heading;
 import org.commonmark.node.HtmlBlock;
@@ -38,10 +39,12 @@ import java.util.function.UnaryOperator;
  * the stylesheets' rules for the paragraph after a heading still apply. They differ in two things:
  * <ul>
  *     <li>the manuscript, for the PDF, prints a scene break as a centred {@code * * *}, shows images where the
- *     chapter links them, and links a place of the book within its one document;</li>
+ *     chapter links them, links a place of the book within its one document, and prints the footnotes at the foot
+ *     of the page ({@link PageFootnotes});</li>
  *     <li>the ebook keeps a scene break a real {@code <hr />}, which the book's stylesheet draws and screen readers
- *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, and a place of the book on the
- *     page of its chapter.</li>
+ *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, a place of the book on the
+ *     page of its chapter, and puts the footnotes at the chapter's end, as e-readers' pop-ups
+ *     ({@link EbookFootnotes}).</li>
  * </ul>
  */
 public final class XhtmlRenderer {
@@ -94,7 +97,7 @@ public final class XhtmlRenderer {
 
         // Raw HTML is escaped, since the PDF renderer and e-readers only read well-formed XHTML.
         Function<Heading, String> anchors = HeadingAnchors.namer();
-        HtmlRenderer.Builder builder = HtmlRenderer.builder()
+        HtmlRenderer.Builder builder = MarkdownSyntax.htmlRenderer()
                 .escapeHtml(true)
                 .softbreak("<br />")
                 .nodeRendererFactory(context -> new LinkRenderer(context, chapter, links, hrefs))
@@ -106,10 +109,12 @@ public final class XhtmlRenderer {
                 });
 
         if (images == null)
-            builder.nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
+            builder.nodeRendererFactory(PageFootnotes::new)
+                    .nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
                     .nodeRendererFactory(context -> new FigureRenderer(context, image -> true));
         else
-            builder.nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images))
+            builder.nodeRendererFactory(context -> new EbookFootnotes(context, chapter.id()))
+                    .nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images))
                     .nodeRendererFactory(context -> new FigureRenderer(context,
                             image -> images.href(image.getDestination()).isPresent()))
                     .attributeProviderFactory(context -> (node, tagName, attributes) -> {

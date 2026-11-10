@@ -4,7 +4,8 @@ import it.infog.psiche.export.document.model.enums.Style;
 
 /**
  * The ids a DOCX's XML refers to its styles by, all defined in {@code styles.xml}. Where Word has a style of its own
- * for the same purpose (the headings, Title, Subtitle, the contents' heading and lines, Emphasis, Strong), the
+ * for the same purpose (the headings, Title, Subtitle, the contents' heading and lines, Emphasis, Strong, the
+ * footnotes' text and reference), the
  * manuscript uses it, so Word's navigator and its own table of contents recognise them.
  */
 final class StyleIds {
@@ -27,6 +28,7 @@ final class StyleIds {
             case FIGURE -> "Figure";
             case CAPTION -> "Caption";
             case PREFORMATTED -> "PreformattedText";
+            case FOOTNOTE -> "FootnoteText";
             case HEADING_1 -> "Heading1";
             case HEADING_2 -> "Heading2";
             case HEADING_3 -> "Heading3";
@@ -40,6 +42,10 @@ final class StyleIds {
             case EMPHASIS -> "Emphasis";
             case STRONG_EMPHASIS -> "Strong";
             case SOURCE_TEXT -> "SourceText";
+            case STRIKETHROUGH -> "Strikethrough";
+            case SUBSCRIPT -> "Subscript";
+            case SUPERSCRIPT -> "Superscript";
+            case FOOTNOTE_ANCHOR -> "FootnoteReference";
             case INDEX_LINK -> "IndexLink";
             case BULLETS, NUMBERING -> throw new IllegalArgumentException(style + " is a numbering, not a style");
         };

@@ -181,16 +181,21 @@ my-book/              ← the folder; the book's title is set in its properties
     under the chapter's title, and `* * *` for scene breaks. Raw HTML in the chapter is printed as text. Web and mail
     links stay links, as does a link to a heading of the chapter; a link to another chapter keeps only its text.
     HTML comments (`<!-- a note -->`) are notes to yourself: the PDF, ODT and DOCX leave them out. A word longer than
-    the line, such as names pasted without their spaces, is broken where the line ends.
+    the line, such as names pasted without their spaces, is broken where the line ends. Strikethrough, subscript
+    and superscript print as such. Footnotes print at the foot of their reference's page, under a short rule,
+    smaller and single-spaced, numbered from 1; a later reference to a note prints its number alone.
   - **ODT**: the same manuscript as an OpenDocument text file, for an editor to work on in LibreOffice, Word or
     any other word processor. The text is set in named styles (*Text Body*, *First Paragraph*, *Heading 1*,
     *Quotations*, *Scene Break*…), so restyling one changes the whole chapter. It names Liberation Serif without
     embedding it, so where that font is missing the word processor's own serif takes its place. Images are packed
-    into the file, centred with their captions; links behave as in the PDF.
+    into the file, centred with their captions; links behave as in the PDF. Strikethrough, subscript and
+    superscript are character styles of their own, and footnotes are LibreOffice's (*Footnote*, *Footnote anchor*),
+    numbered by it from 1 in every chapter.
   - **DOCX**: the same manuscript as a Word document, laid out like the ODT. Where Word has a style of its own it is
     used (*Heading 1*–*4*, *Title*, *Subtitle*, *Emphasis*, *Strong*), so Word's navigator lists the headings;
     the others keep the ODT's names (*Body Text*, *First Paragraph*, *Quotations*, *Scene Break*…). Each numbered
-    list starts at its own number, as in the chapter.
+    list starts at its own number, as in the chapter. Footnotes are Word's (*footnote text*, *footnote
+    reference*).
   - **Markdown**: the chapter's file as it is. Image links still point to `../media/`, so images show only next
     to the book's media folder.
 - **Export** in the Book menu writes the whole book, as it is saved, to one file you pick (by default named after the
@@ -208,7 +213,8 @@ my-book/              ← the folder; the book's title is set in its properties
     …) and holds a page field, which the word processor works out as it lays the book out, and again when the text
     changes (in Word, update the fields with F9).
   - **DOCX**: the same book as a Word document, laid out like the ODT: the title page and the contents in a section
-    without the header, then the chapters in a section with it, numbered from 1. The contents use Word's own styles
+    without the header, then each chapter in a section of its own with it, the pages numbered from 1 at the first
+    and the footnotes from 1 in every chapter. The contents use Word's own styles
     (*TOC Heading*, *TOC 1*), and each line links to its chapter, but shows no page: Word works out page fields only
     when asked, and asks the reader first when a file wants them worked out on opening.
   - **EPUB**: an EPUB 3 ready for Apple Books, Kobo, Google Play Books and distributors. It reads: the cover, full
@@ -218,7 +224,9 @@ my-book/              ← the folder; the book's title is set in its properties
     can. It also holds the navigation stores and e-readers use (landmarks, and `toc.ncx` for EPUB 2 readers), the book's
     metadata, and the accessibility metadata of EPUB Accessibility 1.1 (how the book can be read, what helps, no
     hazards), which the European Accessibility Act expects. Images are packed in, shrunk to stay within 4 million
-    pixels; fonts are not embedded. Every EPUB the tests export passes EPUBCheck, the validator stores run.
+    pixels; fonts are not embedded. A chapter's footnotes follow it, each linked from its raised number, so e-readers
+    open it in a pop-up, and ending with ↩ back. Every EPUB the tests export passes EPUBCheck, the validator stores
+    run.
   - **EPUB for Kindle**: the same EPUB without the cover, which KDP adds from the one uploaded with the book's
     details; with a cover inside too, Kindle would show it twice. The file is also smaller, and Kindle charges for
     delivery by size.
@@ -228,6 +236,37 @@ my-book/              ← the folder; the book's title is set in its properties
   - Unsaved changes in any chapter are settled first. If some chapters are empty (nothing but blank lines), Psiche Writer
     lists them and asks whether to leave them out or export each as a page showing only its file name, to see where
     it goes in an unfinished book.
+
+### Writing in Markdown
+Each chapter is a Markdown file: CommonMark, with the strikethrough, subscript, superscript and footnotes of the
+[Markdown Guide's extended syntax](https://www.markdownguide.org/extended-syntax/). Everything can be typed by hand, or
+written from the editor's right-click menu with these shortcuts (`Cmd` for `Ctrl` on macOS):
+
+| Element | Written as | Shortcut |
+|---|---|---|
+| Heading 1–4 | `# Title` … `#### Title` | `Ctrl+1` … `Ctrl+4` |
+| Bold | `**bold**` | `Ctrl+B` |
+| Italic | `*italic*` | `Ctrl+I` |
+| Strikethrough | `~~gone~~`, two tildes | `Ctrl+Shift+X` |
+| Subscript | `H~2~O`, no space inside | `Ctrl+=` |
+| Superscript | `X^2^`, no space inside | `Ctrl++` |
+| Bulleted list | `- an item` | `Ctrl+Shift+8` |
+| Numbered list | `1. an item` | `Ctrl+Shift+7` |
+| Quote | `> quoted` | `Ctrl+Shift+Q` |
+| Scene break | `---` on a line of its own | |
+| Comment | `<!-- a note to yourself -->` | `Ctrl+Shift+C` |
+| Link | `[text](https://…)`, `[text](02-harbour.md#the-storm)` | `Ctrl+K` |
+| Image | `![caption](../media/01-alba/map.png)` on a line of its own | Insert ▸ Image… |
+| Footnote | `text[^1]`, and anywhere in the chapter `[^1]: The note.` | `Ctrl+Alt+F` (`Cmd+Option+Shift+F`) |
+| Line break | a new line inside a paragraph | |
+
+- A single tilde is always a subscript, never a strikethrough. A tilde or caret that a space follows, as in
+  `~ 30 people` or `a ^ b`, stays as it is written, and so do `\~` and `\^`. A subscript or superscript cannot hold
+  bold or italic.
+- A footnote's label is any word without spaces, `[^1]` or `[^moon]`, capitals or not. Readers see the notes numbered
+  1, 2, 3… in the order of their first reference, from 1 in every chapter. A note can have several paragraphs: the
+  ones after the first are indented by four spaces, which in Default mode the note dialog writes for you. A reference
+  to no note stays as it is written, in orange in the editor and the preview; a note nothing refers to is left out.
 
 ### Writing
 - Typewriter-style Markdown editor, with a live preview that refreshes 500 ms after you stop typing and keeps its
@@ -241,8 +280,26 @@ my-book/              ← the folder; the book's title is set in its properties
     over part of one takes it whole, and Backspace right after one or Delete right before one removes it whole, which
     Undo brings back. They are changed from the right-click menu, **Modify link…** and **Modify image…**, which act
     on the one under the pointer. A link typed by hand becomes a block as soon as its `)` closes it.
+    Footnotes are blocks too: each reference, `[^1]`, and each whole note, from `[^1]:` to the end of its last
+    paragraph, the note on a faint amber tint, its text in the text's own colour. A footnote never breaks:
+    - **Insert ▸ Footnote…** (`Ctrl+Alt+F`) opens the note dialog. Write the note as you would anywhere, paragraphs
+      between blank lines, or pick one of the chapter's notes, listed by number and first words, to refer to it
+      again. **Insert** puts the reference at the caret, and a new note after the paragraph, numbered for you.
+    - **Modify note…**, on a reference or a note, opens the same dialog on the note's text, without its label or the
+      spaces that set its lines in, which Psiche writes. **Remove note** removes it with every reference to it, as
+      does saving it empty, once you confirm.
+    - Backspace or Delete on a reference removes it, and its note if no other reference is left; on a note, the note
+      and every reference to it. Each is one step for Undo.
+    - **Cut**, **Copy** and **Paste** carry a reference's note along: the clipboard holds it after the text, as
+      Markdown, and a paste puts it after the paragraph the text lands in. A note whose label the chapter already
+      uses is numbered anew, unless it is the chapter's own note, which stays where it is.
+    - A wrong one shows its fix in the right-click menu: **Write note…** and **Remove reference** on a reference to
+      no note; **Remove note** on a note nothing refers to, or on a second note of a label, which readers never see.
   - **Advanced**: the Markdown as written, free to edit anywhere; the right-click menu acts on the caret or the
-    selection.
+    selection. Insert ▸ Footnote writes `[^1]` at the caret and `[^1]: ` after the paragraph, the caret there.
+- In both modes, a footnote's reference and its note's opening show in amber, a wrong one in orange: a reference to
+  no note, a note nothing refers to, a second note of a label. `Ctrl+click` a reference goes to its note, and a note's
+  opening back to its first reference, as `Ctrl+click` opens a link.
 - A chapter reopens where you left it, with the caret where it was and the same paragraph at the top, after switching
   to another chapter, closing the book or restarting Psiche. A chapter never opened before starts at the top. Psiche
   keeps the places in `psiche.properties` at the book's root: every book gets it as it is created or first opened, and
@@ -256,6 +313,9 @@ my-book/              ← the folder; the book's title is set in its properties
 - The preview is styled as a printed novel: Libertinus Serif, indented paragraphs, the Psiche mark under the
   chapter heading, a drop cap after it and ornamental scene breaks (`---`). Courier Prime is used for the editor.
   **Preferences** offers it in a **Dark** theme too, the same page in light ink on dark paper.
+- In the preview, strikethrough, subscript and superscript show as they will print, and a footnote's reference as a
+  raised number. The notes come at the chapter's end, under a short rule, each ending with ↩; clicking a number takes
+  the editor to its note, and the ↩ back to the reference, the preview following.
 - Clicking a link in the preview follows it: a web (`https://…`) or mail (`mailto:…`) address opens in your default
   browser or mail app, and a link to a chapter opens that chapter in the editor, at its heading when it names one. A
   link that leads nowhere shows as plain orange text and does nothing.
@@ -264,7 +324,9 @@ my-book/              ← the folder; the book's title is set in its properties
 - The editor and the preview use flat backgrounds without shadows or textures, because those effects made the
   preview take seconds to redraw when resizing the window.
 - Right-click in the editor for Markdown formatting, each with its shortcut (`Cmd` on macOS):
-  - **Bold** `Ctrl+B` and **Italic** `Ctrl+I` wrap the selected text, line by line. Text that is already bold or
+  - **Bold** `Ctrl+B`, **Italic** `Ctrl+I` and **Strikethrough** `Ctrl+Shift+X` wrap the selected text, line by
+    line. **Subscript** `Ctrl+=` and **Superscript** `Ctrl++`, by the sign typed on any keyboard, wrap a selection
+    without spaces, which is all they can hold. Text that is already bold or
     italic is not marked twice: a selection overlapping it joins it, so bolding `rem ip` in `**lorem** ipsum` gives
     `**lorem ip**sum`.
   - **Heading 1–4** `Ctrl+1`…`Ctrl+4`, **List**, then **Bulleted** `Ctrl+Shift+8` or **Numbered** `Ctrl+Shift+7`,
@@ -280,26 +342,26 @@ my-book/              ← the folder; the book's title is set in its properties
   view, a dot shows in the page's top or bottom margin, with how many in its tooltip: clicking it brings the next one
   that way a third of the way down the editor, with the caret on it.
 - The editor checks the spelling in the book's language, offline, with the dictionary Psiche brings for it: English,
-  Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal. A book in another country's
-  variety uses its language's: Swiss Italian is checked in Italian. A word spelt wrong gets a dotted red line under
-  it, and the line a red dot in the margin, beside a comment's brass dot if it has one, with red dots in the top and
-  bottom margins for those beyond the view, as for comments. The text is checked a moment after you stop typing;
-  only prose is, not code, comments, links' addresses or words with digits. Words that start with a capital letter,
-  or have one after an apostrophe, as names do ("Montenevoso", "d'Annunzio"), are left out, so a novel's people and
-  places need not be added one by one; **Strict spell check** in Preferences checks them too. Right-click a marked
-  word for up to five words you may have meant, which replace it (`Ctrl+Z` brings it back), or for **Add to
-  dictionary** or **Ignore**: both make it right in every book, and Psiche keeps such words in `words.txt` in its
-  settings folder. Those words are suggested too: up to two of them, a slip or two away from the marked word, come
-  before the dictionary's, so a name of your own typed wrong is put right in one click. **Check spelling** there turns
-  it off for every book; Book properties and Preferences show a green tick after a language Psiche has a
-  dictionary for.
-  - **Clear formatting** `Ctrl+\` removes heading, list and quote markers and the bold or italic the selection
-    touches.
+  Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal. A book in another country's variety
+  uses its language's: Swiss Italian is checked in Italian. A word spelt wrong gets a dotted red line under it, and the
+  line a red dot in the margin, beside a comment's brass dot if it has one, with red dots in the top and bottom margins
+  for those beyond the view, as for comments. The text is checked a moment after you stop typing; only prose is, not
+  code, comments, links' addresses, footnotes' labels or words with digits; a footnote's note is prose, and a word split
+  by a superscript, as `M^lle^`, is checked as one, *Mlle*. Words that start with a capital letter, or have one after an
+  apostrophe, as names do ("Montenevoso", "d'Annunzio"), are left out, so a novel's people and places need not be added
+  one by one; **Strict spell check** in Preferences checks them too. Right-click a marked word for up to five words you
+  may have meant, which replace it (`Ctrl+Z` brings it back), or for **Add to dictionary** or **Ignore**: both make it
+  right in every book, and Psiche keeps such words in `words.txt` in its settings folder. Those words are suggested too:
+  up to two of them, a slip or two away from the marked word, come before the dictionary's, so a name of your own typed
+  wrong is put right in one click. **Check spelling** there turns it off for every book; Book properties and Preferences
+  show a green tick after a language Psiche has a dictionary for.
+  - **Clear formatting** `Ctrl+\` removes heading, list and quote markers and the bold, italic, strikethrough,
+    subscript or superscript the selection touches.
   - Each format is a single step for Undo.
-- The status bar shows the open chapter's characters (spaces included), words and pages, updated as you type. They
-  count the text a reader sees: Markdown markers, link addresses, images and HTML are left out, a line break inside
-  a paragraph counts as a space, and a word needs at least one letter or digit, so a dash between spaces is not one.
-  Right-click the pages to choose how they are counted:
+- The status bar shows the open chapter's characters (spaces included), words and pages, updated as you type. They count
+  the text a reader sees: Markdown markers, link addresses, footnotes' labels, images and HTML are left out, the notes'
+  text counts, a line break inside a paragraph counts as a space, and a word needs at least one letter or digit, so a
+  dash between spaces is not one. Right-click the pages to choose how they are counted:
   - **Standard (300 words)**: words / 300 · **Cartella (IT)**: characters / 1800 · **Feuillet (FR)**: characters / 1500
   - **Manuscript (250 words)**: words / 250 · **Printed paperback**: words / 350
 
@@ -328,7 +390,8 @@ my-book/              ← the folder; the book's title is set in its properties
     pasted keeps them, so a search can span paragraphs. A chapter written on Windows is found the same.
   - The Markdown is searched as written, so `a **bold** phrase` is not found by "a bold phrase". A link's text and an
     image's caption are searched; their address and file name are not, and no place reaches across a link's or an
-    image's Markdown.
+    image's Markdown. Footnotes' labels are found, in references and notes, so a note mislaid or a label mistyped
+    can be found too.
   - Every place in view shows on the repetitions' faint red, which pause while the bar is open; the bar tells which
     place you are at among how many, as `3 of 17`, and `No matches` turns its field red.
   - `Enter` and `Shift+Enter` in the field, or `F3` and `Shift+F3` in the text (`Cmd+G` and `Cmd+Shift+G` on macOS),
@@ -341,6 +404,7 @@ my-book/              ← the folder; the book's title is set in its properties
     place you are at and goes to the next; **Replace all** changes every place at once and tells how many. Each
     Replace is one step for Undo, and Replace all a single one; `Ctrl+Z` in the bar undoes it in the text at once,
     and the bar's fields keep what you typed. With **Aa** on, only the places with the same capitals are replaced.
+    In Default mode, a line break replaced into a note is followed by the note's indent, so the note stays whole.
   - The search is in the open chapter only. The bar stays open as you open another chapter, and looks there for the
     same text. `Esc` or its cross closes it, the place you were at still selected.
 - **Save chapters** in the Book menu, or `Ctrl+Shift+S` / `Cmd+Shift+S`, saves every chapter with unsaved changes. To
@@ -617,12 +681,12 @@ What each package holds:
 | `it.infog.psiche.book` | `BookLinks` rewrites every chapter's links to a chapter renamed. `BookFolder` (create, open and validate a book; create, list, read and write chapters; and, through `BookMedia`, what `media/` keeps: read and save the book's properties and how its pages are counted, set or remove the cover, and add the default ebook stylesheet), `Chapter`, and `ChapterWatcher` (watches `chapters/` for added or removed files). `BookState` keeps `psiche.properties`, where each chapter was left (`book.model.ChapterPlace`). `ProjectArchive` writes a whole book folder to a Psiche project file, and unpacks one in place of the folder of that name, refusing entries that would leave the book's folder. `book.model.BookProperties` holds the properties, `book.model.ProjectManifest` what a project file says about its book |
 | `it.infog.psiche.git` | `BookRepository`: init, commit (staging every change itself), push, and the files changed since the last commit, via JGit; `GitIgnore`, from `BookRepository.gitignore()`, adds a line to `.gitignore` and commits it alone, and brings a folder kept out into Git. `BookRemote` is the book's `origin`: its address checked by `RemoteAddresses` (`model.RemoteAddress`) and a folder's by `RemoteFolder`, connected or removed, and **Test**, which tells a `model.enums.RemoteState`, as `RemoteErrors` reads JGit's failures, with addresses cleaned of user info. `Synchronization` fetches, compares, fast-forwards or merges (`BookMerge`, file by file in memory, a conflict as a copy beside the chapter, `model.Conflict`) and pushes, reporting a `model.SyncReport`; it also checks the remote as a book opens, and puts a remote's book in place of an empty one. `BookHistory`, from `BookRepository.history()`, reads what the commits recorded: a file's history as `FileRevision`s with lines added and removed, whether a name was ever used, the deleted chapters, and a file as a commit recorded it. `TrackedChanges` compares a past version of a chapter with the chapter now, word by word, as tracked changes |
 | `it.infog.psiche.settings` | The app's own settings, and `Keychain`, the books' tokens (`model.Credentials`) in a PKCS12 file locked by a master password. `SettingsFolders` finds their folder (an explicit one, a portable `settings` folder next to the launcher, or the system's settings folder), `Settings` reads and safely writes `settings.properties` and `words.txt`, the author's own words for the spell checker, shared by every book, `model.RecentBooks` keeps the books opened lately: latest first, each once, at most 10, `model.Preferences` what the author chose in Preferences (with `model.enums.PreviewTheme`, and the font sizes it offers), and `model.WindowBounds` where the window was, beside whether the book's counts under the chapter list are open and which tab beside the chapter (`model.enums.ChapterTab`) shows when a book opens. A value missing or unreadable reads as its default |
-| `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports. `Occurrences`: every place a text appears, capitals or not, in the whole text or a part of it, and the word at a position, for the editor's repetitions. `ImageLines`: a chapter's image paragraphs (`model.ImageLine`: range, caption, file) and the Markdown of a new one. `TextLinks`: the inline links (`model.TextLink`), where each leads (`model.LinkTarget`, `model.enums.LinkKind`) and whether nowhere, and the Markdown of a new or changed one. `HeadingAnchors`: each heading's anchor (`model.HeadingAnchor`), by GitHub's rule, one for the editor, the preview and the exports. `TextBlocks`: where an edit, a caret or a selection goes among the blocks of the editor's Default mode. `FigureRenderer` renders an image alone as a figure with its caption, `PlainText` a part as a reader sees it, `HtmlChildren` a node's children |
+| `it.infog.psiche.markdown` | `MarkdownRenderer`: commonmark → standalone HTML page with the preview stylesheet inlined, each block marked with where it starts and ends in the Markdown, in characters (`data-start`, `data-end`). `HtmlComments`: where a chapter's comments are, found in its HTML by the parser (`model.TextRange`), for the editor to grey, and HTML without them, for the PDF, ODT and DOCX exports. `Occurrences`: every place a text appears, capitals or not, in the whole text or a part of it, and the word at a position, for the editor's repetitions. `ImageLines`: a chapter's image paragraphs (`model.ImageLine`: range, caption, file) and the Markdown of a new one. `TextLinks`: the inline links (`model.TextLink`), where each leads (`model.LinkTarget`, `model.enums.LinkKind`) and whether nowhere, and the Markdown of a new or changed one. `HeadingAnchors`: each heading's anchor (`model.HeadingAnchor`), by GitHub's rule, one for the editor, the preview and the exports. `TextBlocks`: where an edit, a caret or a selection goes among the blocks of the editor's Default mode. `FigureRenderer` renders an image alone as a figure with its caption, `PlainText` a part as a reader sees it, `HtmlChildren` a node's children. `MarkdownSyntax`: the one parser and HTML renderer every part uses, with strikethrough, `ScriptExtension`'s subscript and superscript (`model.Subscript`, `model.Superscript`) and footnotes. `Footnotes`: a chapter's footnotes' references and notes (`model.FootnoteMarks`, `model.FootnoteMark`), the wrong ones, the part a place lies in (`model.FootnotePlace`, `model.enums.FootnotePart`) and the notes by number (`model.NumberedNote`); `FootnoteEdits`: inserting, changing, removing, copying and pasting them, each as one edit |
 | `it.infog.psiche.media` | A chapter's images. `ChapterMedia`: its folder in `media/`, images copied in under unique names, an identical file reused, and the folder moved with a renamed chapter, kept apart for a deleted one, an image detached; `DetachedMedia`, from `ChapterMedia.detached()`, the images kept for no chapter. `ImageFiles` tells an image's format (`model.enums.ImageFormat`) and size from its content, `ImageQuality` whether it will look poor (`model.enums.QualityIssue`), `ImageUses` which of a chapter's image paragraphs show each file however written, and changes them by file. `model` holds `MediaImage`, `ChapterImage` and `DetachedGroup` |
 | `it.infog.psiche.notes` | `NoteStore`: the chapters' notes in `notes/`, one folder per chapter, and the book's own in `_book/` (`NoteStore.BOOK`, a name `BookFolder` refuses for a chapter), and one per note (`note.md` for the text, `note.properties` for its place, size, colour and tag and the name of its file, and the file itself, copied in with its progress reported), written through a temporary file, a note's properties changed one thread at a time. A renamed chapter's notes move with it; a deleted chapter's, or a deleted note, go to `DetachedNoteStore`, from `NoteStore.detached()`, and so does a file replaced or removed, with a copy of its note. `DetachedNoteStore` keeps them in a `-del-` folder with the time and why, and lists the folders that match no chapter as orphans, for Detached notes to restore or delete for good. How a note sits on disk, read and written whole, and how notes move between folders, is `NoteFolders`'. `NotesArchive` exports the notes to a zip, with a manifest naming the book, text compressed and other files stored, Zip64 past 4 GB, each note remembering the fingerprints `NotePrints` takes of its content and of its layout; `ArchiveImport` merges a zip back by note id, after checking that no path leaves `notes/`. `notes.model` holds `Note`, `NoteLayout`, `BoardView`, `OrphanGroup`, `NotesManifest` and `ImportReport`; `notes.model.enums.FileKind` tells a file's kind by its extension |
 | `it.infog.psiche.spelling` | Spell checking, offline. `SpellChecker` checks words in one language with the Hunspell dictionary the app brings for it, through Lucene's Hunspell, and suggests others; it takes the author's own words, a curly apostrophe as a straight one, and a closing quote after a word. `ProseWords` finds the words of a chapter's prose, leaving out code, HTML and comments, link and image targets, addresses, entities and words with digits. `Dictionaries` reads the list of the dictionaries the app brings, `dictionaries.txt` in the resources (English, Italian, French, Spanish, German, and Portuguese from Brazil and from Portugal), and picks a book's: its country's, or else the first of its language; each is a `model.SpellingLanguage`. A dictionary, from LibreOffice, is a folder named by its tag with its licence, and adding or removing one takes its folder and its line, no code; `SOURCES.md` says where each came from and how |
 | `it.infog.psiche.common` | `ChapterFolders`: how `notes/` and `media/` name a chapter's folder and those of what was deleted from it, and the `.md` of a chapter's file. `Template`: a resource file with `{{placeholders}}`, filled in by name: the exports' XML parts, the PDF's and the preview's pages, and the script the preview follows the editor with. `SafeFiles`: files written through a temporary file beside them, moved in one step, copied with their progress told to a `CopyProgress`, and folders deleted whole, for the notes and the Psiche projects |
-| `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF, ODT or DOCX. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `LinkTargets` tells where a link leads in the exported file (`model.LinkPlace`), or that it prints as text. `ZipContainer` is the zip of a document's parts, with its mimetype first for ODT and EPUB, and `XmlText` the one escaping of text for every format's XML |
+| `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF, ODT or DOCX. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `LinkTargets` tells where a link leads in the exported file (`model.LinkPlace`), or that it prints as text. `ZipContainer` is the zip of a document's parts, with its mimetype first for ODT and EPUB, and `XmlText` the one escaping of text for every format's XML. `ChapterNotes` numbers a chapter's footnotes for every format; `PageFootnotes` prints them at the page's foot in the PDF, `EbookFootnotes` at the chapter's end in the EPUB |
 | `it.infog.psiche.export.pdf` | `ManuscriptPdf` lays out XHTML as a manuscript PDF through OpenHTMLtoPDF with Libertinus embedded: `manuscript.css` for a chapter, plus `book.css` for the book's title page and page breaks. `BundledFontMapper` keeps PDFBox from scanning the computer's fonts |
 | `it.infog.psiche.export.epub` | The EPUB export. `EpubWriter` checks the book for what stores may object to, and writes it: `Pages` makes each XHTML page from `page.xhtml` (cover, title page, chapters, copyright), `Navigation` the contents page with its landmarks and `toc.ncx`, `PackageDocument` the `package.opf` with the metadata from `Accessibility`; `EpubImages` packs the cover and the chapters' images, shrinking the large ones |
 | `it.infog.psiche.export.document` | What a word processor's document holds, the same for ODT and DOCX. `Manuscript` writes a chapter, or the whole book in its order (title page, contents, each chapter on a new page), into a `DocumentBody`, the interface each format implements: `ChapterRenderer` the Markdown, `TitlePageRenderer` and `ContentsRenderer` the book's front matter, all as paragraphs, headings, spans and lists that only name a `Style`, and the `PageStart`s between them. `Pictures` finds the images and their sizes, packed where each format keeps them |
@@ -670,7 +734,8 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.TextSearch` | The search of the open chapter for the find bar: the places of a text, capitals or not and line breaks however written, found with `Occurrences` outside the Markdown of links and images, and found again as the text changes; the next and previous place, round the chapter; the place gone to as the selection, or as a mark in the selection's look inside a Default-mode block; the view moved only for a place out of it. Its places are marked like the repetitions', through `PlacesInView`, which pause meanwhile. Replace as one Undo step, Replace all as a single RichTextFX multi-change |
 | `chapters.FindBar`, `FindField`, `LineBreakSigns` | The find bar under the editor, hidden until Find… or `Ctrl+F`: the field, previous and next, Aa, the count and the cross, and the Replace row its arrow or `Ctrl+H` shows; its keys in the field and in the text (`F3`, `Esc`). Its fields show line breaks as ↵ and type one with `Ctrl+Enter` |
 | `chapters.Mistakes`, `TextStyles`, `Spelling` | The spelling mistakes: found by the book's `SpellChecker` a moment after typing stops, moved with the text meanwhile, and let go when typing touches one; `TextStyles` gives the text its comment and mistake styles together; `Spelling` picks the dictionary of the open book's language while checking is on, reading it on a thread of its own the first time and keeping it |
-| `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, the lists under List; Insert, with Image… and Link…; Modify image… and the link's items only where they apply; then the editing commands |
+| `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, the lists under List; Insert, with Image…, Link… and Footnote; Modify image…, the link's and the note's items only where they apply; then the editing commands |
+| `chapters.NoteActions`, `NoteDialog` | The footnotes from the right-click menu: Footnote in Insert, then in Default mode Modify note…, Remove note and the wrong ones' fixes; the note dialog, with the note's text as the author writes it, or the chapter's notes to refer to again |
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |
 | `chapters.UnsavedChanges` | Asks whether to save or discard unsaved chapters before a book is replaced, a commit, an export or closing the window |
 | `preview.PreviewPane` | The typeset preview in a `WebView`: `render` shows a chapter at once from the top, `renderLater` follows the author's typing after a 500 ms pause and keeps the scroll position, and `followPosition` scrolls to the part of the page rendered from a character of the Markdown, as far down its block as it is through the block's text; while hidden behind the History tab it holds back both and catches up when shown; a render of the page already shown, for the same folder, theme and font size, only replaces its article, without loading the page and its stylesheet again |
@@ -740,7 +805,10 @@ callbacks (`ErrorReporter`, the check before committing, the after-commit hook, 
   note's folder.
 - A chapter exports to a manuscript PDF, ODT or DOCX, or to Markdown; the whole book to a manuscript PDF, ODT or
   DOCX, or to EPUB, each with the same contents after the title page.
-- The book's DOCX lists its chapters without their pages (see Export above).
+- The book's DOCX lists its chapters without their pages (see Export above). Its footnotes restart in every chapter
+  as Word restarts them, by section, which LibreOffice does not read: there they show wrong numbers, so read the
+  book's ODT in LibreOffice.
+- A subscript or superscript holds no space and no bold or italic (`X^*n*^` stays as written).
 - Images are JPEG or PNG only, and live in their chapter's folder: the book has no images of its own besides its
   cover.
 - Find and replace works in the open chapter only, on the Markdown as written; there is no search of the whole book.

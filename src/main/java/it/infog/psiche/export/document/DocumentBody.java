@@ -69,6 +69,17 @@ public interface DocumentBody {
     void lineBreak();
 
     /**
+     * Opens a footnote at this place of the text, the note numbered {@code number} in its chapter: the paragraphs
+     * written until {@link #closeNote} are its note, which the word processor prints at the foot of the page.
+     */
+    void openNote(int number);
+
+    void closeNote();
+
+    /** A later reference to the note numbered {@code number}, opened earlier in the chapter: its number alone. */
+    void noteAgain(int number);
+
+    /**
      * Draws {@code picture} in the line like a large character.
      *
      * @param title the text a screen reader reads for it, such as an image's alt text

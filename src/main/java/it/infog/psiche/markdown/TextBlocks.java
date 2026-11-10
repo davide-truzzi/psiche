@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The parts of a text the author changes as wholes, never from inside: in the editor's Default mode, its links and
- * its image lines, which are changed from the menu. Given the blocks of a text, in order and none overlapping, it
- * tells where an edit by the author goes, where a caret that lands inside one goes, and whether a selection can be
- * formatted.
+ * The parts of a text the author changes as wholes, never from inside: in the editor's Default mode, its links, its
+ * image lines and its footnotes' references and notes, which are changed from the menu. Given the blocks of a text, in
+ * order and none overlapping, it tells where an edit by the author goes, where a caret that lands inside one goes, and
+ * whether a selection can be formatted.
  */
 public final class TextBlocks {
 
@@ -59,21 +59,28 @@ public final class TextBlocks {
 
     /**
      * True if formatting the selection from {@code start} to {@code end}, as bold or a heading, keeps every block
-     * whole: it touches no image line, whose caption is changed only from its dialog, and each link it reaches it
-     * either covers whole or lies within the link's text.
+     * whole: it touches no closed block, as an image line, whose caption is changed only from its dialog, and each
+     * link it reaches it either covers whole or lies within the link's text.
      *
-     * @param images the image lines of the text, in order
+     * @param closed the blocks of the text changed only from their dialogs, in order: its image lines, its footnotes'
+     *               references and notes
      * @param links  the links of the text, in order
      */
-    public static boolean formattable(List<TextRange> images, List<TextLink> links, int start, int end) {
+    public static boolean formattable(List<TextRange> closed, List<TextLink> links, int start, int end) {
 
         TextRange selection = new TextRange(start, end);
-        if (images.stream().anyMatch(image -> image.overlaps(selection)))
+        if (closed.stream().anyMatch(block -> block.overlaps(selection)))
             return false;
 
         return links.stream()
                 .filter(link -> reaches(selection, link.range()))
                 .allMatch(link -> within(link.range(), selection) || within(selection, link.label()));
+    }
+
+    /** The block {@code position} lies strictly inside, past its start and before its end; if any. */
+    public static Optional<TextRange> inside(List<TextRange> blocks, int position) {
+
+        return blocks.stream().filter(block -> block.start() < position && position < block.end()).findFirst();
     }
 
     /** True if {@code selection} shares a character with {@code block}, or is a caret strictly inside it. */
@@ -86,11 +93,5 @@ public final class TextBlocks {
     private static boolean within(TextRange inner, TextRange outer) {
 
         return outer.start() <= inner.start() && inner.end() <= outer.end();
-    }
-
-    /** The block {@code position} lies strictly inside, past its start and before its end; if any. */
-    private static Optional<TextRange> inside(List<TextRange> blocks, int position) {
-
-        return blocks.stream().filter(block -> block.start() < position && position < block.end()).findFirst();
     }
 }

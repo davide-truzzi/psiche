@@ -103,6 +103,17 @@ class ChapterExporterTest {
     }
 
     @Test
+    void manuscriptPdfPrintsAFootnoteUnderItsPage() throws IOException {
+        Path target = tempDir.resolve("notes.pdf");
+
+        exporter.manuscriptPdf("Moon[^1] and stars.\n\n[^1]: A note.", "notes", BOOK, tempDir, target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            assertThat(new PDFTextStripper().getText(pdf)).contains("Moon", "and stars.", "1. A note.");
+        }
+    }
+
+    @Test
     void aMissingImageDoesNotStopTheExport() throws IOException {
         Path target = tempDir.resolve("image.pdf");
 
@@ -127,6 +138,38 @@ class ChapterExporterTest {
             assertThat(new String(zip.readAllBytes(), StandardCharsets.US_ASCII))
                     .isEqualTo("application/vnd.oasis.opendocument.text");
         }
+    }
+
+    @Test
+    void odtKeepsStrikethroughSubscriptAndSuperscriptInTheirStyles() throws IOException {
+        Path target = tempDir.resolve("scripts.odt");
+
+        exporter.manuscriptOdt("~~gone~~ H~2~O x^2^", "scripts", BOOK, tempDir, target);
+
+        assertThat(entry(target, "content.xml")).contains(
+                "<text:span text:style-name=\"Strikethrough\">gone</text:span>",
+                "H<text:span text:style-name=\"Subscript\">2</text:span>O",
+                "x<text:span text:style-name=\"Superscript\">2</text:span>");
+        assertThat(entry(target, "styles.xml")).contains("style:name=\"Strikethrough\"",
+                "style:text-position=\"sub 58%\"", "style:text-position=\"super 58%\"");
+    }
+
+    @Test
+    void odtPutsANoteAtItsFirstReferenceAndANoteReferenceAtTheNext() throws IOException {
+        Path target = tempDir.resolve("notes.odt");
+
+        exporter.manuscriptOdt("Moon[^m] and sun[^m].\n\n[^m]: A note.\n\n    Second.", "notes", BOOK, tempDir,
+                target);
+
+        assertThat(entry(target, "content.xml")).contains(
+                "Moon<text:note text:id=\"ftn1\" text:note-class=\"footnote\"><text:note-citation>1"
+                        + "</text:note-citation><text:note-body><text:p text:style-name=\"Footnote\">A note.</text:p>\n"
+                        + "<text:p text:style-name=\"Footnote\">Second.</text:p>\n</text:note-body></text:note>"
+                        + " and sun",
+                "<text:note-ref text:note-class=\"footnote\" text:reference-format=\"text\" "
+                        + "text:ref-name=\"ftn1\">1</text:note-ref>");
+        assertThat(entry(target, "styles.xml")).contains("text:start-numbering-at=\"chapter\"",
+                "style:name=\"Footnote\"");
     }
 
     @Test

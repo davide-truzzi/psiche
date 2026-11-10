@@ -22,6 +22,8 @@ public enum Style {
     CAPTION("Caption"),
     /** Code, in a monospaced font with its spaces kept. */
     PREFORMATTED("Preformatted_20_Text"),
+    /** A paragraph of a footnote, at the foot of the page, smaller and single-spaced. */
+    FOOTNOTE("Footnote"),
     /** The chapter's title, a third of the way down its first page. */
     HEADING_1("Heading_20_1"),
     HEADING_2("Heading_20_2"),
@@ -46,6 +48,13 @@ public enum Style {
     STRONG_EMPHASIS("Strong_20_Emphasis"),
     /** Inline code. */
     SOURCE_TEXT("Source_20_Text"),
+    STRIKETHROUGH("Strikethrough"),
+    /** Set below the line, smaller, as the 2 of H₂O. */
+    SUBSCRIPT("Subscript"),
+    /** Set above the line, smaller, as the 2 of X². */
+    SUPERSCRIPT("Superscript"),
+    /** A footnote's number at its reference, raised. */
+    FOOTNOTE_ANCHOR("Footnote_20_anchor"),
     /** A contents line's link to its chapter, in the text's own colour, as in the PDF. */
     INDEX_LINK("Index_20_Link"),
 

@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.markdown.FootnoteEdits;
 import it.infog.psiche.markdown.Occurrences;
 import it.infog.psiche.markdown.model.FoundPlace;
 import it.infog.psiche.markdown.model.TextRange;
@@ -38,6 +39,7 @@ final class TextSearch {
     private final PlainTextArea area;
     private final Supplier<List<TextRange>> markers;
     private final Supplier<List<TextRange>> blocks;
+    private final Supplier<List<TextRange>> notes;
     private final Repetitions repetitions;
     private final PlacesInView marked;
     private final Highlights current;
@@ -57,14 +59,16 @@ final class TextSearch {
 
     /**
      * @param markers the Markdown around the links' text and the images' captions, where nothing is found
-     * @param blocks  the links and images a selection takes whole, in Default mode; none in Advanced
+     * @param blocks  the links, images and footnotes a selection takes whole, in Default mode; none in Advanced
+     * @param notes   the whole notes, whose lines a replacement sets in, in Default mode; none in Advanced
      */
     TextSearch(PlainTextArea area, Supplier<List<TextRange>> markers, Supplier<List<TextRange>> blocks,
-               Repetitions repetitions) {
+               Supplier<List<TextRange>> notes, Repetitions repetitions) {
 
         this.area = area;
         this.markers = markers;
         this.blocks = blocks;
+        this.notes = notes;
         this.repetitions = repetitions;
         marked = new PlacesInView(area, STYLE);
         current = new Highlights(area, CURRENT_STYLE);
@@ -139,8 +143,9 @@ final class TextSearch {
         }
 
         TextRange place = places.get(index);
-        edit(() -> area.replaceText(place.start(), place.end(), replacement));
-        goTo(Occurrences.next(places, place.start() + replacement.length()));
+        String fitted = fitted(place, replacement);
+        edit(() -> area.replaceText(place.start(), place.end(), fitted));
+        goTo(Occurrences.next(places, place.start() + fitted.length()));
     }
 
     /**
@@ -156,7 +161,7 @@ final class TextSearch {
 
         // Each place where it was found: a multi-change moves the later ones as the earlier change the text.
         MultiChangeBuilder<?, ?, ?> change = area.createMultiChange(replaced.size());
-        replaced.forEach(place -> change.replaceText(place.start(), place.end(), replacement));
+        replaced.forEach(place -> change.replaceText(place.start(), place.end(), fitted(place, replacement)));
         edit(change::commit);
         // The selection moved with the text, onto none of it in particular.
         area.deselect();
@@ -164,6 +169,14 @@ final class TextSearch {
         wrapped = false;
         changed.run();
         return replaced.size();
+    }
+
+    /** {@code replacement} for {@code place}: inside a note, its line breaks set in as the note's lines are. */
+    private String fitted(TextRange place, String replacement) {
+
+        boolean inNote = notes.get().stream()
+                .anyMatch(note -> note.start() <= place.start() && place.end() <= note.end());
+        return inNote ? FootnoteEdits.inNote(replacement) : replacement;
     }
 
     /** Finds the places again once the change is over: the one after the caret counts as gone to, unshown. */

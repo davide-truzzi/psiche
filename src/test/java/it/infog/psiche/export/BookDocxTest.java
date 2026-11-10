@@ -20,6 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BookDocxTest {
 
+    // Every section's footnotes are numbered from 1.
+    private static final String NOTES_FROM_1 =
+            "<w:footnotePr><w:numStart w:val=\"1\"/><w:numRestart w:val=\"eachSect\"/></w:footnotePr>";
+
     private static final BookProperties BOOK = new BookProperties("La strada del sale", "Romanzo",
             List.of("Anna Bianchi", "Marco Rossi"), "it-IT", "", "urn:uuid:1234");
     private static final String DOCUMENT = "word/document.xml";
@@ -54,21 +58,24 @@ class BookDocxTest {
                 "<w:pStyle w:val=\"TOC1\"/></w:pPr><w:hyperlink w:anchor=\"_Bookmark3\" w:history=\"1\"><w:r><w:rPr>"
                         + "<w:rStyle w:val=\"IndexLink\"/></w:rPr>" + TEXT + "02-vuoto</w:t></w:r></w:hyperlink></w:p>",
                 // the front matter's section ends with the last line of the contents, without the header
-                "<w:pStyle w:val=\"TOC1\"/><w:sectPr><w:pgSz ",
-                // the first chapter starts the next section, the others a new page, each at its bookmark; a heading
-                // carries its own after it, which links to the heading lead to
+                "<w:pStyle w:val=\"TOC1\"/><w:sectPr>" + NOTES_FROM_1 + "<w:pgSz ",
+                // every chapter is a section of its own, on a new page, at its bookmark, so its notes count from 1; a
+                // heading carries its own bookmark after it, which links to the heading lead to
                 "<w:pStyle w:val=\"Heading1\"/></w:pPr><w:bookmarkStart w:id=\"2\" w:name=\"_Bookmark2\"/>"
                         + "<w:bookmarkEnd w:id=\"2\"/><w:bookmarkStart w:id=\"3\" w:name=\"_Bookmark5\"/>"
                         + "<w:bookmarkEnd w:id=\"3\"/><w:r>" + TEXT + "Alba",
-                "<w:pStyle w:val=\"Heading1\"/><w:pageBreakBefore/></w:pPr>"
-                        + "<w:bookmarkStart w:id=\"4\" w:name=\"_Bookmark3\"/>",
-                "<w:pStyle w:val=\"FirstParagraph\"/><w:pageBreakBefore/></w:pPr>"
+                // the first chapter's section, with the header, its pages numbered from 1
+                "<w:sectPr><w:headerReference w:type=\"default\" r:id=\"header\"/>" + NOTES_FROM_1,
+                "<w:pgNumType w:start=\"1\"/></w:sectPr></w:pPr>",
+                // the next chapters' pages numbered on; the empty one's section ends with its only paragraph
+                "<w:pStyle w:val=\"Heading1\"/><w:sectPr><w:headerReference w:type=\"default\" r:id=\"header\"/>",
+                "w:gutter=\"0\"/></w:sectPr></w:pPr><w:bookmarkStart w:id=\"4\" w:name=\"_Bookmark3\"/>",
+                "<w:pStyle w:val=\"FirstParagraph\"/></w:pPr>"
                         + "<w:bookmarkStart w:id=\"6\" w:name=\"_Bookmark4\"/><w:bookmarkEnd w:id=\"6\"/><w:r>"
                         + TEXT + "Senza titolo, una riga.",
-                // the chapters' section, with the header, numbered from 1
-                "<w:sectPr><w:headerReference w:type=\"default\" r:id=\"header\"/>",
-                "<w:pgNumType w:start=\"1\"/></w:sectPr></w:body>");
-        assertThat(document).doesNotContain("PAGEREF").containsOnlyOnce("<w:headerReference");
+                "w:gutter=\"0\"/></w:sectPr></w:body>");
+        assertThat(document).doesNotContain("PAGEREF", "<w:pageBreakBefore/></w:pPr><w:bookmarkStart w:id=\"4\"");
+        assertThat(document.split("<w:headerReference", -1)).hasSize(4);
         assertThat(entry(target, "docProps/core.xml")).contains("<dc:title>La strada del sale</dc:title>");
     }
 

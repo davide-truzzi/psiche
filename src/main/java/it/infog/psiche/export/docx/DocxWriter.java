@@ -77,6 +77,7 @@ public final class DocxWriter {
         // Every part takes the values its template names; text in them is escaped.
         Map<String, String> values = Map.of(
                 "body", body.xml(),
+                "notes", body.notes(),
                 "lists", body.lists(),
                 "relationships", body.relationships(),
                 "header", XmlText.escape(header),

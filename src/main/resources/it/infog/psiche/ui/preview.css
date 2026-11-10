@@ -172,9 +172,42 @@ a {
 }
 
 /* A link that leads nowhere, to a chapter or heading that is not there or to a malformed address: its text alone, in
-   attention orange, as the editor shows it. */
-.broken-link {
+   attention orange, as the editor shows it; and so a footnote's reference to no note. */
+.broken-link, .missing-note {
     color: var(--orange);
+}
+
+/* A subscript or a superscript, H₂O or X², set no higher than its line, so the lines keep their spacing. */
+sub, sup {
+    line-height: 0;
+}
+
+/* A footnote's reference: its number raised, a link to the note without the underline. */
+.footnote-ref a, .footnote-backref {
+    text-decoration: none;
+}
+
+/* The footnotes, at the chapter's end under a short rule, a little smaller, their paragraphs not indented. */
+.footnotes {
+    margin-top: 3em;
+    font-size: 0.85em;
+    line-height: 1.6;
+}
+
+.footnotes::before {
+    content: "";
+    display: block;
+    width: 8em;
+    margin-bottom: 1em;
+    border-top: 1px solid var(--rule);
+}
+
+.footnotes ol {
+    padding-left: 1.6em;
+}
+
+.footnotes p {
+    text-indent: 0;
 }
 
 code, pre {

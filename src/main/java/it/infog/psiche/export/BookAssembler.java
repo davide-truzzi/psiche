@@ -7,6 +7,7 @@ import it.infog.psiche.export.model.Contents;
 import it.infog.psiche.export.model.ExportedChapter;
 import it.infog.psiche.export.model.TitlePage;
 import it.infog.psiche.export.model.enums.EmptyChapters;
+import it.infog.psiche.markdown.MarkdownSyntax;
 import it.infog.psiche.markdown.PlainText;
 
 import org.commonmark.node.Document;
@@ -26,7 +27,7 @@ import java.util.Optional;
  */
 public final class BookAssembler {
 
-    private static final Parser PARSER = Parser.builder().build();
+    private static final Parser PARSER = MarkdownSyntax.parser();
     // The id of a chapter exported alone, which the headings' ids start with.
     private static final String ALONE_ID = "chapter";
 

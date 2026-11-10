@@ -87,6 +87,55 @@ class MarkdownFormatterTest {
     }
 
     @Test
+    void strikethroughWrapsEachLineAndJoinsTheStrikethroughItTouches() {
+        assertThat(MarkdownFormatter.strikethrough("one two", 0, 7).replacement()).isEqualTo("~~one two~~");
+        assertThat(MarkdownFormatter.strikethrough("~~one~~ two", 4, 11).replacement()).isEqualTo("~~one two~~");
+    }
+
+    @Test
+    void strikethroughDoesNotTakeASubscriptForItself() {
+        TextEdit edit = MarkdownFormatter.strikethrough("H~2~O and", 0, 9);
+
+        assertThat(edit.replacement()).isEqualTo("~~H~2~O and~~");
+    }
+
+    @Test
+    void subscriptAndSuperscriptWrapTheSelectionInOneSign() {
+        assertThat(MarkdownFormatter.subscript("H2O", 1, 2).replacement()).isEqualTo("~2~");
+        assertThat(MarkdownFormatter.superscript("mc2", 2, 3).replacement()).isEqualTo("^2^");
+    }
+
+    @Test
+    void subscriptInsideAStrikethroughKeepsBoth() {
+        TextEdit edit = MarkdownFormatter.subscript("~~H2O~~", 3, 4);
+
+        assertThat(edit.replacement()).isEqualTo("~2~");
+        assertThat(edit.start()).isEqualTo(3);
+    }
+
+    @Test
+    void onlyTextWithoutSpacesFitsAScript() {
+        assertThat(MarkdownFormatter.fitsScript("H2O", 1, 2)).isTrue();
+        assertThat(MarkdownFormatter.fitsScript("a b", 0, 3)).isFalse();
+        assertThat(MarkdownFormatter.fitsScript("a\nb", 0, 3)).isFalse();
+        assertThat(MarkdownFormatter.fitsScript("ab", 1, 1)).isFalse();
+    }
+
+    @Test
+    void clearFormattingRemovesStrikethroughSubscriptAndSuperscript() {
+        TextEdit edit = MarkdownFormatter.clearFormatting("~~gone~~ H~2~O x^2^", 0, 19);
+
+        assertThat(edit.replacement()).isEqualTo("gone H2O x2");
+    }
+
+    @Test
+    void clearFormattingKeepsTildesAndCaretsThatFormatNothing() {
+        TextEdit edit = MarkdownFormatter.clearFormatting("about ~30, a ^ b", 0, 16);
+
+        assertThat(edit.replacement()).isEqualTo("about ~30, a ^ b");
+    }
+
+    @Test
     void headingAppliesToTheCaretLineAndReplacesAnotherLevel() {
         String text = "Intro\n## The storm\nText";
 

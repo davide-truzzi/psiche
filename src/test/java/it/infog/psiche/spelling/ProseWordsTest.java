@@ -70,6 +70,26 @@ class ProseWordsTest {
     }
 
     @Test
+    void checksTheFootnotesTextButNotTheirLabels() {
+
+        assertThat(words("Luna[^moonlight] piena.\n\n[^moonlight]: Una nota.\n"))
+                .containsExactly("Luna", "piena", "Una", "nota");
+    }
+
+    @Test
+    void checksAWordSplitByASuperscriptAsOneOverItsSigns() {
+
+        String markdown = "La M^lle^ e il 1^st^ e H~2~O.";
+
+        assertThat(ProseWords.of(markdown)).first().satisfies(word -> assertThat(word.text()).isEqualTo("La"));
+        assertThat(ProseWords.of(markdown).get(1)).satisfies(word -> {
+            assertThat(word.text()).isEqualTo("Mlle");
+            assertThat(markdown.substring(word.range().start(), word.range().end())).isEqualTo("M^lle^");
+        });
+        assertThat(words(markdown)).containsExactly("La", "Mlle", "e", "il", "e");
+    }
+
+    @Test
     void anEmptyChapterHasNoWords() {
 
         assertThat(ProseWords.of("")).isEmpty();

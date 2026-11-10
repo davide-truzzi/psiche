@@ -1,5 +1,6 @@
 package it.infog.psiche.export.document;
 
+import it.infog.psiche.export.ChapterNotes;
 import it.infog.psiche.export.LinkTargets;
 import it.infog.psiche.export.document.model.Picture;
 import it.infog.psiche.export.document.model.enums.Style;
@@ -9,11 +10,18 @@ import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.PlainText;
+import it.infog.psiche.markdown.model.Subscript;
+import it.infog.psiche.markdown.model.Superscript;
 
+import org.commonmark.ext.footnotes.FootnoteDefinition;
+import org.commonmark.ext.footnotes.FootnoteReference;
+import org.commonmark.ext.gfm.strikethrough.Strikethrough;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.BlockQuote;
 import org.commonmark.node.BulletList;
 import org.commonmark.node.Code;
+import org.commonmark.node.CustomBlock;
+import org.commonmark.node.CustomNode;
 import org.commonmark.node.Emphasis;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HardLineBreak;
@@ -52,6 +60,10 @@ final class ChapterRenderer extends AbstractVisitor {
     private final LinkTargets links;
     private final Function<Heading, String> anchors = HeadingAnchors.namer();
 
+    private final ChapterNotes notes;
+    // True while a note is written, whose own references are numbers only: a note never sits inside another.
+    private boolean inNote;
+
     // Paragraphs are indented, except the chapter's first and the one after a heading, scene break, quote or list.
     private boolean indentNext;
     private int quoteDepth;
@@ -72,6 +84,7 @@ final class ChapterRenderer extends AbstractVisitor {
         this.pictures = pictures;
         this.chapter = chapter;
         this.links = links;
+        this.notes = new ChapterNotes(chapter.document());
     }
 
     // Blocks
@@ -272,6 +285,59 @@ final class ChapterRenderer extends AbstractVisitor {
     public void visit(StrongEmphasis strongEmphasis) {
 
         span(Style.STRONG_EMPHASIS, strongEmphasis);
+    }
+
+    /**
+     * Strikethrough, subscript and superscript in spans of their styles; a footnote's reference, with its note the
+     * first time; anything else, as its text alone.
+     */
+    @Override
+    public void visit(CustomNode node) {
+
+        switch (node) {
+            case Strikethrough strikethrough -> span(Style.STRIKETHROUGH, strikethrough);
+            case Subscript subscript -> span(Style.SUBSCRIPT, subscript);
+            case Superscript superscript -> span(Style.SUPERSCRIPT, superscript);
+            case FootnoteReference reference -> footnote(reference);
+            default -> visitChildren(node);
+        }
+    }
+
+    /** A note prints at its first reference, not where it is written. */
+    @Override
+    public void visit(CustomBlock block) {
+
+        if (!(block instanceof FootnoteDefinition))
+            visitChildren(block);
+    }
+
+    /**
+     * The note {@code reference} leads to, at its first reference, each of its paragraphs in the footnote style; a
+     * later reference, or one inside a note, is the note's number alone. A reference to no note prints nothing.
+     */
+    private void footnote(FootnoteReference reference) {
+
+        Optional<FootnoteDefinition> note = notes.note(reference);
+        if (note.isEmpty())
+            return;
+
+        if (inNote || !notes.printsNote(reference)) {
+            body.noteAgain(notes.number(reference));
+            return;
+        }
+
+        inNote = true;
+        body.openNote(notes.number(reference));
+        for (Node part = note.get().getFirstChild(); part != null; part = part.getNext()) {
+            body.openParagraph(Style.FOOTNOTE);
+            if (part instanceof Paragraph)
+                visitChildren(part);
+            else
+                body.text(PlainText.of(part), false);
+            body.closeParagraph();
+        }
+        body.closeNote();
+        inNote = false;
     }
 
     /** {@code node}'s text in a span of {@code style}; spans nest, so bold inside italic is both. */

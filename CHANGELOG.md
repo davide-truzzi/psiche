@@ -18,6 +18,21 @@
   count. A line break can be looked for too: it shows as ↵, and Ctrl+Enter types one. A link's text and an image's
   caption are searched, never their address or file. The arrow at the bar's left, or Ctrl+H (⌘⌥F on macOS), shows
   **Replace** and **Replace all**, each a single step for Undo. The search is in the open chapter.
+- **Extended Markdown**: strikethrough `~~gone~~`, subscript `H~2~O`, superscript `X^2^` and footnotes, `text[^1]`
+  with `[^1]: The note.` anywhere in the chapter, as the Markdown Guide writes them; README's new **Writing in
+  Markdown** lists everything Psiche reads.
+  - The right-click menu has **Strikethrough** `Ctrl+Shift+X`, **Subscript** `Ctrl+=` and **Superscript** `Ctrl++`,
+    and **Clear formatting** removes them too. **Insert ▸ Footnote** is `Ctrl+Alt+F` (`Cmd+Option+Shift+F` on macOS).
+  - Footnotes show in amber in the editor, a wrong one in orange: a reference to no note, a note nothing refers to, a
+    second note of a label. `Ctrl+click` goes from a reference to its note and back.
+  - In Default mode a footnote never breaks: references and whole notes are blocks, a note is written and changed in
+    a dialog that indents its paragraphs for you, which can also refer to a note the chapter has. Removing a note's
+    last reference removes the note, removing a note removes its references, and Cut, Copy and Paste carry the note
+    with the text. Wrong ones show their fix in the right-click menu.
+  - The preview raises the references and lists the notes at the chapter's end, a click going to the note in the
+    editor and back. The PDF, ODT and DOCX print them at the foot of the page, the ODT and DOCX as LibreOffice's and
+    Word's own; the EPUB after each chapter, as pop-ups. Notes are numbered from 1 in every chapter.
+  - The counts and the spelling take in the notes' text, not their labels; the find bar finds the labels too.
 - The editor's right-click menu is shorter: the lists are under **List**, images and links under **Insert**, and
   **Modify image…**, **Modify link…** and **Remove link** show only on an image or a link.
 

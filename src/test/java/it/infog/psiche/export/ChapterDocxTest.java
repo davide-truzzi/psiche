@@ -34,8 +34,8 @@ class ChapterDocxTest {
         exporter.manuscriptDocx("Text & more.", "01-alba", BOOK, tempDir, target);
 
         List<String> parts = List.of("[Content_Types].xml", "_rels/.rels", DOCUMENT, "word/_rels/document.xml.rels",
-                "word/styles.xml", "word/numbering.xml", "word/settings.xml", "word/header1.xml", "docProps/core.xml",
-                "docProps/app.xml");
+                "word/styles.xml", "word/numbering.xml", "word/settings.xml", "word/header1.xml", "word/footnotes.xml",
+                "docProps/core.xml", "docProps/app.xml");
         for (String part : parts)
             parse(entry(target, part));
         try (ZipFile zip = new ZipFile(target.toFile())) {
@@ -52,7 +52,8 @@ class ChapterDocxTest {
         assertThat(entry(target, "docProps/core.xml")).contains("<dc:title>01-alba</dc:title>",
                 "<dc:creator>Anna Bianchi</dc:creator>", "<dc:language>it-IT</dc:language>");
         assertThat(entry(target, DOCUMENT)).contains("Text &amp; more.",
-                "<w:headerReference w:type=\"default\" r:id=\"header\"/><w:pgSz w:w=\"11906\" w:h=\"16838\"/>");
+                "<w:headerReference w:type=\"default\" r:id=\"header\"/><w:footnotePr><w:numStart w:val=\"1\"/>"
+                        + "<w:numRestart w:val=\"eachSect\"/></w:footnotePr><w:pgSz w:w=\"11906\" w:h=\"16838\"/>");
     }
 
     @Test
@@ -84,6 +85,38 @@ class ChapterDocxTest {
 
         assertThat(entry(target, DOCUMENT)).contains(
                 "<w:rPr><w:rStyle w:val=\"Strong\"/><w:i/></w:rPr><w:t xml:space=\"preserve\">b</w:t>");
+    }
+
+    @Test
+    void keepsStrikethroughSubscriptAndSuperscriptInTheirStyles() throws IOException {
+        Path target = tempDir.resolve("scripts.docx");
+
+        exporter.manuscriptDocx("~~gone~~ H~2~O x^2^", "scripts", BOOK, tempDir, target);
+
+        assertThat(entry(target, DOCUMENT)).contains(
+                "<w:rPr><w:rStyle w:val=\"Strikethrough\"/></w:rPr><w:t xml:space=\"preserve\">gone</w:t>",
+                "<w:rPr><w:rStyle w:val=\"Subscript\"/></w:rPr><w:t xml:space=\"preserve\">2</w:t>",
+                "<w:rPr><w:rStyle w:val=\"Superscript\"/></w:rPr><w:t xml:space=\"preserve\">2</w:t>");
+        assertThat(entry(target, "word/styles.xml")).contains("w:styleId=\"Strikethrough\"",
+                "w:styleId=\"Subscript\"", "w:styleId=\"Superscript\"");
+    }
+
+    @Test
+    void writesTheNotesApartAndTheirReferencesInTheText() throws IOException {
+        Path target = tempDir.resolve("notes.docx");
+
+        exporter.manuscriptDocx("*Moon[^m]* and sun[^m].\n\n[^m]: A note.\n\n    Second.", "notes", BOOK, tempDir,
+                target);
+
+        assertThat(entry(target, DOCUMENT)).contains(
+                "<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/></w:rPr><w:footnoteReference w:id=\"1\"/></w:r>",
+                "<w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/></w:rPr><w:t xml:space=\"preserve\">1</w:t></w:r>");
+        assertThat(entry(target, "word/footnotes.xml")).contains("<w:footnote w:id=\"1\"><w:p><w:pPr>"
+                + "<w:pStyle w:val=\"FootnoteText\"/></w:pPr><w:r><w:rPr><w:rStyle w:val=\"FootnoteReference\"/>"
+                + "</w:rPr><w:footnoteRef/></w:r><w:r><w:tab/></w:r><w:r><w:t xml:space=\"preserve\">A note.</w:t>"
+                + "</w:r></w:p>", "<w:ind w:left=\"284\" w:hanging=\"0\"/></w:pPr><w:r>"
+                + "<w:t xml:space=\"preserve\">Second.");
+        assertThat(entry(target, "word/_rels/document.xml.rels")).contains("Target=\"footnotes.xml\"");
     }
 
     @Test
