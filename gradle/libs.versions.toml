@@ -20,6 +20,7 @@ javafx-web = { module = "org.openjfx:javafx-web", version.ref = "javafx" }
 jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
 commonmark-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
+commonmark-footnotes = { module = "org.commonmark:commonmark-ext-footnotes", version.ref = "commonmark" }
 openhtmltopdf-pdfbox = { module = "io.github.openhtmltopdf:openhtmltopdf-pdfbox", version.ref = "openhtmltopdf" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }

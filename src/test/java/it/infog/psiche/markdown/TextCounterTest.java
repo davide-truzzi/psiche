@@ -25,6 +25,8 @@ class TextCounterTest {
                 argumentSet("bold without its markers", "**Ciao** mondo", new TextCount(10, 2)),
                 argumentSet("strikethrough, subscript and superscript without their markers", "~~gone~~ H~2~O 1^st^",
                         new TextCount(12, 3)),
+                argumentSet("a footnote's text without its labels", "Moon[^1].\n\n[^1]: A note.",
+                        new TextCount(12, 3)),
                 argumentSet("a heading without its marker", "# Il temporale", new TextCount(12, 2)),
                 argumentSet("a quoted list item without markers", "> - *Run*, she said.", new TextCount(14, 3)),
                 argumentSet("spaces and accented letters count one each", "È così, però.", new TextCount(13, 3)),

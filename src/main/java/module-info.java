@@ -5,6 +5,7 @@ module it.infog.psiche {
     requires java.logging;
     requires jdk.xml.dom;
     requires org.commonmark;
+    requires org.commonmark.ext.footnotes;
     requires org.commonmark.ext.gfm.strikethrough;
     requires openhtmltopdf.core;
     requires openhtmltopdf.pdfbox;

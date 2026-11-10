@@ -1,7 +1,9 @@
 package it.infog.psiche.markdown;
 
 import it.infog.psiche.common.Template;
+import it.infog.psiche.markdown.model.TextRange;
 
+import org.commonmark.ext.footnotes.FootnoteDefinition;
 import org.commonmark.node.Block;
 import org.commonmark.node.Document;
 import org.commonmark.node.Heading;
@@ -9,6 +11,7 @@ import org.commonmark.node.Image;
 import org.commonmark.node.Link;
 import org.commonmark.node.Node;
 import org.commonmark.node.SourceSpan;
+import org.commonmark.node.Text;
 import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.NodeRenderer;
@@ -32,7 +35,8 @@ import java.util.function.Predicate;
  * characters from the start of the text, so the preview can follow the editor's caret. An image on a paragraph of its
  * own is a figure, with its caption under it, as the exports print it; see {@link FigureRenderer}. Each heading has
  * its anchor as its id, so a link to a heading of the same chapter leads to it, and a link that leads nowhere is its
- * text alone, in orange.
+ * text alone, in orange. Footnotes are numbered at the chapter's end, and a reference to no note is its text, in orange
+ * too.
  * <p>
  * Each image of the book is asked for with its file's version, {@code ?v=} and the time it last changed, 0 while it is
  * not there: WebKit keeps the pictures it showed by their address, and would go on showing one renamed, deleted or
@@ -42,6 +46,7 @@ public final class MarkdownRenderer {
 
     private static final String SOURCE = "src";
     private static final String MISSING = "0";
+    private static final String NOTE_TAG = "li";
 
     private final Parser parser = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS);
     private final Template page = Template.load(MarkdownRenderer.class, "preview.html");
@@ -76,10 +81,11 @@ public final class MarkdownRenderer {
     public String renderArticle(String markdown, Path baseDirectory, Predicate<String> broken) {
 
         Function<Heading, String> anchors = HeadingAnchors.namer();
-        HtmlRenderer renderer = MarkdownSyntax.htmlRenderer()
+        HtmlRenderer renderer = MarkdownSyntax.htmlRendererWithEndnotes()
                 .softbreak("<br>") // Forces <br> for all soft breaks
                 .nodeRendererFactory(context -> new FigureRenderer(context, image -> true))
                 .nodeRendererFactory(context -> new LinkRenderer(context, broken))
+                .nodeRendererFactory(MissingNoteRenderer::new)
                 .attributeProviderFactory(context -> MarkdownRenderer::markSourceRange)
                 .attributeProviderFactory(context -> (node, tagName, attributes) -> {
                     if (node instanceof Heading heading)
@@ -95,6 +101,9 @@ public final class MarkdownRenderer {
     private static void markSourceRange(Node node, String tagName, Map<String, String> attributes) {
 
         if (!(node instanceof Block) || node instanceof Document || node.getSourceSpans().isEmpty())
+            return;
+        // A note draws its list item, and the notes' section and its way back to the reference too.
+        if (node instanceof FootnoteDefinition && !tagName.equals(NOTE_TAG))
             return;
 
         SourceSpan last = node.getSourceSpans().getLast();
@@ -149,6 +158,32 @@ public final class MarkdownRenderer {
             html.tag(leadsNowhere ? "span" : "a", attributes);
             HtmlChildren.render(context, link);
             html.tag(leadsNowhere ? "/span" : "/a");
+        }
+    }
+
+    /** Writes prose as it is, with each reference to no note in it, {@code [^moon]}, marked as one. */
+    private record MissingNoteRenderer(HtmlNodeRendererContext context) implements NodeRenderer {
+
+        @Override
+        public Set<Class<? extends Node>> getNodeTypes() {
+
+            return Set.of(Text.class);
+        }
+
+        @Override
+        public void render(Node node) {
+
+            String literal = ((Text) node).getLiteral();
+            HtmlWriter html = context.getWriter();
+            int written = 0;
+            for (TextRange missing : Footnotes.missingNotes(literal)) {
+                html.text(literal.substring(written, missing.start()));
+                html.tag("span", Map.of("class", "missing-note"));
+                html.text(literal.substring(missing.start(), missing.end()));
+                html.tag("/span");
+                written = missing.end();
+            }
+            html.text(literal.substring(written));
         }
     }
 }

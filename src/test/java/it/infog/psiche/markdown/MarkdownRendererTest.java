@@ -38,6 +38,28 @@ class MarkdownRendererTest {
     }
 
     @Test
+    void numbersTheFootnotesAtTheChaptersEndEachMarkedWithWhereItIsWritten() {
+        String page = renderer.render("Moon[^moon].\n\n[^moon]: The moon.\n\nAfter.", chaptersDir, 16,
+                NONE_BROKEN);
+
+        assertThat(page)
+                .contains("Moon<sup class=\"footnote-ref\">"
+                        + "<a href=\"#fn-moon\" id=\"fnref-moon\" data-footnote-ref>1</a>")
+                .contains("<p data-start=\"34\" data-end=\"40\">After.</p>\n"
+                        + "<section class=\"footnotes\" data-footnotes>")
+                .contains("<li id=\"fn-moon\" data-start=\"14\" data-end=\"32\">")
+                .contains("<a href=\"#fnref-moon\" class=\"footnote-backref\" data-footnote-backref "
+                        + "data-footnote-backref-idx=\"1\" aria-label=\"Back to reference 1\">↩</a>");
+    }
+
+    @Test
+    void marksAReferenceToNoNoteAsMissing() {
+        String page = renderer.render("Moon[^none] and [^moon].\n\n[^moon]: The moon.", chaptersDir, 16, NONE_BROKEN);
+
+        assertThat(page).contains("Moon<span class=\"missing-note\">[^none]</span> and <sup");
+    }
+
+    @Test
     void marksEachBlockWithWhereItStartsAndEndsInTheText() {
         String page = renderer.render("# The storm\n\nIt was dark.\nAnd cold.\n\n> Run!\n\n- north\n- south",
                 chaptersDir, 16, NONE_BROKEN);

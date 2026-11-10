@@ -103,6 +103,17 @@ class ChapterExporterTest {
     }
 
     @Test
+    void aChapterWithFootnotesStillExports() throws IOException {
+        Path target = tempDir.resolve("notes.pdf");
+
+        exporter.manuscriptPdf("Moon[^1] and stars.\n\n[^1]: A note.", "notes", BOOK, tempDir, target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            assertThat(new PDFTextStripper().getText(pdf)).contains("Moon and stars.");
+        }
+    }
+
+    @Test
     void aMissingImageDoesNotStopTheExport() throws IOException {
         Path target = tempDir.resolve("image.pdf");
 

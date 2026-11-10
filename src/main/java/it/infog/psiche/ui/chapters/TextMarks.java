@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.Chapter;
+import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.TextBlocks;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -134,8 +136,8 @@ final class TextMarks {
     }
 
     /**
-     * The parts of the text that are no prose, in order: its image lines, caption and file alike, and its links'
-     * addresses, which repetitions leave out.
+     * The parts of the text that are no prose, in order: its image lines, caption and file alike, its links'
+     * addresses and its footnotes' labels, which repetitions leave out.
      */
     List<TextRange> notProse() { return notProse; }
 
@@ -153,7 +155,7 @@ final class TextMarks {
 
     /**
      * Finds the text's images, in green, and those whose file is not there, in orange; its links, in teal, and those
-     * that lead nowhere, in orange; and the parts of both that are no prose.
+     * that lead nowhere, in orange; and the parts of both that are no prose, with the footnotes' labels.
      */
     private void findImagesAndLinks() {
 
@@ -177,7 +179,8 @@ final class TextMarks {
         //markers, no prose and blocks
         imageAndLinkMarkers = inOrder(Stream.concat(lines.stream().map(ImageLine::markers),
                 found.stream().map(TextLink::markers)).flatMap(List::stream));
-        notProse = inOrder(Stream.concat(images.stream(), found.stream().map(TextLink::address)));
+        notProse = inOrder(Stream.of(images.stream(), found.stream().map(TextLink::address),
+                Footnotes.of(text).ranges().stream()).flatMap(Function.identity()));
         blocks = inOrder(Stream.concat(images.stream(), found.stream().map(TextLink::range)));
     }
 
