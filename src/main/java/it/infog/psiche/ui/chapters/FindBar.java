@@ -4,9 +4,11 @@ import it.infog.psiche.markdown.Occurrences;
 import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.markdown.model.enums.LetterCase;
 import it.infog.psiche.ui.common.Icons;
+import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBase;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
@@ -17,7 +19,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.shape.SVGPath;
+import javafx.scene.layout.VBox;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,10 @@ import java.util.Optional;
  * goes from place to place with Enter and Shift+Enter in its field, F3 and Shift+F3 in the text (⌘G and ⌘⇧G on macOS,
  * which work everywhere too); F3 with it closed opens it with the last text looked for. It stays open as another
  * chapter opens, and looks for the same text there. The search itself is the {@link TextSearch}'s.
+ * <p>
+ * The arrow at its left shows a second row, as Ctrl+H does (⌘⌥F on macOS, which works everywhere too): the text to put
+ * in, Replace, which Enter in its field presses, and Replace all, after which the count tells how many were replaced.
+ * Both wait while the text cannot be edited.
  */
 final class FindBar {
 
@@ -38,6 +44,10 @@ final class FindBar {
     private static final List<KeyCombination> PREVIOUS = List.of(
             new KeyCodeCombination(KeyCode.F3, KeyCombination.SHIFT_DOWN),
             new KeyCodeCombination(KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN));
+    // ⌘H hides the app on macOS, whose own way is ⌘⌥F.
+    private static final List<KeyCombination> REPLACE = List.of(
+            new KeyCodeCombination(KeyCode.H, KeyCombination.SHORTCUT_DOWN),
+            new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN));
     private static final KeyCombination CLOSE = new KeyCodeCombination(KeyCode.ESCAPE);
     // The field's red border while the text is nowhere in the chapter.
     private static final PseudoClass NO_MATCHES = PseudoClass.getPseudoClass("no-matches");
@@ -45,11 +55,16 @@ final class FindBar {
     private final Manuscript manuscript;
     private final TextSearch search;
     private final FindField field = new FindField();
+    private final FindField replacement = new FindField();
     private final Label count = new Label();
     private final ToggleButton matchCase = new ToggleButton("Aa");
-    private final HBox bar;
+    private final ToggleButton replacing = new ToggleButton();
+    private final HBox replaceRow;
+    private final VBox bar;
     // True if the author last went back, so going round the chapter came from its start.
     private boolean backwards;
+    // What the count says after Replace all, until the author searches again; null meanwhile.
+    private String replacedNote;
 
     FindBar(Manuscript manuscript) {
 
@@ -58,12 +73,9 @@ final class FindBar {
         search.setOnChanged(this::showCount);
 
         //the text looked for
-        Label label = new Label("Find");
-        label.setMinWidth(Region.USE_PREF_SIZE);
         field.getStyleClass().add("find-field");
         field.textProperty().addListener((obs, old, text) -> find());
-        field.addEventFilter(KeyEvent.KEY_PRESSED, this::fieldKey);
-
+        field.addEventFilter(KeyEvent.KEY_PRESSED, event -> enterKey(event, () -> step(!event.isShiftDown())));
 
         //previous, next, capitals and close
         Button previous = iconButton("previous", "Previous (Shift+F3)", this::previous);
@@ -80,11 +92,28 @@ final class FindBar {
         Region space = new Region();
         HBox.setHgrow(space, Priority.ALWAYS);
 
-        bar = new HBox(label, field, previous, next, matchCase, count, space, close);
-        bar.getStyleClass().add("find-bar");
-        show(false);
+        //the arrow that shows the replace row, and the row, its label under Find's
+        replacing.setGraphic(icon("next"));
+        decorate(replacing, "find-replacing", "Replace (Ctrl+H)");
+        Region indent = new Region();
+        indent.minWidthProperty().bind(replacing.widthProperty());
+        replacement.getStyleClass().add("find-field");
+        replacement.addEventFilter(KeyEvent.KEY_PRESSED, event -> enterKey(event, this::replace));
+        Button replace = textButton("Replace", this::replace);
+        Button replaceAll = textButton("Replace all", this::replaceAll);
+        replaceRow = new HBox(indent, label("Replace"), replacement, replace, replaceAll);
+        replaceRow.getStyleClass().add("find-row");
+        replacing.selectedProperty().addListener((obs, old, shown) -> show(replaceRow, shown));
+        show(replaceRow, false);
 
-        // Before the text sees them, as Esc and F3 mean nothing to it.
+        HBox findRow = new HBox(replacing, label("Find"), field, previous, next, matchCase, count, space, close);
+        findRow.getStyleClass().add("find-row");
+        bar = new VBox(findRow, replaceRow);
+        bar.getStyleClass().add("find-bar");
+        bar.addEventFilter(KeyEvent.KEY_PRESSED, this::barKey);
+        show(bar, false);
+
+        // Before the text sees them, as Esc, F3 and Ctrl+H mean nothing to it.
         manuscript.node().addEventFilter(KeyEvent.KEY_PRESSED, this::editorKey);
     }
 
@@ -113,7 +142,19 @@ final class FindBar {
     void hide() {
 
         search.close();
-        show(false);
+        show(bar, false);
+    }
+
+    /**
+     * Ctrl+H: opens the bar as Find… does, with the replace row, the focus in the replacement once there is a text to
+     * look for.
+     */
+    private void openReplacing() {
+
+        if (!bar.isVisible())
+            open();
+        replacing.setSelected(true);
+        (field.getText().isEmpty() ? field : replacement).requestFocus();
     }
 
     /** The cross and Esc: hides the bar and gives the text the focus back, the place gone to still selected. */
@@ -125,20 +166,50 @@ final class FindBar {
 
     private void next() {
 
+        replacedNote = null;
         backwards = false;
         search.next();
     }
 
     private void previous() {
 
+        replacedNote = null;
         backwards = true;
         search.previous();
+    }
+
+    private void step(boolean forward) {
+
+        if (forward)
+            next();
+        else
+            previous();
+    }
+
+    private void replace() {
+
+        if (!manuscript.isEditable())
+            return;
+
+        replacedNote = null;
+        backwards = false;
+        search.replace(replacement.sought());
+    }
+
+    private void replaceAll() {
+
+        if (!manuscript.isEditable())
+            return;
+
+        int replaced = search.replaceAll(replacement.sought());
+        replacedNote = "Replaced " + replaced;
+        showCount();
     }
 
     /** Opens the bar, if closed, with {@code wanted} in the field, and goes to its first place from {@code origin}. */
     private void openWith(String wanted, int origin) {
 
-        show(true);
+        show(bar, true);
         search.open(origin);
         backwards = false;
         if (field.sought().equals(wanted))
@@ -152,23 +223,35 @@ final class FindBar {
         if (!bar.isVisible())
             return;
 
+        replacedNote = null;
         backwards = false;
         search.find(field.sought(), matchCase.isSelected() ? LetterCase.MATCHED : LetterCase.IGNORED);
     }
 
-    /** Enter, Shift+Enter and Esc in the field. */
-    private void fieldKey(KeyEvent event) {
+    /** Enter, without Ctrl, which types a line break, in one of the bar's fields: runs {@code action}. */
+    private static void enterKey(KeyEvent event, Runnable action) {
 
-        if (event.getCode() == KeyCode.ENTER && !event.isShortcutDown()) {
-            step(!event.isShiftDown());
-            event.consume();
-        } else if (CLOSE.match(event)) {
-            close();
-            event.consume();
-        }
+        if (event.getCode() != KeyCode.ENTER || event.isShortcutDown())
+            return;
+
+        action.run();
+        event.consume();
     }
 
-    /** F3, Shift+F3, ⌘G and ⌘⇧G, and Esc while the bar shows, in the text. */
+    /** Esc and Ctrl+H anywhere in the bar. */
+    private void barKey(KeyEvent event) {
+
+        if (CLOSE.match(event))
+            close();
+        else if (REPLACE.stream().anyMatch(key -> key.match(event)))
+            openReplacing();
+        else
+            return;
+
+        event.consume();
+    }
+
+    /** F3, Shift+F3, ⌘G and ⌘⇧G, Ctrl+H, and Esc while the bar shows, in the text. */
     private void editorKey(KeyEvent event) {
 
         boolean forward = NEXT.stream().anyMatch(key -> key.match(event));
@@ -183,26 +266,26 @@ final class FindBar {
                 if (back)
                     previous();
             }
+        } else if (REPLACE.stream().anyMatch(key -> key.match(event))) {
+            event.consume();
+            openReplacing();
         } else if (CLOSE.match(event) && bar.isVisible()) {
             close();
             event.consume();
         }
     }
 
-    private void step(boolean forward) {
-
-        if (forward)
-            next();
-        else
-            previous();
-    }
-
-    /** Tells which place the author is at among how many, or that there are none, as the search changes. */
+    /**
+     * Tells which place the author is at among how many, or that there are none, as the search changes; after Replace
+     * all, how many were replaced.
+     */
     private void showCount() {
 
-        boolean none = !field.getText().isEmpty() && search.count() == 0;
+        boolean none = replacedNote == null && !field.getText().isEmpty() && search.count() == 0;
         field.pseudoClassStateChanged(NO_MATCHES, none);
-        if (field.getText().isEmpty())
+        if (replacedNote != null)
+            count.setText(replacedNote);
+        else if (field.getText().isEmpty())
             count.setText("");
         else if (none)
             count.setText("No matches");
@@ -213,22 +296,50 @@ final class FindBar {
                     !search.wrapped() ? "" : backwards ? " · from the bottom" : " · from the top"));
     }
 
-    private void show(boolean shown) {
+    private static void show(Region region, boolean shown) {
 
-        bar.setVisible(shown);
-        bar.setManaged(shown);
+        region.setVisible(shown);
+        region.setManaged(shown);
+    }
+
+    private static Label label(String text) {
+
+        Label label = new Label(text);
+        label.getStyleClass().add("find-label");
+        return label;
+    }
+
+    /** A button that edits the text: it waits while the text cannot be edited. */
+    private Button textButton(String text, Runnable action) {
+
+        Button button = new Button(text);
+        button.setMinWidth(Region.USE_PREF_SIZE);
+        button.setFocusTraversable(false);
+        button.setOnAction(event -> action.run());
+        button.disableProperty().bind(Bindings.not(manuscript.editableProperty()));
+        return button;
     }
 
     private static Button iconButton(String icon, String tip, Runnable action) {
 
-        SVGPath shape = Icons.shape(icon);
-        shape.getStyleClass().add("find-bar-icon");
         Button button = new Button();
-        button.setGraphic(shape);
-        button.getStyleClass().add("find-bar-button");
-        button.setTooltip(new Tooltip(tip));
-        button.setFocusTraversable(false);
+        button.setGraphic(icon(icon));
+        decorate(button, "find-bar-button", tip);
         button.setOnAction(event -> action.run());
         return button;
+    }
+
+    private static Node icon(String name) {
+
+        Node shape = Icons.shape(name);
+        shape.getStyleClass().add("find-bar-icon");
+        return shape;
+    }
+
+    private static void decorate(ButtonBase button, String style, String tip) {
+
+        button.getStyleClass().add(style);
+        button.setTooltip(new Tooltip(tip));
+        button.setFocusTraversable(false);
     }
 }

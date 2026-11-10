@@ -479,17 +479,24 @@
 }
 
 /* The find bar, under the text, hidden until asked for: the field, the count, and small buttons drawn as the Open
-   recent list's cross; the field's border turns red while the text is nowhere in the chapter. */
+   recent list's cross; the field's border turns red while the text is nowhere in the chapter. Its arrow shows the
+   replace row under it, and turns down while it does. */
 .find-bar {
-    -fx-alignment: center-left;
-    -fx-spacing: 8;
-    -fx-padding: 8 24;
+    -fx-spacing: 6;
+    -fx-padding: 8 24 8 16;
     -fx-background-color: -desk-raised;
     -fx-border-color: -desk-edge transparent transparent transparent;
 }
 
-.find-bar > .label {
+.find-row {
+    -fx-alignment: center-left;
+    -fx-spacing: 8;
+}
+
+/* As wide as the longer of the two, Replace, so the fields line up. */
+.find-label {
     -fx-text-fill: -paper-dim;
+    -fx-min-width: 60;
 }
 
 /* A width of its own, so the buttons after it stay put as the count changes. */
@@ -520,6 +527,21 @@
 
 .find-bar-button:hover .find-bar-icon {
     -fx-stroke: -paper;
+}
+
+.find-replacing {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 6 4;
+    -fx-cursor: hand;
+}
+
+.find-replacing:hover .find-bar-icon {
+    -fx-stroke: -paper;
+}
+
+.find-replacing:selected .find-bar-icon {
+    -fx-rotate: 90;
 }
 
 .find-case {

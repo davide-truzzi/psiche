@@ -5,7 +5,7 @@ import it.infog.psiche.markdown.model.FoundPlace;
 import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.markdown.model.enums.LetterCase;
 import javafx.application.Platform;
-import org.fxmisc.richtext.StyleClassedTextArea;
+import org.fxmisc.richtext.MultiChangeBuilder;
 import org.fxmisc.richtext.model.TwoDimensional.Bias;
 
 import java.util.List;
@@ -24,6 +24,10 @@ import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
  * the selection, or, inside a link or an image in Default mode, which a selection takes whole, a mark of the
  * selection's look, with the caret before it. The view moves only when the place is out of it, and then puts it a
  * third of the way down, as the preview follows. As the text changes, the places are found again.
+ * <p>
+ * Replace changes the place gone to, as one step for Undo, and goes on after it; Replace all changes every place at
+ * once, as a single step. Both are edits of the app's own, so a place inside a link's text or an image's caption is
+ * replaced in Default mode too.
  */
 final class TextSearch {
 
@@ -31,7 +35,7 @@ final class TextSearch {
     private static final String STYLE = "found";
     private static final String CURRENT_STYLE = "found-current";
 
-    private final StyleClassedTextArea area;
+    private final PlainTextArea area;
     private final Supplier<List<TextRange>> markers;
     private final Supplier<List<TextRange>> blocks;
     private final Repetitions repetitions;
@@ -55,7 +59,7 @@ final class TextSearch {
      * @param markers the Markdown around the links' text and the images' captions, where nothing is found
      * @param blocks  the links and images a selection takes whole, in Default mode; none in Advanced
      */
-    TextSearch(StyleClassedTextArea area, Supplier<List<TextRange>> markers, Supplier<List<TextRange>> blocks,
+    TextSearch(PlainTextArea area, Supplier<List<TextRange>> markers, Supplier<List<TextRange>> blocks,
                Repetitions repetitions) {
 
         this.area = area;
@@ -122,6 +126,46 @@ final class TextSearch {
         goTo(Occurrences.previous(places, from));
     }
 
+    /**
+     * Replaces the place gone to with {@code replacement}, its line breaks as {@code \n}, as one step for Undo, and
+     * goes to the next place after it; with the author no longer at it, only goes to the next one, so they see what
+     * changes.
+     */
+    void replace(String replacement) {
+
+        if (index < 0 || !isAtCurrent()) {
+            next();
+            return;
+        }
+
+        TextRange place = places.get(index);
+        edit(() -> area.replaceText(place.start(), place.end(), replacement));
+        goTo(Occurrences.next(places, place.start() + replacement.length()));
+    }
+
+    /**
+     * Replaces every place with {@code replacement}, its line breaks as {@code \n}, as a single step for Undo.
+     *
+     * @return how many places were replaced
+     */
+    int replaceAll(String replacement) {
+
+        List<TextRange> replaced = places;
+        if (replaced.isEmpty())
+            return 0;
+
+        // Each place where it was found: a multi-change moves the later ones as the earlier change the text.
+        MultiChangeBuilder<?, ?, ?> change = area.createMultiChange(replaced.size());
+        replaced.forEach(place -> change.replaceText(place.start(), place.end(), replacement));
+        edit(change::commit);
+        // The selection moved with the text, onto none of it in particular.
+        area.deselect();
+        index = -1;
+        wrapped = false;
+        changed.run();
+        return replaced.size();
+    }
+
     /** Finds the places again once the change is over: the one after the caret counts as gone to, unshown. */
     void textChanged() {
 
@@ -148,6 +192,20 @@ final class TextSearch {
     int index() { return index; }
     /** True if going there went round the chapter's end or start. */
     boolean wrapped() { return wrapped; }
+
+    /**
+     * Runs {@code replacing}, an edit of the app's own, as a step of its own for Undo, and finds the places again at
+     * once, without waiting for the change to be over.
+     */
+    private void edit(Runnable replacing) {
+
+        current.show(List.of());
+        area.getUndoManager().preventMerge();
+        area.freely(replacing);
+        area.getUndoManager().preventMerge();
+        pending = false;
+        findPlaces();
+    }
 
     private void findPlaces() {
 

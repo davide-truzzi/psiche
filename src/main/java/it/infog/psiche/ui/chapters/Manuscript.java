@@ -10,6 +10,7 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
+import javafx.beans.value.ObservableBooleanValue;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -175,6 +176,7 @@ final class Manuscript {
     /** Lets the author edit the text, or only read it, as while the book is being exported. */
     void setEditable(boolean editable) { area.setEditable(editable); }
     boolean isEditable() { return area.isEditable(); }
+    ObservableBooleanValue editableProperty() { return area.editableProperty(); }
 
     // The welcome, while no book is open
 
