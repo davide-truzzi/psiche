@@ -9,11 +9,15 @@ import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.PlainText;
+import it.infog.psiche.markdown.model.Subscript;
+import it.infog.psiche.markdown.model.Superscript;
 
+import org.commonmark.ext.gfm.strikethrough.Strikethrough;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.BlockQuote;
 import org.commonmark.node.BulletList;
 import org.commonmark.node.Code;
+import org.commonmark.node.CustomNode;
 import org.commonmark.node.Emphasis;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HardLineBreak;
@@ -272,6 +276,18 @@ final class ChapterRenderer extends AbstractVisitor {
     public void visit(StrongEmphasis strongEmphasis) {
 
         span(Style.STRONG_EMPHASIS, strongEmphasis);
+    }
+
+    /** Strikethrough, subscript and superscript in spans of their styles; anything else, as its text alone. */
+    @Override
+    public void visit(CustomNode node) {
+
+        switch (node) {
+            case Strikethrough strikethrough -> span(Style.STRIKETHROUGH, strikethrough);
+            case Subscript subscript -> span(Style.SUBSCRIPT, subscript);
+            case Superscript superscript -> span(Style.SUPERSCRIPT, superscript);
+            default -> visitChildren(node);
+        }
     }
 
     /** {@code node}'s text in a span of {@code style}; spans nest, so bold inside italic is both. */

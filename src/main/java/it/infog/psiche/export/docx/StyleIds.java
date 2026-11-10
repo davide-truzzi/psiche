@@ -40,6 +40,9 @@ final class StyleIds {
             case EMPHASIS -> "Emphasis";
             case STRONG_EMPHASIS -> "Strong";
             case SOURCE_TEXT -> "SourceText";
+            case STRIKETHROUGH -> "Strikethrough";
+            case SUBSCRIPT -> "Subscript";
+            case SUPERSCRIPT -> "Superscript";
             case INDEX_LINK -> "IndexLink";
             case BULLETS, NUMBERING -> throw new IllegalArgumentException(style + " is a numbering, not a style");
         };

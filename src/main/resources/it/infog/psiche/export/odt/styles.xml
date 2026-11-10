@@ -175,6 +175,18 @@
             <style:text-properties style:font-name="Liberation Mono" fo:font-size="10.5pt"/>
         </style:style>
 
+        <style:style style:name="Strikethrough" style:family="text">
+            <style:text-properties style:text-line-through-style="solid" style:text-line-through-type="single"/>
+        </style:style>
+
+        <style:style style:name="Subscript" style:family="text">
+            <style:text-properties style:text-position="sub 58%"/>
+        </style:style>
+
+        <style:style style:name="Superscript" style:family="text">
+            <style:text-properties style:text-position="super 58%"/>
+        </style:style>
+
         <text:list-style style:name="Bullets">
             <text:list-level-style-bullet text:level="1" text:bullet-char="•">
                 <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">

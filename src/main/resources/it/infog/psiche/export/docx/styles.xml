@@ -321,6 +321,27 @@
         </w:rPr>
     </w:style>
 
+    <w:style w:type="character" w:styleId="Strikethrough">
+        <w:name w:val="Strikethrough"/>
+        <w:rPr>
+            <w:strike/>
+        </w:rPr>
+    </w:style>
+
+    <w:style w:type="character" w:styleId="Subscript">
+        <w:name w:val="Subscript"/>
+        <w:rPr>
+            <w:vertAlign w:val="subscript"/>
+        </w:rPr>
+    </w:style>
+
+    <w:style w:type="character" w:styleId="Superscript">
+        <w:name w:val="Superscript"/>
+        <w:rPr>
+            <w:vertAlign w:val="superscript"/>
+        </w:rPr>
+    </w:style>
+
     <w:style w:type="character" w:styleId="Hyperlink">
         <w:name w:val="Hyperlink"/>
         <w:rPr>

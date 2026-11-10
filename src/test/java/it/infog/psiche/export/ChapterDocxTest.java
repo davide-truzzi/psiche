@@ -87,6 +87,20 @@ class ChapterDocxTest {
     }
 
     @Test
+    void keepsStrikethroughSubscriptAndSuperscriptInTheirStyles() throws IOException {
+        Path target = tempDir.resolve("scripts.docx");
+
+        exporter.manuscriptDocx("~~gone~~ H~2~O x^2^", "scripts", BOOK, tempDir, target);
+
+        assertThat(entry(target, DOCUMENT)).contains(
+                "<w:rPr><w:rStyle w:val=\"Strikethrough\"/></w:rPr><w:t xml:space=\"preserve\">gone</w:t>",
+                "<w:rPr><w:rStyle w:val=\"Subscript\"/></w:rPr><w:t xml:space=\"preserve\">2</w:t>",
+                "<w:rPr><w:rStyle w:val=\"Superscript\"/></w:rPr><w:t xml:space=\"preserve\">2</w:t>");
+        assertThat(entry(target, "word/styles.xml")).contains("w:styleId=\"Strikethrough\"",
+                "w:styleId=\"Subscript\"", "w:styleId=\"Superscript\"");
+    }
+
+    @Test
     void eachNumberedListStartsAtItsOwnNumber() throws IOException {
         Path target = tempDir.resolve("lists.docx");
 

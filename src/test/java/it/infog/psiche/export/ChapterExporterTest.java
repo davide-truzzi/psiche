@@ -141,6 +141,20 @@ class ChapterExporterTest {
     }
 
     @Test
+    void odtKeepsStrikethroughSubscriptAndSuperscriptInTheirStyles() throws IOException {
+        Path target = tempDir.resolve("scripts.odt");
+
+        exporter.manuscriptOdt("~~gone~~ H~2~O x^2^", "scripts", BOOK, tempDir, target);
+
+        assertThat(entry(target, "content.xml")).contains(
+                "<text:span text:style-name=\"Strikethrough\">gone</text:span>",
+                "H<text:span text:style-name=\"Subscript\">2</text:span>O",
+                "x<text:span text:style-name=\"Superscript\">2</text:span>");
+        assertThat(entry(target, "styles.xml")).contains("style:name=\"Strikethrough\"",
+                "style:text-position=\"sub 58%\"", "style:text-position=\"super 58%\"");
+    }
+
+    @Test
     void odtKeepsTheChapterInNamedStyles() throws IOException {
         Path target = tempDir.resolve("styles.odt");
         String chapter = "# Alba\n\nÈ così — *piano*, **forte**.\n\nSecond.\n\n---\n\nAfter <b>this</b> & that.\n\n"
