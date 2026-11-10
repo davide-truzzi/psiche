@@ -43,7 +43,7 @@ public final class MarkdownRenderer {
     private static final String SOURCE = "src";
     private static final String MISSING = "0";
 
-    private final Parser parser = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS).build();
+    private final Parser parser = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS);
     private final Template page = Template.load(MarkdownRenderer.class, "preview.html");
     private final String stylesheet;
 
@@ -76,7 +76,7 @@ public final class MarkdownRenderer {
     public String renderArticle(String markdown, Path baseDirectory, Predicate<String> broken) {
 
         Function<Heading, String> anchors = HeadingAnchors.namer();
-        HtmlRenderer renderer = HtmlRenderer.builder()
+        HtmlRenderer renderer = MarkdownSyntax.htmlRenderer()
                 .softbreak("<br>") // Forces <br> for all soft breaks
                 .nodeRendererFactory(context -> new FigureRenderer(context, image -> true))
                 .nodeRendererFactory(context -> new LinkRenderer(context, broken))

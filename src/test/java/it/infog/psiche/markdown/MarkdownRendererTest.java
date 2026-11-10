@@ -31,6 +31,13 @@ class MarkdownRendererTest {
     }
 
     @Test
+    void drawsStrikethroughSubscriptAndSuperscript() {
+        String page = renderer.render("~~Water~~ H~2~O, the 1^st^.", chaptersDir, 16, NONE_BROKEN);
+
+        assertThat(page).contains("<del>Water</del> H<sub>2</sub>O, the 1<sup>st</sup>.");
+    }
+
+    @Test
     void marksEachBlockWithWhereItStartsAndEndsInTheText() {
         String page = renderer.render("# The storm\n\nIt was dark.\nAnd cold.\n\n> Run!\n\n- north\n- south",
                 chaptersDir, 16, NONE_BROKEN);

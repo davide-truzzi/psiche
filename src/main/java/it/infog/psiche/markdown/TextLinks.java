@@ -55,8 +55,7 @@ public final class TextLinks {
     private static final String HTTPS = "https://";
     private static final String MAILTO = "mailto:";
 
-    private static final Parser PARSER =
-            Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES).build();
+    private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS_AND_INLINES);
 
     private TextLinks() {
     }

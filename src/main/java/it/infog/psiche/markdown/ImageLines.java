@@ -29,8 +29,7 @@ public final class ImageLines {
     // How every image's Markdown starts: a text without it has none, and need not be parsed.
     private static final String IMAGE_START = "![";
 
-    private static final Parser PARSER =
-            Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES).build();
+    private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS_AND_INLINES);
 
     private ImageLines() {
     }

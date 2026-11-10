@@ -8,6 +8,7 @@ import it.infog.psiche.markdown.FigureRenderer;
 import it.infog.psiche.markdown.HeadingAnchors;
 import it.infog.psiche.markdown.HtmlChildren;
 import it.infog.psiche.markdown.HtmlComments;
+import it.infog.psiche.markdown.MarkdownSyntax;
 import it.infog.psiche.markdown.PlainText;
 import org.commonmark.node.Heading;
 import org.commonmark.node.HtmlBlock;
@@ -94,7 +95,7 @@ public final class XhtmlRenderer {
 
         // Raw HTML is escaped, since the PDF renderer and e-readers only read well-formed XHTML.
         Function<Heading, String> anchors = HeadingAnchors.namer();
-        HtmlRenderer.Builder builder = HtmlRenderer.builder()
+        HtmlRenderer.Builder builder = MarkdownSyntax.htmlRenderer()
                 .escapeHtml(true)
                 .softbreak("<br />")
                 .nodeRendererFactory(context -> new LinkRenderer(context, chapter, links, hrefs))

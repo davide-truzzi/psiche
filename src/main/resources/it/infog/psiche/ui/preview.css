@@ -177,6 +177,11 @@ a {
     color: var(--orange);
 }
 
+/* A subscript or a superscript, H₂O or X², set no higher than its line, so the lines keep their spacing. */
+sub, sup {
+    line-height: 0;
+}
+
 code, pre {
     font-family: "Courier Prime", monospace;
     font-size: 0.9em;

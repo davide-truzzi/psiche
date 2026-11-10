@@ -1,5 +1,6 @@
 package it.infog.psiche.spelling;
 
+import it.infog.psiche.markdown.MarkdownSyntax;
 import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.spelling.model.Word;
 import org.commonmark.node.AbstractVisitor;
@@ -29,8 +30,7 @@ public final class ProseWords {
     private static final Pattern DIGIT = Pattern.compile("\\p{N}");
     // Written in the prose but not words: web and mail addresses, and HTML entities such as &amp;.
     private static final Pattern NOT_WORDS = Pattern.compile("(?:https?://|www\\.)\\S+|\\S+@\\S+\\.\\S+|&#?\\w+;");
-    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES)
-            .build();
+    private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS_AND_INLINES);
 
     private ProseWords() {
     }

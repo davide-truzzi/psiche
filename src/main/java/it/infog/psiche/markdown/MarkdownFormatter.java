@@ -40,7 +40,7 @@ public final class MarkdownFormatter {
     // The markers of comments inside a selection being commented, with the space Comment puts inside them.
     private static final Pattern COMMENT_MARKER = Pattern.compile("<!-- ?| ?-->");
 
-    private static final Parser PARSER = Parser.builder().includeSourceSpans(IncludeSourceSpans.BLOCKS_AND_INLINES).build();
+    private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS_AND_INLINES);
 
     private MarkdownFormatter() {
     }

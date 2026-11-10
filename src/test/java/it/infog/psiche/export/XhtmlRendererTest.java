@@ -39,6 +39,12 @@ class XhtmlRendererTest {
     }
 
     @Test
+    void strikethroughSubscriptAndSuperscriptKeepTheirText() {
+        assertThat(render("~~Water~~ H~2~O, the 1^st^.")).isEqualTo(
+                "<p><del>Water</del> H<sub>2</sub>O, the 1<sup>st</sup>.</p>\n");
+    }
+
+    @Test
     void webAndMailLinksStayLinksAndLinksIntoTheBookKeepOnlyTheirText() {
         String xhtml = render("[site](https://example.org), [mail](mailto:a@b.it) and [the *next* one](02-due.md).");
 

@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
  */
 public final class TextCounter {
 
-    private static final Parser PARSER = Parser.builder().build();
+    private static final Parser PARSER = MarkdownSyntax.parser();
     // A word has at least one letter or digit, so a dash or an ellipsis between spaces is not one.
     private static final Pattern WORD = Pattern.compile("[\\p{L}\\p{N}]");
 
