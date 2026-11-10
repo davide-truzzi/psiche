@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!-- The document's settings: tab stops every 1.25cm, and Word's current layout rather than an older version's. -->
+<!-- The document's settings: tab stops every 1.25cm, the footnotes' separators, and Word's current layout rather
+     than an older version's. -->
 <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
     <w:defaultTabStop w:val="709"/>
     <w:characterSpacingControl w:val="doNotCompress"/>
+    <w:footnotePr>
+        <w:numStart w:val="1"/>
+        <w:footnote w:id="-1"/>
+        <w:footnote w:id="0"/>
+    </w:footnotePr>
     <w:compat>
         <w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/>
     </w:compat>

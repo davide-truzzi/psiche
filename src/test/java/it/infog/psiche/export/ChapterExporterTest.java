@@ -155,6 +155,23 @@ class ChapterExporterTest {
     }
 
     @Test
+    void odtPutsANoteAtItsFirstReferenceAndANoteReferenceAtTheNext() throws IOException {
+        Path target = tempDir.resolve("notes.odt");
+
+        exporter.manuscriptOdt("Moon[^m] and sun[^m].\n\n[^m]: A note.\n\n    Second.", "notes", BOOK, tempDir,
+                target);
+
+        assertThat(entry(target, "content.xml")).contains(
+                "Moon<text:note text:id=\"ftn1\" text:note-class=\"footnote\"><text:note-citation>1"
+                        + "</text:note-citation><text:note-body><text:p text:style-name=\"Footnote\">A note.</text:p>\n"
+                        + "<text:p text:style-name=\"Footnote\">Second.</text:p>\n</text:note-body></text:note> and sun",
+                "<text:note-ref text:note-class=\"footnote\" text:reference-format=\"text\" "
+                        + "text:ref-name=\"ftn1\">1</text:note-ref>");
+        assertThat(entry(target, "styles.xml")).contains("text:start-numbering-at=\"chapter\"",
+                "style:name=\"Footnote\"");
+    }
+
+    @Test
     void odtKeepsTheChapterInNamedStyles() throws IOException {
         Path target = tempDir.resolve("styles.odt");
         String chapter = "# Alba\n\nÈ così — *piano*, **forte**.\n\nSecond.\n\n---\n\nAfter <b>this</b> & that.\n\n"

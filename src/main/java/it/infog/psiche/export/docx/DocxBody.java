@@ -19,7 +19,10 @@ import java.util.Map;
  * WordprocessingML differs from ODF in three ways that shape this class. Text sits in runs, and a run takes a single
  * character style, so spans are kept open on a stack and each run is styled from it. A list item is a paragraph that
  * names its list's instance in {@link Numbering}. And the pages' layout, with or without the header, ends each section
- * in its last paragraph, so the book's front matter is closed by going back to the paragraph before the first chapter.
+ * in its last paragraph, so the book's front matter is closed by going back to the paragraph before the first chapter,
+ * and each chapter by going back to its last one: every chapter is a section of its own, on a new page, so its
+ * footnotes are numbered from 1. A footnote's note is written apart, for {@code footnotes.xml}, its reference in the
+ * text.
  */
 final class DocxBody implements DocumentBody {
 
@@ -29,6 +32,12 @@ final class DocxBody implements DocumentBody {
             w:header="794" w:footer="709" w:gutter="0"/>""";
     private static final String HEADER = "<w:headerReference w:type=\"default\" r:id=\"header\"/>";
     private static final String NUMBERED_FROM_1 = "<w:pgNumType w:start=\"1\"/>";
+    private static final String NOTES_FROM_1 =
+            "<w:footnotePr><w:numStart w:val=\"1\"/><w:numRestart w:val=\"eachSect\"/></w:footnotePr>";
+    // A note's paragraph after its first, set in as the first one's text, after its number.
+    private static final String NOTE_INDENT = "<w:ind w:left=\"284\" w:hanging=\"0\"/>";
+    private static final String NOTE_REFERENCE = "<w:rPr><w:rStyle w:val=\"%s\"/></w:rPr>"
+            .formatted(StyleIds.of(Style.FOOTNOTE_ANCHOR));
     // The text runs keep their spaces, which XML would otherwise let a word processor collapse.
     private static final String TEXT_START = "<w:t xml:space=\"preserve\">";
     // What each span's character style looks like, given directly to a run inside another span, which takes one style
@@ -42,7 +51,10 @@ final class DocxBody implements DocumentBody {
             Map.entry(StyleIds.of(Style.SOURCE_TEXT), "<w:sz w:val=\"21\"/>"),
             Map.entry(StyleIds.HYPERLINK, "<w:u w:val=\"single\"/>"));
 
-    private final StringBuilder xml = new StringBuilder();
+    private final StringBuilder body = new StringBuilder();
+    private final StringBuilder notes = new StringBuilder();
+    // Where the text goes: the body, or a note being written.
+    private StringBuilder xml = body;
     private final Numbering numbering = new Numbering();
     private final Relationships relationships = new Relationships();
 
@@ -61,9 +73,17 @@ final class DocxBody implements DocumentBody {
     private final Map<String, String> bookmarkNames = new HashMap<>();
     // Where the last paragraph's properties end, for a section to end in it; -1 before the first paragraph.
     private int lastPropertiesEnd = -1;
-    // How many bookmarks and drawings are written, each numbered in the document from 1.
+    // How many bookmarks, drawings and notes are written, each numbered in the document from 1.
     private int bookmarks;
     private int drawings;
+    private int notesWritten;
+    // How many chapters' sections are closed: the first one numbers its pages from 1.
+    private int chapterSections;
+    // True from a note's start until its first paragraph, which shows its number.
+    private boolean noteStarting;
+    // The spans open around a note's reference, and whether the text ended with a space there, back once it closes.
+    private Deque<String> spansAroundNote;
+    private boolean endedWithSpace;
 
     @Override
     public void startPage(PageStart start, String bookmark) {
@@ -74,9 +94,12 @@ final class DocxBody implements DocumentBody {
             closeParagraph();
         }
 
-        // The front matter's section, without the header, ends on the page before the first chapter.
+        // The front matter's section, without the header, ends on the page before the first chapter, and a chapter's on
+        // the page before the next one.
         if (start == PageStart.FIRST_CHAPTER && lastPropertiesEnd >= 0)
-            xml.insert(lastPropertiesEnd, section(false));
+            body.insert(lastPropertiesEnd, section(false, true));
+        if (start == PageStart.CHAPTER && lastPropertiesEnd >= 0)
+            body.insert(lastPropertiesEnd, section(true, chapterSections++ == 0));
 
         this.pageStart = start;
         this.bookmark = bookmark;
@@ -85,9 +108,14 @@ final class DocxBody implements DocumentBody {
     @Override
     public void openParagraph(Style style) {
 
+        if (xml == notes) {
+            noteParagraph(style);
+            return;
+        }
+
         //properties
         xml.append("<w:p><w:pPr><w:pStyle w:val=\"%s\"/>".formatted(StyleIds.of(style)));
-        if (pageStart == PageStart.CONTENTS || pageStart == PageStart.CHAPTER)
+        if (pageStart == PageStart.CONTENTS)
             xml.append("<w:pageBreakBefore/>");
         appendListItem();
         lastPropertiesEnd = xml.length();
@@ -206,6 +234,39 @@ final class DocxBody implements DocumentBody {
         endsWithSpace = false;
     }
 
+    /** The note's reference in the text, then the note, apart, its text in no span of the text around it. */
+    @Override
+    public void openNote(int number) {
+
+        notesWritten++;
+        xml.append("<w:r>").append(NOTE_REFERENCE).append("<w:footnoteReference w:id=\"%d\"/></w:r>"
+                .formatted(notesWritten));
+
+        spansAroundNote = new ArrayDeque<>(spans);
+        spans.clear();
+        endedWithSpace = endsWithSpace;
+        xml = notes;
+        xml.append("<w:footnote w:id=\"%d\">".formatted(notesWritten));
+        noteStarting = true;
+    }
+
+    @Override
+    public void closeNote() {
+
+        xml.append("</w:footnote>\n");
+        xml = body;
+        spans.addAll(spansAroundNote);
+        endsWithSpace = endedWithSpace;
+    }
+
+    /** The note's number, raised as Word raises a reference; Word does not keep it in step, as it is text. */
+    @Override
+    public void noteAgain(int number) {
+
+        xml.append("<w:r>").append(NOTE_REFERENCE).append(TEXT_START).append(number).append("</w:t></w:r>");
+        endsWithSpace = false;
+    }
+
     @Override
     public void image(Picture picture, String title) {
 
@@ -230,10 +291,19 @@ final class DocxBody implements DocumentBody {
         closeParagraph();
     }
 
-    /** The body written so far, ending with the last section: the manuscript's pages, with the header, from page 1. */
+    /**
+     * The body written so far, ending with the last section: the manuscript's pages, with the header, from page 1
+     * unless an earlier chapter's section starts there.
+     */
     String xml() {
 
-        return xml + section(true);
+        return body + section(true, chapterSections == 0);
+    }
+
+    /** The notes of the body, for {@code footnotes.xml}. */
+    String notes() {
+
+        return notes.toString();
     }
 
     /** The lists of the body, for {@code numbering.xml}. */
@@ -246,6 +316,17 @@ final class DocxBody implements DocumentBody {
     String relationships() {
 
         return relationships.xml();
+    }
+
+    /** A paragraph of a note; its first starts with the note's number, as Word writes it, the others set in. */
+    private void noteParagraph(Style style) {
+
+        xml.append("<w:p><w:pPr><w:pStyle w:val=\"%s\"/>%s</w:pPr>"
+                .formatted(StyleIds.of(style), noteStarting ? "" : NOTE_INDENT));
+        if (noteStarting)
+            xml.append("<w:r>").append(NOTE_REFERENCE).append("<w:footnoteRef/></w:r><w:r><w:tab/></w:r>");
+        noteStarting = false;
+        endsWithSpace = true;
     }
 
     /** The properties that start a list item's first paragraph with its bullet or number, or indent a later one. */
@@ -295,9 +376,13 @@ final class DocxBody implements DocumentBody {
         return bookmarkNames.computeIfAbsent(name, given -> "_Bookmark" + (bookmarkNames.size() + 1));
     }
 
-    /** The properties of a section of pages, with or without the header, numbered from 1. */
-    private static String section(boolean header) {
+    /**
+     * The properties of a section of pages, with or without the header, its pages numbered from 1 or on from the
+     * section before; its footnotes are numbered from 1.
+     */
+    private static String section(boolean header, boolean numberedFrom1) {
 
-        return "<w:sectPr>" + (header ? HEADER : "") + PAGE + NUMBERED_FROM_1 + "</w:sectPr>";
+        return "<w:sectPr>" + (header ? HEADER : "") + NOTES_FROM_1 + PAGE + (numberedFrom1 ? NUMBERED_FROM_1 : "")
+                + "</w:sectPr>";
     }
 }

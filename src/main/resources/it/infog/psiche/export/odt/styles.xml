@@ -187,6 +187,25 @@
             <style:text-properties style:text-position="super 58%"/>
         </style:style>
 
+        <!-- Footnotes, at the foot of the page, smaller and single-spaced, numbered from 1 in every chapter (each
+             starts with a level-1 heading); the number raised at the reference, as in the PDF. -->
+        <style:style style:name="Footnote" style:family="paragraph" style:parent-style-name="Standard"
+                     style:class="extra">
+            <style:paragraph-properties fo:margin-left="0.5cm" fo:text-indent="-0.5cm" fo:line-height="115%"/>
+            <style:text-properties fo:font-size="10pt"/>
+        </style:style>
+
+        <style:style style:name="Footnote_20_Symbol" style:display-name="Footnote Symbol" style:family="text"/>
+
+        <style:style style:name="Footnote_20_anchor" style:display-name="Footnote anchor" style:family="text">
+            <style:text-properties style:text-position="super 58%"/>
+        </style:style>
+
+        <text:notes-configuration text:note-class="footnote" text:citation-style-name="Footnote_20_Symbol"
+                                  text:citation-body-style-name="Footnote_20_anchor"
+                                  text:default-style-name="Footnote" style:num-format="1" text:start-value="0"
+                                  text:footnotes-position="page" text:start-numbering-at="chapter"/>
+
         <text:list-style style:name="Bullets">
             <text:list-level-style-bullet text:level="1" text:bullet-char="•">
                 <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
@@ -241,7 +260,11 @@
         <style:page-layout style:name="Manuscript">
             <style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm"
                                           style:print-orientation="portrait" fo:margin-top="1.4cm"
-                                          fo:margin-bottom="2.5cm" fo:margin-left="2.5cm" fo:margin-right="2.5cm"/>
+                                          fo:margin-bottom="2.5cm" fo:margin-left="2.5cm" fo:margin-right="2.5cm">
+                <style:footnote-sep style:width="0.018cm" style:distance-before-sep="0.3cm"
+                                    style:distance-after-sep="0.2cm" style:line-style="solid"
+                                    style:adjustment="left" style:rel-width="25%" style:color="#000000"/>
+            </style:page-layout-properties>
             <style:header-style>
                 <style:header-footer-properties fo:min-height="0.5cm" fo:margin-bottom="0.6cm"/>
             </style:header-style>

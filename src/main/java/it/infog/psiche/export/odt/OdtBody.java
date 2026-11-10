@@ -7,6 +7,7 @@ import it.infog.psiche.export.document.model.enums.PageStart;
 import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.export.odt.model.PageStyle;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -26,6 +27,9 @@ final class OdtBody implements DocumentBody {
     private String bookmark;
     // The number the list just opened starts at, for its first item; null when it counts from 1, or once written.
     private Integer listStart;
+    // How many notes are written, which names each one in the document, and the name of the chapter's note by number.
+    private int notes;
+    private final Map<Integer, String> noteNames = new HashMap<>();
 
     @Override
     public void startPage(PageStart start, String bookmark) {
@@ -138,6 +142,36 @@ final class OdtBody implements DocumentBody {
     public void lineBreak() {
 
         xml.append("<text:line-break/>");
+    }
+
+    /**
+     * A LibreOffice footnote, holding its note's paragraphs; LibreOffice numbers it, from 1 in each chapter, as the
+     * stylesheet's notes configuration says, so its number here is only what shows until it does.
+     */
+    @Override
+    public void openNote(int number) {
+
+        notes++;
+        String name = "ftn" + notes;
+        noteNames.put(number, name);
+        xml.append("<text:note text:id=\"%s\" text:note-class=\"footnote\">".formatted(name))
+                .append("<text:note-citation>%d</text:note-citation><text:note-body>".formatted(number));
+    }
+
+    @Override
+    public void closeNote() {
+
+        xml.append("</text:note-body></text:note>");
+    }
+
+    /** A reference to the note's number, which LibreOffice keeps the same as the note's. */
+    @Override
+    public void noteAgain(int number) {
+
+        xml.append("<text:span text:style-name=\"%s\">".formatted(Style.FOOTNOTE_ANCHOR.odtName()))
+                .append("<text:note-ref text:note-class=\"footnote\" text:reference-format=\"text\" "
+                        + "text:ref-name=\"%s\">%d</text:note-ref>".formatted(noteNames.get(number), number))
+                .append("</text:span>");
     }
 
     @Override

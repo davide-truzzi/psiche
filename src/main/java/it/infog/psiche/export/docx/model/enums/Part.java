@@ -16,6 +16,9 @@ public enum Part {
             "application/vnd.openxmlformats-package.relationships+xml"),
     STYLES("word/styles.xml", "styles.xml",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"),
+    /** The footnotes' notes, which the text refers to by number. */
+    FOOTNOTES("word/footnotes.xml", "footnotes.xml",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"),
     /** The bullets and numbers of the lists. */
     NUMBERING("word/numbering.xml", "numbering.xml",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"),
