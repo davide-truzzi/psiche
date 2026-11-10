@@ -34,7 +34,8 @@ import java.util.Optional;
  * <p>
  * The arrow at its left shows a second row, as Ctrl+H does (⌘⌥F on macOS, which works everywhere too): the text to put
  * in, Replace, which Enter in its field presses, and Replace all, after which the count tells how many were replaced.
- * Both wait while the text cannot be edited.
+ * Both wait while the text cannot be edited. Undo and Redo in the bar act on the text, not on its fields, so a
+ * replacement made by mistake is taken back at once, the text to put in kept.
  */
 final class FindBar {
 
@@ -49,6 +50,11 @@ final class FindBar {
             new KeyCodeCombination(KeyCode.H, KeyCombination.SHORTCUT_DOWN),
             new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN));
     private static final KeyCombination CLOSE = new KeyCodeCombination(KeyCode.ESCAPE);
+    private static final KeyCombination UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN);
+    // As the text itself redoes.
+    private static final List<KeyCombination> REDO = List.of(
+            new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
+            new KeyCodeCombination(KeyCode.Y, KeyCombination.SHORTCUT_DOWN));
     // The field's red border while the text is nowhere in the chapter.
     private static final PseudoClass NO_MATCHES = PseudoClass.getPseudoClass("no-matches");
 
@@ -71,6 +77,8 @@ final class FindBar {
         this.manuscript = manuscript;
         search = manuscript.search();
         search.setOnChanged(this::showCount);
+        // Any change after Replace all, as its Undo, makes the count tell the places again.
+        manuscript.textProperty().addListener((obs, old, text) -> replacedNote = null);
 
         //the text looked for
         field.getStyleClass().add("find-field");
@@ -206,6 +214,13 @@ final class FindBar {
         showCount();
     }
 
+    /** Runs {@code edit} on the text, unless it cannot be edited now, as while the book is exported. */
+    private void editText(Runnable edit) {
+
+        if (manuscript.isEditable())
+            edit.run();
+    }
+
     /** Opens the bar, if closed, with {@code wanted} in the field, and goes to its first place from {@code origin}. */
     private void openWith(String wanted, int origin) {
 
@@ -238,13 +253,17 @@ final class FindBar {
         event.consume();
     }
 
-    /** Esc and Ctrl+H anywhere in the bar. */
+    /** Esc, Ctrl+H, and Undo and Redo for the text, anywhere in the bar. */
     private void barKey(KeyEvent event) {
 
         if (CLOSE.match(event))
             close();
         else if (REPLACE.stream().anyMatch(key -> key.match(event)))
             openReplacing();
+        else if (UNDO.match(event))
+            editText(manuscript::undo);
+        else if (REDO.stream().anyMatch(key -> key.match(event)))
+            editText(manuscript::redo);
         else
             return;
 

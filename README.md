@@ -339,8 +339,8 @@ my-book/              ← the folder; the book's title is set in its properties
     shows in the selection's red, with the caret before the link or image.
   - The arrow at the bar's left, or `Ctrl+H` (`Cmd+Option+F` on macOS), shows **Replace**. **Replace** changes the
     place you are at and goes to the next; **Replace all** changes every place at once and tells how many. Each
-    Replace is one step for Undo, and Replace all a single one. With **Aa** on, only the places with the same capitals
-    are replaced.
+    Replace is one step for Undo, and Replace all a single one; `Ctrl+Z` in the bar undoes it in the text at once,
+    and the bar's fields keep what you typed. With **Aa** on, only the places with the same capitals are replaced.
   - The search is in the open chapter only. The bar stays open as you open another chapter, and looks there for the
     same text. `Esc` or its cross closes it, the place you were at still selected.
 - **Save chapters** in the Book menu, or `Ctrl+Shift+S` / `Cmd+Shift+S`, saves every chapter with unsaved changes. To
