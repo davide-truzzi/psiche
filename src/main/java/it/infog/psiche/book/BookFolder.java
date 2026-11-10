@@ -344,11 +344,10 @@ public final class BookFolder {
         return new Chapter(file);
     }
 
-    /** Resolves {@code name + suffix} against {@code parent}, accepting only a single, non-blank path element. */
     /** Why the book folder {@code root} cannot be created, in words the author can act on. */
     private static UncheckedIOException cannotCreate(Path root, IOException cause) {
 
-        String reason = FileErrors.reason(cause);
+        String reason = FileErrors.reason(cause, root);
         return new UncheckedIOException("Cannot create the book folder %s. %s".formatted(root, reason), cause);
     }
 
@@ -362,6 +361,7 @@ public final class BookFolder {
         }
     }
 
+    /** Resolves {@code name + suffix} against {@code parent}, accepting only a single, non-blank path element. */
     private static Path resolveName(Path parent, String name, String suffix, String subject, String kind) {
 
         String stripped = name == null ? "" : name.strip();

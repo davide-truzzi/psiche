@@ -42,6 +42,13 @@ public final class WriterApp extends Application {
         LogFile.useWhenPackaged();
     }
 
+    // Before the preview's web engine is made. By default the engine drives its timers from the screen's pulses, and
+    // to have them it keeps JavaFX pulsing 60 times a second for as long as the app runs, even when nothing moves:
+    // power taken from a laptop's battery. Its timers then wait on a thread of their own, and the app rests when idle.
+    static {
+        System.setProperty("com.sun.webkit.platformticks", "false");
+    }
+
     private static final Logger log = LoggerFactory.getLogger(WriterApp.class);
 
     // The app's icon in the sizes window managers and taskbars ask for; the small ones are drawn by hand, not scaled.
