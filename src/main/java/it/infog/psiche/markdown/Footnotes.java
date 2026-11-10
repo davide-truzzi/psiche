@@ -243,7 +243,7 @@ public final class Footnotes {
     }
 
     /** A label as the parser compares it: its spaces as one, its capitals ignored. */
-    static String key(String label) {
+    public static String key(String label) {
 
         return label.strip().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT);
     }

@@ -45,6 +45,23 @@ class XhtmlRendererTest {
     }
 
     @Test
+    void theManuscriptPutsANoteAtItsFirstReferenceAndOnlyItsNumberAtTheNext() {
+        String xhtml = render("Moon[^moon] and sun[^moon].\n\n[^moon]: A *full*\nmoon.\n\n    Second.");
+
+        assertThat(xhtml).isEqualTo("<p>Moon<span class=\"footnote\"><span class=\"note-paragraph\">A <em>full</em>"
+                + "<br />moon.</span><span class=\"note-paragraph\">Second.</span></span> and sun"
+                + "<sup class=\"footnote-again\">1</sup>.</p>\n");
+    }
+
+    @Test
+    void theManuscriptNumbersNotesInTheOrderOfTheirFirstReference() {
+        String xhtml = render("A[^b] b[^a] c[^b].\n\n[^a]: Note a.\n\n[^b]: Note b.");
+
+        assertThat(xhtml).contains("A<span class=\"footnote\"><span class=\"note-paragraph\">Note b.</span></span>",
+                "c<sup class=\"footnote-again\">1</sup>");
+    }
+
+    @Test
     void webAndMailLinksStayLinksAndLinksIntoTheBookKeepOnlyTheirText() {
         String xhtml = render("[site](https://example.org), [mail](mailto:a@b.it) and [the *next* one](02-due.md).");
 

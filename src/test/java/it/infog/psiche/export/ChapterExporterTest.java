@@ -103,13 +103,13 @@ class ChapterExporterTest {
     }
 
     @Test
-    void aChapterWithFootnotesStillExports() throws IOException {
+    void manuscriptPdfPrintsAFootnoteUnderItsPage() throws IOException {
         Path target = tempDir.resolve("notes.pdf");
 
         exporter.manuscriptPdf("Moon[^1] and stars.\n\n[^1]: A note.", "notes", BOOK, tempDir, target);
 
         try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
-            assertThat(new PDFTextStripper().getText(pdf)).contains("Moon and stars.");
+            assertThat(new PDFTextStripper().getText(pdf)).contains("Moon", "and stars.", "1. A note.");
         }
     }
 

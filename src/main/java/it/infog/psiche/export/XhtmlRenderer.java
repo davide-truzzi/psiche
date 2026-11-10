@@ -39,7 +39,8 @@ import java.util.function.UnaryOperator;
  * the stylesheets' rules for the paragraph after a heading still apply. They differ in two things:
  * <ul>
  *     <li>the manuscript, for the PDF, prints a scene break as a centred {@code * * *}, shows images where the
- *     chapter links them, and links a place of the book within its one document;</li>
+ *     chapter links them, links a place of the book within its one document, and prints the footnotes at the foot
+ *     of the page ({@link PageFootnotes});</li>
  *     <li>the ebook keeps a scene break a real {@code <hr />}, which the book's stylesheet draws and screen readers
  *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, and a place of the book on the
  *     page of its chapter.</li>
@@ -107,7 +108,8 @@ public final class XhtmlRenderer {
                 });
 
         if (images == null)
-            builder.nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
+            builder.nodeRendererFactory(PageFootnotes::new)
+                    .nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
                     .nodeRendererFactory(context -> new FigureRenderer(context, image -> true));
         else
             builder.nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images))

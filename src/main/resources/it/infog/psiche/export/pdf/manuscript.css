@@ -25,6 +25,13 @@
         vertical-align: bottom;
         padding-bottom: 0.6cm;
     }
+
+    /* The footnotes, at the foot of the page under a short rule; here, as a second @page rule would replace this. */
+    @footnote {
+        margin-top: 0.5cm;
+        padding-top: 0.2cm;
+        border-top: 0.5pt solid #000000;
+    }
 }
 
 /*
@@ -132,6 +139,38 @@ code {
 
 del {
     text-decoration: line-through;
+}
+
+/* A footnote: floated to the foot of its reference's page, smaller and single-spaced, numbered from 1 in the
+   chapter, the number raised at the reference and before the note; its later paragraphs set in under the first. */
+.footnote {
+    float: footnote;
+    counter-increment: footnote;
+    font-size: 10pt;
+    line-height: 1.3;
+    text-indent: 0;
+}
+
+.footnote .note-paragraph + .note-paragraph {
+    display: block;
+    text-indent: 1em;
+}
+
+::footnote-call {
+    content: counter(footnote);
+    vertical-align: super;
+    font-size: 0.7em;
+    line-height: 0;
+}
+
+::footnote-marker {
+    content: counter(footnote) ". ";
+}
+
+/* A later reference to a note: its number alone, raised as the first one's. */
+.footnote-again {
+    font-size: 0.7em;
+    line-height: 0;
 }
 
 /* A subscript or a superscript, smaller, set no higher than its line, so the lines keep their spacing. */
