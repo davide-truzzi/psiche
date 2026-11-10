@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.markdown.TextBlocks;
+import it.infog.psiche.markdown.model.TextEdit;
 import it.infog.psiche.markdown.model.TextRange;
 import javafx.scene.control.IndexRange;
 import javafx.scene.input.Clipboard;
@@ -24,12 +25,17 @@ import java.util.function.Supplier;
  * <p>
  * It can keep blocks, as Default mode keeps links and image lines: the author's edits go as {@link TextBlocks} says,
  * refused inside a block and widened over part of one, and a caret with no selection that a key or a click puts
- * inside one goes to its edge. Every edit ends in {@link #replace}, but moving the selection by dragging it; the app's
- * own edits, and Undo and Redo, go through {@link #freely}.
+ * inside one goes to its edge. An edit that removes a block may take parts of it elsewhere too, as a footnote's
+ * reference takes its note: see {@link #setWidening}. Every edit ends in {@link #replace}, but moving the selection by
+ * dragging it; the app's own edits, and Undo and Redo, go through {@link #freely}.
  */
 final class PlainTextArea extends StyleClassedTextArea {
 
+    // Footnotes are written with these, which an edit must remove for a block's other parts to go with it.
+    private static final String FOOTNOTE_SIGN = "[^";
+
     private Supplier<List<TextRange>> blocks = List::of;
+    private Widening widening = (text, start, end, replacement) -> Optional.empty();
     // True while an edit of the app's own runs, which no block refuses.
     private boolean free;
     // Where the caret was before the key being handled, to tell which way it moved.
@@ -60,6 +66,15 @@ final class PlainTextArea extends StyleClassedTextArea {
         this.blocks = blocks;
     }
 
+    /**
+     * Widens the author's edits that remove a block, as {@code widening} says, so its parts elsewhere go too; with
+     * none, an edit goes as the blocks alone say.
+     */
+    void setWidening(Widening widening) {
+
+        this.widening = widening;
+    }
+
     /** True while an edit of the app's own runs, as a chapter's text shown, a formatting or an Undo. */
     boolean isAppEdit() {
 
@@ -86,7 +101,20 @@ final class PlainTextArea extends StyleClassedTextArea {
             return;
         }
 
-        allowed(start, end).ifPresent(range -> super.replace(range.start(), range.end(), replacement));
+        allowed(start, end).ifPresent(range -> {
+            Optional<TextEdit> wider = range.start() < range.end()
+                    && getText(range.start(), range.end()).contains(FOOTNOTE_SIGN)
+                    ? widening.widen(getText(), range.start(), range.end(), replacement.getText())
+                    : Optional.empty();
+            if (wider.isEmpty()) {
+                super.replace(range.start(), range.end(), replacement);
+                return;
+            }
+
+            // One change, which a single Undo takes back.
+            freely(() -> replaceText(wider.get().start(), wider.get().end(), wider.get().replacement()));
+            moveTo(wider.get().selectionStart());
+        });
     }
 
     /** Moves the selection, dragged to {@code position}, unless that would cut into a block or drop it inside one. */
@@ -161,5 +189,11 @@ final class PlainTextArea extends StyleClassedTextArea {
         int snappedCaret = snapped.applyAsInt(caret);
         if (snappedCaret != caret)
             moveTo(snappedCaret);
+    }
+
+    /** Widens an edit by the author over parts of blocks elsewhere in the text; empty to leave it as it is. */
+    @FunctionalInterface
+    interface Widening {
+        Optional<TextEdit> widen(String text, int start, int end, String replacement);
     }
 }

@@ -54,6 +54,11 @@ final class TextMarks {
     private List<TextRange> wrongFootnotes = List.of();
     // The footnotes' marks, right or wrong, in order.
     private List<TextRange> footnoteMarks = List.of();
+    // The whole notes, from their opening to their last paragraph's end, and the wrong ones, in order.
+    private List<TextRange> notes = List.of();
+    private List<TextRange> wrongNotes = List.of();
+    // The footnotes' references and whole notes, Default mode's blocks changed only from their dialog, in order.
+    private List<TextRange> footnoteBlocks = List.of();
     // The comments' <!-- and -->, the images' and the links' Markdown around their text, and the footnotes' around
     // their labels, in order.
     private List<TextRange> commentMarkers = List.of();
@@ -61,7 +66,7 @@ final class TextMarks {
     private List<TextRange> footnoteMarkers = List.of();
     // The image lines, the links' addresses and the footnotes' marks, which are no prose, in order.
     private List<TextRange> notProse = List.of();
-    // The links, broken or not, and the image lines, in order: the blocks of Default mode.
+    // The links, broken or not, the image lines and the footnotes' blocks, in order: the blocks of Default mode.
     private List<TextRange> blocks = List.of();
     private List<TextLink> textLinks = List.of();
     // The open chapter, whose images and links are looked for; null while none is open, and none is missing or broken.
@@ -157,11 +162,18 @@ final class TextMarks {
      */
     List<TextRange> imageAndLinkMarkers() { return imageAndLinkMarkers; }
 
-    /** The text's links, broken or not, and its image lines, in order: Default mode's blocks; see TextBlocks. */
+    /**
+     * The text's links, broken or not, its image lines, and its footnotes' references and whole notes, in order:
+     * Default mode's blocks; see TextBlocks.
+     */
     List<TextRange> blocks() { return blocks; }
 
     /** True if formatting the selection from {@code start} to {@code end} keeps the blocks whole; see TextBlocks. */
-    boolean formattable(int start, int end) { return TextBlocks.formattable(images, textLinks, start, end); }
+    boolean formattable(int start, int end) {
+
+        return TextBlocks.formattable(inOrder(Stream.concat(images.stream(), footnoteBlocks.stream())), textLinks,
+                start, end);
+    }
 
     /**
      * Finds the text's images, in green, and those whose file is not there, in orange; its links, in teal, and those
@@ -191,7 +203,8 @@ final class TextMarks {
                 found.stream().map(TextLink::markers)).flatMap(List::stream));
         notProse = inOrder(Stream.of(images.stream(), found.stream().map(TextLink::address), footnoteMarks.stream())
                 .flatMap(Function.identity()));
-        blocks = inOrder(Stream.concat(images.stream(), found.stream().map(TextLink::range)));
+        blocks = inOrder(Stream.of(images.stream(), found.stream().map(TextLink::range), footnoteBlocks.stream())
+                .flatMap(Function.identity()));
     }
 
     /** Finds the text's comments, and gives each line in view with one a dot in the margin. */
@@ -217,6 +230,9 @@ final class TextMarks {
                 .map(FootnoteMark::range));
         wrongFootnotes = wrong.stream().map(FootnoteMark::range).toList();
         footnoteMarks = marks.ranges();
+        notes = marks.notes().stream().filter(note -> !wrong.contains(note)).map(FootnoteMark::block).toList();
+        wrongNotes = marks.notes().stream().filter(wrong::contains).map(FootnoteMark::block).toList();
+        footnoteBlocks = marks.blocks();
         footnoteMarkers = inOrder(Stream.of(marks.references(), marks.notes(), marks.missing())
                 .flatMap(List::stream)
                 .flatMap(mark -> Footnotes.markers(mark).stream()));
@@ -234,6 +250,8 @@ final class TextMarks {
         parts.put(TextStyles.BROKEN_LINK, brokenLinks);
         parts.put(TextStyles.FOOTNOTE, footnotes);
         parts.put(TextStyles.WRONG_FOOTNOTE, wrongFootnotes);
+        parts.put(TextStyles.NOTE, notes);
+        parts.put(TextStyles.WRONG_NOTE, wrongNotes);
         parts.put(TextStyles.MARKER, inOrder(Stream.of(commentMarkers, imageAndLinkMarkers, footnoteMarkers)
                 .flatMap(List::stream)));
         StyleSpans<Collection<String>> styles = TextStyles.of(area.getLength(), parts);

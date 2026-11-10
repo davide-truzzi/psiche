@@ -391,7 +391,8 @@
     -rtfx-background-color: -graphite-20;
 }
 
-/* A link, an image line and a footnote's mark on a faint tint of their colour, -teal, -sage and -amber. */
+/* A link, an image line, a footnote's reference and a whole note on a faint tint of their colour, -teal, -sage and
+   -amber; a note's text keeps the text's colour. */
 .manuscript:default-mode .paragraph-text .text.link {
     -rtfx-background-color: -teal-13;
 }
@@ -400,7 +401,8 @@
     -rtfx-background-color: -sage-13;
 }
 
-.manuscript:default-mode .paragraph-text .text.footnote {
+.manuscript:default-mode .paragraph-text .text.footnote,
+.manuscript:default-mode .paragraph-text .text.note {
     -rtfx-background-color: -amber-13;
 }
 
@@ -408,7 +410,8 @@
    than the others. */
 .manuscript:default-mode .paragraph-text .text.broken-link,
 .manuscript:default-mode .paragraph-text .text.missing-image,
-.manuscript:default-mode .paragraph-text .text.wrong-footnote {
+.manuscript:default-mode .paragraph-text .text.wrong-footnote,
+.manuscript:default-mode .paragraph-text .text.wrong-note {
     -rtfx-background-color: -orange-16;
 }
 

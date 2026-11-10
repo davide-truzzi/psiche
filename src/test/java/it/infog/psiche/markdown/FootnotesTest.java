@@ -22,11 +22,20 @@ class FootnotesTest {
 
         assertThat(marks.references()).containsExactly(new FootnoteMark("moon", new TextRange(4, 11)),
                 new FootnoteMark("Moon", new TextRange(19, 26)));
-        assertThat(marks.notes()).containsExactly(new FootnoteMark("moon", new TextRange(45, 53)),
-                new FootnoteMark("b", new TextRange(65, 70)));
+        assertThat(marks.notes()).containsExactly(
+                new FootnoteMark("moon", new TextRange(45, 53), new TextRange(45, 63)),
+                new FootnoteMark("b", new TextRange(65, 70), new TextRange(65, 78)));
         assertThat(marks.missing()).isEmpty();
         assertThat(marks.ranges()).containsExactly(new TextRange(4, 11), new TextRange(19, 26), new TextRange(45, 53),
                 new TextRange(65, 70));
+    }
+
+    @Test
+    void keepsEachReferenceAndEachWholeNoteAsABlockIndentedParagraphsIncluded() {
+        String text = "Moon[^1] and[^none].\n\n[^1]: First\n    line.\n\n    Second.\n\nAfter.";
+
+        assertThat(Footnotes.of(text).blocks()).containsExactly(new TextRange(4, 8), new TextRange(12, 19),
+                new TextRange(22, 56));
     }
 
     @Test
@@ -62,8 +71,8 @@ class FootnotesTest {
 
         assertThat(Footnotes.wrong(Footnotes.of(text))).containsExactly(
                 new FootnoteMark("none", new TextRange(15, 22)),
-                new FootnoteMark("unused", new TextRange(42, 52)),
-                new FootnoteMark("MOON", new TextRange(66, 74)));
+                new FootnoteMark("unused", new TextRange(42, 52), new TextRange(42, 64)),
+                new FootnoteMark("MOON", new TextRange(66, 74), new TextRange(66, 82)));
     }
 
     @Test
@@ -107,8 +116,62 @@ class FootnotesTest {
     }
 
     @Test
+    void removingTheOnlyReferenceRemovesItsNoteWithABlankLine() {
+        String text = "Moon[^1] rose.\n\n[^1]: A note.\n\nAfter.";
+
+        assertThat(applied(text, Footnotes.withNotes(text, 4, 8, "").orElseThrow())).isEqualTo("Moon rose.\n\nAfter.");
+    }
+
+    @Test
+    void removingOneOfTwoReferencesKeepsTheNote() {
+        String text = "Moon[^1] and sun[^1].\n\n[^1]: A note.";
+
+        assertThat(Footnotes.withNotes(text, 4, 8, "")).isEmpty();
+    }
+
+    @Test
+    void removingANoteRemovesEveryReferenceToItAndPutsTheCaretWhereTheNoteWas() {
+        String text = "Moon[^1] and sun[^1].\n\n[^1]: A note.\n    More.\n\nAfter.";
+        int note = text.indexOf("[^1]:");
+
+        TextEdit edit = Footnotes.withNotes(text, note, note + "[^1]: A note.\n    More.".length(), "").orElseThrow();
+
+        assertThat(applied(text, edit)).isEqualTo("Moon and sun.\n\n\n\nAfter.");
+        assertThat(edit.selectionStart()).isEqualTo("Moon and sun.\n\n".length());
+    }
+
+    @Test
+    void removingASecondNoteOfALabelKeepsItsReferences() {
+        String text = "Moon[^1].\n\n[^1]: First.\n\n[^1]: Second.";
+        int second = text.indexOf("[^1]: Second.");
+
+        assertThat(Footnotes.withNotes(text, second, text.length(), "")).isEmpty();
+    }
+
+    @Test
+    void removingAReferenceAndItsNoteTogetherLeavesTheRestAsItIs() {
+        String text = "Moon[^1].\n\n[^1]: A note.\n\nAfter.";
+
+        assertThat(Footnotes.withNotes(text, 0, text.indexOf("After"), "")).isEmpty();
+    }
+
+    @Test
+    void typingOverAReferenceKeepsWhatIsTypedAndRemovesTheNote() {
+        String text = "Moon[^1] rose.\n\n[^1]: A note.";
+
+        TextEdit edit = Footnotes.withNotes(text, 0, 8, "Sun").orElseThrow();
+
+        assertThat(applied(text, edit)).isEqualTo("Sun rose.");
+        assertThat(edit.selectionStart()).isEqualTo(3);
+    }
+
+    @Test
     void findsEachReferenceToNoNoteInAPieceOfProse() {
         assertThat(Footnotes.missingNotes("Moon[^none], sun [^also] and [^ spaced].")).containsExactly(
                 new TextRange(4, 11), new TextRange(17, 24));
+    }
+
+    private static String applied(String text, TextEdit edit) {
+        return text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
     }
 }

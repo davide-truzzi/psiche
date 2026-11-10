@@ -2,6 +2,7 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.TextBlocks;
 import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.spelling.SpellChecker;
@@ -262,6 +263,7 @@ final class Manuscript {
 
         area.pseudoClassStateChanged(DEFAULT_MODE, on);
         area.setBlocks(on ? marks::blocks : List::of);
+        area.setWidening(on ? Footnotes::withNotes : (text, start, end, replacement) -> Optional.empty());
         // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will.
         for (Node paragraph : area.lookupAll(".paragraph-text"))
             if (paragraph instanceof Parent text)

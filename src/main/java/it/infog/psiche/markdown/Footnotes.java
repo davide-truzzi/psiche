@@ -17,10 +17,12 @@ import org.commonmark.parser.IncludeSourceSpans;
 import org.commonmark.parser.Parser;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -90,7 +92,7 @@ public final class Footnotes {
                 if (block instanceof FootnoteDefinition note && !block.getSourceSpans().isEmpty()) {
                     int start = block.getSourceSpans().getFirst().getInputIndex();
                     int end = text.indexOf(NOTE_OPENING_END, start) + NOTE_OPENING_END.length();
-                    notes.add(new FootnoteMark(note.getLabel(), new TextRange(start, end)));
+                    notes.add(new FootnoteMark(note.getLabel(), new TextRange(start, end), range(block)));
                 }
                 visitChildren(block);
             }
@@ -150,6 +152,37 @@ public final class Footnotes {
         int caret = position + replacement.length();
 
         return new TextEdit(position, paragraphEnd, replacement, caret, caret);
+    }
+
+    /**
+     * The edit that replaces {@code start} to {@code end} with {@code replacement} and leaves no footnote broken: a
+     * note whose every reference it removes goes too, with a blank line beside it, and so do the references of a note
+     * it removes, unless another note of their label stays. Empty if it leaves none broken as it is.
+     */
+    public static Optional<TextEdit> withNotes(String text, int start, int end, String replacement) {
+
+        FootnoteMarks marks = of(text);
+        TextRange removed = new TextRange(start, end);
+        Predicate<FootnoteMark> gone = mark -> removed.start() <= mark.block().start()
+                && mark.block().end() <= removed.end();
+        Set<String> staying = keys(marks.references().stream().filter(Predicate.not(gone)));
+        Set<String> stayingNotes = keys(marks.notes().stream().filter(Predicate.not(gone)));
+        Set<String> goneReferences = keys(marks.references().stream().filter(gone));
+        Set<String> goneNotes = keys(marks.notes().stream().filter(gone));
+
+        //the notes left without references, and the references left without a note
+        List<TextRange> extra = new ArrayList<>();
+        marks.notes().stream().filter(Predicate.not(gone))
+                .filter(note -> goneReferences.contains(key(note.label())) && !staying.contains(key(note.label())))
+                .forEach(note -> extra.add(withBlankLine(text, note.block())));
+        marks.references().stream().filter(Predicate.not(gone))
+                .filter(reference -> goneNotes.contains(key(reference.label()))
+                        && !stayingNotes.contains(key(reference.label())))
+                .forEach(reference -> extra.add(reference.block()));
+        if (extra.isEmpty())
+            return Optional.empty();
+
+        return Optional.of(removing(text, removed, replacement, extra));
     }
 
     /** True if {@code destination} is a link of the preview's footnotes, to a note or back to its reference. */
@@ -215,6 +248,47 @@ public final class Footnotes {
         }
 
         return text.length();
+    }
+
+    /**
+     * The edit that puts {@code replacement} in place of {@code removed} and takes {@code extra} out too, as one
+     * change, with the caret after the replacement.
+     */
+    private static TextEdit removing(String text, TextRange removed, String replacement, List<TextRange> extra) {
+
+        BitSet cut = new BitSet(text.length());
+        cut.set(removed.start(), removed.end());
+        extra.forEach(range -> cut.set(range.start(), range.end()));
+        int from = Math.min(removed.start(), cut.nextSetBit(0));
+        int to = Math.max(removed.end(), cut.length());
+
+        StringBuilder result = new StringBuilder();
+        int caret = from;
+        for (int i = from; i <= to; i++) {
+            if (i == removed.start()) {
+                result.append(replacement);
+                caret = from + result.length();
+            }
+            if (i < to && !cut.get(i))
+                result.append(text.charAt(i));
+        }
+
+        return new TextEdit(from, to, result.toString(), caret, caret);
+    }
+
+    /** {@code note}, with the blank line before it, or after it if it starts the text, so no gap is left. */
+    private static TextRange withBlankLine(String text, TextRange note) {
+
+        if (text.startsWith(NOTE_BREAK, note.start() - NOTE_BREAK.length()))
+            return new TextRange(note.start() - NOTE_BREAK.length(), note.end());
+        if (text.startsWith(NOTE_BREAK, note.end()))
+            return new TextRange(note.start(), note.end() + NOTE_BREAK.length());
+        return note;
+    }
+
+    private static Set<String> keys(Stream<FootnoteMark> marks) {
+
+        return marks.map(mark -> key(mark.label())).collect(Collectors.toSet());
     }
 
     /** Where the {@code index}th mark of {@code marks} with {@code label}, counted from 0, starts. */
