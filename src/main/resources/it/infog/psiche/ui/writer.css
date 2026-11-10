@@ -16,6 +16,39 @@
     -amber: #d9a441;
     -orange: #e8772e;
     -teal: #63b8b3;
+    -ink: #2a2219;
+    -typescript: #e7dcc6;
+    -red-ink: #b5301c;
+    -coffee: #ffdd00;
+
+    /* The palette's colours see-through, named by how much of them shows, in %: JavaFX CSS cannot make a named
+       colour see-through, so each one used is written here once. Ink is the notes' writing, shade and shadow the
+       dark behind the page and under the cards. */
+    -red-pencil-16: rgba(224, 74, 47, 0.16);
+    -red-pencil-20: rgba(224, 74, 47, 0.2);
+    -red-pencil-30: rgba(224, 74, 47, 0.3);
+    -red-pencil-45: rgba(224, 74, 47, 0.45);
+    -brass-14: rgba(200, 163, 90, 0.14);
+    -brass-30: rgba(200, 163, 90, 0.3);
+    -paper-4: rgba(239, 230, 211, 0.04);
+    -paper-6: rgba(239, 230, 211, 0.06);
+    -graphite-20: rgba(125, 115, 102, 0.2);
+    -sage-13: rgba(143, 174, 107, 0.13);
+    -orange-16: rgba(232, 119, 46, 0.16);
+    -teal-13: rgba(99, 184, 179, 0.13);
+    -ink-9: rgba(42, 34, 25, 0.09);
+    -ink-12: rgba(42, 34, 25, 0.12);
+    -ink-15: rgba(42, 34, 25, 0.15);
+    -ink-22: rgba(42, 34, 25, 0.22);
+    -ink-25: rgba(42, 34, 25, 0.25);
+    -ink-40: rgba(42, 34, 25, 0.4);
+    -ink-45: rgba(42, 34, 25, 0.45);
+    -ink-70: rgba(42, 34, 25, 0.7);
+    -ink-75: rgba(42, 34, 25, 0.75);
+    -shade-35: rgba(10, 8, 6, 0.35);
+    -shade-50: rgba(10, 8, 6, 0.5);
+    -shadow-45: rgba(0, 0, 0, 0.45);
+    -shadow-60: rgba(0, 0, 0, 0.6);
 
     -fx-font-family: "Courier Prime";
     -fx-font-size: 13px;
@@ -207,12 +240,12 @@
 
 .list-cell:hover {
     -fx-text-fill: -paper;
-    -fx-background-color: rgba(239, 230, 211, 0.04);
+    -fx-background-color: -paper-4;
 }
 
 .list-cell:selected {
     -fx-text-fill: -paper;
-    -fx-background-color: linear-gradient(to right, rgba(224, 74, 47, 0.16), transparent);
+    -fx-background-color: linear-gradient(to right, -red-pencil-16, transparent);
     -fx-border-color: -red-pencil;
 }
 
@@ -271,7 +304,7 @@
 /* The manuscript: the chapter's text on a darker page, which the scroll bar sits beside. Unlike the rest of the
    window, it is a RichTextFX area, whose text, caret and selection are shapes rather than a control's text. */
 .manuscript {
-    -fx-background-color: rgba(10, 8, 6, 0.35);
+    -fx-background-color: -shade-35;
     /* 33 above where a text area had 36: a paragraph here puts half its line spacing above its first line, which
        the text area put below its last, so the text starts where it did. */
     -fx-padding: 33 44 36 44;
@@ -281,13 +314,13 @@
 }
 
 .manuscript:focused {
-    -fx-background-color: rgba(10, 8, 6, 0.5);
+    -fx-background-color: -shade-50;
 }
 
 /* The text, a chapter's or the welcome's. RichTextFX draws its text with LCD smoothing, which fringes the letters
    with colour; a text area's is grey. */
 .manuscript .paragraph-text .text {
-    -fx-fill: #e7dcc6;
+    -fx-fill: -typescript;
     -fx-font-smoothing-type: gray;
 }
 
@@ -343,22 +376,22 @@
 
 /* The comments on their own grey, -graphite, faint. */
 .manuscript:default-mode .paragraph-text .text.comment {
-    -rtfx-background-color: rgba(125, 115, 102, 0.2);
+    -rtfx-background-color: -graphite-20;
 }
 
 /* A link and an image line on a faint tint of their colour, -teal and -sage. */
 .manuscript:default-mode .paragraph-text .text.link {
-    -rtfx-background-color: rgba(99, 184, 179, 0.13);
+    -rtfx-background-color: -teal-13;
 }
 
 .manuscript:default-mode .paragraph-text .text.image {
-    -rtfx-background-color: rgba(143, 174, 107, 0.13);
+    -rtfx-background-color: -sage-13;
 }
 
 /* An error, a link that leads nowhere or a missing image, on a tint of -orange, a little stronger than the others. */
 .manuscript:default-mode .paragraph-text .text.broken-link,
 .manuscript:default-mode .paragraph-text .text.missing-image {
-    -rtfx-background-color: rgba(232, 119, 46, 0.16);
+    -rtfx-background-color: -orange-16;
 }
 
 /* A spelling mistake: a dotted red line under the word, as a proofreader marks it. */
@@ -411,7 +444,7 @@
 }
 
 .manuscript .caret {
-    -fx-stroke: #e7dcc6;
+    -fx-stroke: -typescript;
 }
 
 /* RichTextFX's own blinking off, over its stylesheet's 500ms: its animation would draw the window sixty times a
@@ -421,21 +454,22 @@
 }
 
 .manuscript .selection {
-    -fx-fill: rgba(224, 74, 47, 0.45);
+    -fx-fill: -red-pencil-45;
 }
 
 /* The other places of the word the author is at, selected or at the caret, each drawn as a selection of its own:
    the selection's red, fainter, so a repetition shows while the text stays easy to read. */
 .manuscript .repeated {
-    -fx-fill: rgba(224, 74, 47, 0.2);
+    -fx-fill: -red-pencil-20;
 }
 
-/* The places found while the author types, near the caret: a box in the same red, so they tell apart from those
-   above, found once the author pauses; drawn inside the word's bounds, clear of the letters beside it. */
+/* The places found while the author types, near the caret: a box in the red of those above, a shade stronger as a
+   line is thinner than a fill, so the two tell apart yet match; drawn inside the word's bounds, clear of the letters
+   beside it. */
 .manuscript .repeated-fast {
     -fx-fill: transparent;
-    -fx-stroke: rgba(224, 74, 47, 0.7);
-    -fx-stroke-width: 1;
+    -fx-stroke: -red-pencil-30;
+    -fx-stroke-width: 2;
     -fx-stroke-type: inside;
 }
 
@@ -462,7 +496,7 @@
 
 .preview-frame {
     -fx-background-color: -paper;
-    /* -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 28, 0.1, 0, 8); */
+    /* -fx-effect: dropshadow(gaussian, -shadow-60, 28, 0.1, 0, 8); */
 }
 
 /* The dark preview's paper, as preview-dark.css colors the page. */
@@ -517,7 +551,7 @@
 /* Chapter history */
 
 .history {
-    -fx-background-color: rgba(10, 8, 6, 0.35);
+    -fx-background-color: -shade-35;
 }
 
 .history .list-cell {
@@ -630,12 +664,12 @@
 .deleted-note-text {
     -fx-font-family: "Libertinus Serif";
     -fx-font-size: 12px;
-    -fx-text-fill: #2a2219;
+    -fx-text-fill: -ink;
 }
 
 .deleted-note-file {
     -fx-font-size: 10px;
-    -fx-text-fill: rgba(42, 34, 25, 0.7);
+    -fx-text-fill: -ink-70;
 }
 
 .small-image {
@@ -736,7 +770,7 @@
 
 .revision-scroll,
 .revision-scroll > .viewport {
-    -fx-background-color: rgba(10, 8, 6, 0.5);
+    -fx-background-color: -shade-50;
 }
 
 .revision-text {
@@ -882,7 +916,7 @@
 }
 
 .combo-box-popup .list-cell:selected {
-    -fx-background-color: rgba(224, 74, 47, 0.16);
+    -fx-background-color: -red-pencil-16;
 }
 
 .book-form .text-area:focused {
@@ -1035,14 +1069,14 @@
 
 /* Buy Me a Coffee's button, in their yellow, so their logo shows as they draw it. */
 .about .coffee-button {
-    -fx-background-color: #ffdd00;
+    -fx-background-color: -coffee;
     -fx-background-radius: 8;
     -fx-border-width: 0;
     -fx-padding: 9 18;
 }
 
 .about .coffee-button:hover {
-    -fx-background-color: derive(#ffdd00, 25%);
+    -fx-background-color: derive(-coffee, 25%);
 }
 
 .about .hyperlink,
@@ -1132,7 +1166,7 @@
 }
 
 .context-menu .menu-item:focused {
-    -fx-background-color: rgba(239, 230, 211, 0.06);
+    -fx-background-color: -paper-6;
     -fx-border-color: -brass;
 }
 
@@ -1299,14 +1333,14 @@
 
 /* While a note is dragged, the other board's half: drop it there to move it, brighter with the pointer over it. */
 .notes-switch-half.notes-switch-target {
-    -fx-background-color: rgba(200, 163, 90, 0.14);
+    -fx-background-color: -brass-14;
     -fx-border-color: -brass;
     -fx-border-style: dashed;
     -fx-border-width: 1;
 }
 
 .notes-switch-half.notes-switch-target:over {
-    -fx-background-color: rgba(200, 163, 90, 0.3);
+    -fx-background-color: -brass-30;
 }
 
 .notes-switch-half.notes-switch-target .notes-switch-name {
@@ -1345,11 +1379,11 @@
     -fx-border-insets: -2;
 }
 
-.note-paper { -fx-background-color: rgba(0, 0, 0, 0.45), -paper; }
-.note-yellow { -fx-background-color: rgba(0, 0, 0, 0.45), #ecd98a; }
-.note-sage { -fx-background-color: rgba(0, 0, 0, 0.45), #c5d4a8; }
-.note-sky { -fx-background-color: rgba(0, 0, 0, 0.45), #b9cfdc; }
-.note-rose { -fx-background-color: rgba(0, 0, 0, 0.45), #e4bfb5; }
+.note-paper { -fx-background-color: -shadow-45, -paper; }
+.note-yellow { -fx-background-color: -shadow-45, #ecd98a; }
+.note-sage { -fx-background-color: -shadow-45, #c5d4a8; }
+.note-sky { -fx-background-color: -shadow-45, #b9cfdc; }
+.note-rose { -fx-background-color: -shadow-45, #e4bfb5; }
 
 /* The note's toolbar: a darker tone of the note's own colour, so it reads apart from the text below. */
 .note-strip {
@@ -1357,7 +1391,7 @@
     -fx-pref-height: 26;
     -fx-padding: 0 4 0 6;
     -fx-spacing: 2;
-    -fx-background-color: rgba(42, 34, 25, 0.09);
+    -fx-background-color: -ink-9;
     -fx-background-radius: 6 6 0 0;
     -fx-cursor: move;
 }
@@ -1374,14 +1408,14 @@
 }
 
 .note-file-button:hover {
-    -fx-background-color: rgba(42, 34, 25, 0.12);
+    -fx-background-color: -ink-12;
     -fx-background-radius: 3;
 }
 
 /* A paperclip, the sign of a file kept with something. */
 .note-paperclip {
     -fx-fill: transparent;
-    -fx-stroke: rgba(42, 34, 25, 0.75);
+    -fx-stroke: -ink-75;
     -fx-stroke-width: 1.8;
     -fx-stroke-line-cap: round;
     -fx-stroke-line-join: round;
@@ -1391,7 +1425,7 @@
 
 /* Six dots, the usual mark of something to drag, drawn in icons/grip.svg. */
 .note-grip {
-    -fx-background-color: rgba(42, 34, 25, 0.45);
+    -fx-background-color: -ink-45;
     -fx-min-width: 10;
     -fx-max-width: 10;
     -fx-min-height: 12;
@@ -1416,14 +1450,14 @@
     -fx-padding: 0;
     -fx-background-radius: 8;
     -fx-border-radius: 8;
-    -fx-border-color: rgba(42, 34, 25, 0.4);
+    -fx-border-color: -ink-40;
     -fx-background-color: transparent;
 }
 
 .note-swatches {
     -fx-spacing: 6;
     -fx-padding: 2 8 6 8;
-    -fx-background-color: rgba(42, 34, 25, 0.09);
+    -fx-background-color: -ink-9;
 }
 
 /* A swatch draws its colour inside a dark ring, thicker on the note's own colour. */
@@ -1448,20 +1482,20 @@
     -fx-border-width: 0;
     -fx-padding: 0 4;
     -fx-font-size: 15px;
-    -fx-text-fill: rgba(42, 34, 25, 0.7);
+    -fx-text-fill: -ink-70;
 }
 
 .note-delete:hover {
-    -fx-text-fill: #2a2219;
+    -fx-text-fill: -ink;
 }
 
 .note-text {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-text-fill: #2a2219;
-    -fx-prompt-text-fill: rgba(42, 34, 25, 0.45);
-    -fx-highlight-fill: rgba(42, 34, 25, 0.22);
-    -fx-highlight-text-fill: #2a2219;
+    -fx-text-fill: -ink;
+    -fx-prompt-text-fill: -ink-45;
+    -fx-highlight-fill: -ink-22;
+    -fx-highlight-text-fill: -ink;
     -fx-font-family: "Libertinus Serif";
     -fx-font-size: 15px;
 }
@@ -1478,7 +1512,7 @@
 }
 
 .note-text .scroll-bar .thumb {
-    -fx-background-color: rgba(42, 34, 25, 0.25);
+    -fx-background-color: -ink-25;
 }
 
 /* The file a note carries, under its text: a picture as wide as the card, or an icon beside its name and size. */
@@ -1498,23 +1532,23 @@
 .note-file-name {
     -fx-font-family: "Courier Prime";
     -fx-font-size: 11px;
-    -fx-text-fill: rgba(42, 34, 25, 0.75);
+    -fx-text-fill: -ink-75;
 }
 
 .note-file-missing {
-    -fx-text-fill: #b5301c;
+    -fx-text-fill: -red-ink;
 }
 
 .file-icon {
     -fx-fill: transparent;
-    -fx-stroke: #2a2219;
+    -fx-stroke: -ink;
     -fx-stroke-width: 2.2;
     -fx-stroke-line-cap: round;
     -fx-stroke-line-join: round;
 }
 
 .file-icon-missing {
-    -fx-stroke: #b5301c;
+    -fx-stroke: -red-ink;
 }
 
 .note-copy-progress {
@@ -1522,13 +1556,13 @@
 }
 
 .note-copy-progress > .track {
-    -fx-background-color: rgba(42, 34, 25, 0.15);
+    -fx-background-color: -ink-15;
     -fx-background-radius: 0;
     -fx-background-insets: 0;
 }
 
 .note-copy-progress > .bar {
-    -fx-background-color: #2a2219;
+    -fx-background-color: -ink;
     -fx-background-radius: 0;
     -fx-background-insets: 0;
     -fx-padding: 2;
@@ -1555,7 +1589,7 @@
 
 /* Dots on the diagonal of the corner, where the note is resized from, drawn in icons/resize-corner.svg. */
 .note-resize {
-    -fx-background-color: rgba(42, 34, 25, 0.4);
+    -fx-background-color: -ink-40;
     -fx-scale-shape: false;
     -fx-min-width: 14;
     -fx-min-height: 14;
