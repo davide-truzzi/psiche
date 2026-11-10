@@ -5,11 +5,13 @@ import it.infog.psiche.common.Template;
 import it.infog.psiche.markdown.MarkdownRenderer;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import javafx.animation.Animation;
+import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Worker;
 import javafx.css.PseudoClass;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.web.WebView;
@@ -72,6 +74,14 @@ public final class PreviewPane extends StackPane {
     private final Path page;
     private final PauseTransition renderDelay = new PauseTransition(RENDER_DELAY);
     private final PauseTransition followDelay = new PauseTransition(FOLLOW_DELAY);
+    // Draws the page at every frame while a button is held on it. The engine's timers run on a thread of their own
+    // (see WriterApp), so nothing else asks JavaFX for a frame while the author drags the page's scroll bar, and it
+    // would stay still until the next one.
+    private final AnimationTimer frames = new AnimationTimer() {
+        @Override
+        public void handle(long now) {
+        }
+    };
     private final BooleanProperty showing = new SimpleBooleanProperty(true);
     private Runnable pendingRender = () -> {};
     // Tells, at each render, which links lead nowhere; none until told otherwise.
@@ -120,6 +130,9 @@ public final class PreviewPane extends StackPane {
                 catchLinkClicks();
             }
         });
+
+        view.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> frames.start());
+        view.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> frames.stop());
 
         renderDelay.setOnFinished(event -> pendingRender.run());
         followDelay.setOnFinished(event -> showFollowedPosition());
