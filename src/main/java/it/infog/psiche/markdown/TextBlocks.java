@@ -76,6 +76,12 @@ public final class TextBlocks {
                 .allMatch(link -> within(link.range(), selection) || within(selection, link.label()));
     }
 
+    /** The block {@code position} lies strictly inside, past its start and before its end; if any. */
+    public static Optional<TextRange> inside(List<TextRange> blocks, int position) {
+
+        return blocks.stream().filter(block -> block.start() < position && position < block.end()).findFirst();
+    }
+
     /** True if {@code selection} shares a character with {@code block}, or is a caret strictly inside it. */
     private static boolean reaches(TextRange selection, TextRange block) {
 
@@ -86,11 +92,5 @@ public final class TextBlocks {
     private static boolean within(TextRange inner, TextRange outer) {
 
         return outer.start() <= inner.start() && inner.end() <= outer.end();
-    }
-
-    /** The block {@code position} lies strictly inside, past its start and before its end; if any. */
-    private static Optional<TextRange> inside(List<TextRange> blocks, int position) {
-
-        return blocks.stream().filter(block -> block.start() < position && position < block.end()).findFirst();
     }
 }

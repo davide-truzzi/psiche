@@ -2,6 +2,7 @@ package it.infog.psiche.markdown;
 
 import it.infog.psiche.markdown.model.FootnoteMark;
 import it.infog.psiche.markdown.model.FootnoteMarks;
+import it.infog.psiche.markdown.model.TextEdit;
 import it.infog.psiche.markdown.model.TextRange;
 
 import org.commonmark.ext.footnotes.FootnoteDefinition;
@@ -26,6 +27,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A chapter's footnotes: a reference, {@code text[^moon]}, to a note written anywhere in the chapter,
@@ -42,7 +44,12 @@ public final class Footnotes {
     private static final String NOTE_LINK = "#fn-";
     private static final String REFERENCE_LINK = "#fnref-";
     private static final String LABEL_OPENING = "[^";
+    private static final String LABEL_CLOSING = "]";
     private static final String NOTE_OPENING_END = "]:";
+    // Between a paragraph and a note after it.
+    private static final String NOTE_BREAK = "\n\n";
+    // A label that is a number, as Psiche gives new notes.
+    private static final Pattern NUMBER = Pattern.compile("\\d{1,9}");
     // A reference that leads to no note, as the parser leaves it in the text.
     private static final Pattern MISSING_NOTE = Pattern.compile("\\[\\^([^\\s\\]]+)]");
     // The way back to the second reference of a note or a later one: its label, a dash and its number.
@@ -129,6 +136,22 @@ public final class Footnotes {
         return REFERENCE_LINK + label;
     }
 
+    /**
+     * A new footnote, as Advanced mode writes it: a reference to the next free number at {@code position}, the caret
+     * or the end of the selection, and its note's opening on a line of its own after the paragraph, with the caret
+     * there, to type the note.
+     */
+    public static TextEdit insert(String text, int position) {
+
+        String label = String.valueOf(nextNumber(text));
+        int paragraphEnd = paragraphEnd(text, position);
+        String replacement = LABEL_OPENING + label + LABEL_CLOSING + text.substring(position, paragraphEnd)
+                + NOTE_BREAK + LABEL_OPENING + label + NOTE_OPENING_END + " ";
+        int caret = position + replacement.length();
+
+        return new TextEdit(position, paragraphEnd, replacement, caret, caret);
+    }
+
     /** True if {@code destination} is a link of the preview's footnotes, to a note or back to its reference. */
     public static boolean isFootnoteLink(String destination) {
 
@@ -163,6 +186,35 @@ public final class Footnotes {
         return MISSING_NOTE.matcher(literal).results()
                 .map(found -> new TextRange(found.start(), found.end()))
                 .toList();
+    }
+
+    /** One more than the highest number a label of {@code text} is; 1 if none is a number. */
+    private static int nextNumber(String text) {
+
+        FootnoteMarks marks = of(text);
+        return Stream.of(marks.references(), marks.notes(), marks.missing())
+                .flatMap(List::stream)
+                .map(FootnoteMark::label)
+                .filter(NUMBER.asMatchPredicate())
+                .mapToInt(Integer::parseInt)
+                .max()
+                .orElse(0) + 1;
+    }
+
+    /**
+     * Where the paragraph holding {@code position} ends: at the line break before the next blank line, or at the end
+     * of the text.
+     */
+    private static int paragraphEnd(String text, int position) {
+
+        for (int lineBreak = text.indexOf('\n', position); lineBreak >= 0; ) {
+            int next = text.indexOf('\n', lineBreak + 1);
+            if (text.substring(lineBreak + 1, next < 0 ? text.length() : next).isBlank())
+                return lineBreak;
+            lineBreak = next;
+        }
+
+        return text.length();
     }
 
     /** Where the {@code index}th mark of {@code marks} with {@code label}, counted from 0, starts. */

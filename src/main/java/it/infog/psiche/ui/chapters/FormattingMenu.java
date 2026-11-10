@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.MarkdownFormatter;
 import it.infog.psiche.markdown.model.ImageLine;
@@ -11,6 +12,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.input.Clipboard;
+import javafx.scene.input.KeyCharacterCombination;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -25,16 +27,25 @@ import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
  * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, the
- * lists grouped under List; then Insert, with Image… and the {@link LinkActions}' Link…; Modify image… on an image
- * line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection}); Find…,
- * which opens the {@link FindBar}; and the editing commands the text's own menu has, which this menu replaces. Each
- * formatting is one change, which a single Undo reverts.
+ * lists grouped under List; then Insert, with Image…, the {@link LinkActions}' Link… and Footnote; Modify image… on an
+ * image line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection});
+ * Find…, which opens the {@link FindBar}; and the editing commands the text's own menu has, which this menu replaces.
+ * Each formatting is one change, which a single Undo reverts.
  */
 final class FormattingMenu {
 
     // Formatting shortcuts, as in common word processors and Markdown editors; Shortcut is Ctrl, or ⌘ on macOS.
     private static final KeyCombination BOLD = new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN);
     private static final KeyCombination ITALIC = new KeyCodeCombination(KeyCode.I, KeyCombination.SHORTCUT_DOWN);
+    private static final KeyCombination STRIKETHROUGH =
+            new KeyCodeCombination(KeyCode.X, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN);
+    // By the sign typed, as in Word: Shortcut+= and Shortcut++, wherever a keyboard has the two signs.
+    private static final KeyCombination SUBSCRIPT =
+            new KeyCharacterCombination("=", KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_ANY);
+    private static final KeyCombination SUPERSCRIPT =
+            new KeyCharacterCombination("+", KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_ANY);
+    private static final KeyCombination FOOTNOTE =
+            new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN);
     private static final KeyCombination NUMBERED_LIST =
             new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN);
     private static final KeyCombination BULLETED_LIST =
@@ -82,6 +93,9 @@ final class FormattingMenu {
         //formatting
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
         MenuItem italic = formatItem("Italic", ITALIC, MarkdownFormatter::italic);
+        MenuItem strikethrough = formatItem("Strikethrough", STRIKETHROUGH, MarkdownFormatter::strikethrough);
+        MenuItem subscript = formatItem("Subscript", SUBSCRIPT, scriptFormat(MarkdownFormatter::subscript));
+        MenuItem superscript = formatItem("Superscript", SUPERSCRIPT, scriptFormat(MarkdownFormatter::superscript));
         Menu heading = new Menu("Heading");
         for (int level = 1; level <= HEADING_KEYS.size(); level++)
             heading.getItems().add(formatItem("Heading " + level,
@@ -95,7 +109,11 @@ final class FormattingMenu {
         MenuItem clear = formatItem("Clear formatting", CLEAR_FORMATTING, MarkdownFormatter::clearFormatting);
 
         //inserting
-        Menu insert = new Menu("Insert", null, menuItem("Image…", insertImage), links.insertItem());
+        // Never inside a block, by the shortcut either: a reference would break the link or image line.
+        MenuItem footnote = formatItem("Footnote", FOOTNOTE, (text, start, end) -> manuscript.inBlock(end)
+                ? TextEdit.selecting(start, end, text.substring(start, end))
+                : Footnotes.insert(text, end));
+        Menu insert = new Menu("Insert", null, menuItem("Image…", insertImage), links.insertItem(), footnote);
         MenuItem modifyImageItem = menuItem("Modify image…", () -> menuImage().ifPresent(modifyImage));
         shortcuts.put(LinkActions.SHORTCUT, links::edit);
 
@@ -113,8 +131,8 @@ final class FormattingMenu {
         MenuItem delete = menuItem("Delete", manuscript::deleteSelection);
         MenuItem selectAll = menuItem("Select All", manuscript::selectAll);
 
-        ContextMenu menu = new ContextMenu(bold, italic, heading, list, quote, comment, clear, new SeparatorMenuItem(),
-                insert, modifyImageItem);
+        ContextMenu menu = new ContextMenu(bold, italic, strikethrough, subscript, superscript, heading, list, quote,
+                comment, clear, new SeparatorMenuItem(), insert, modifyImageItem);
         menu.getItems().addAll(links.modifyItems());
         menu.getItems().addAll(new SeparatorMenuItem(), findItem, new SeparatorMenuItem(), undo, redo,
                 new SeparatorMenuItem(), cut, copy, paste, delete, new SeparatorMenuItem(), selectAll);
@@ -131,11 +149,14 @@ final class FormattingMenu {
             // In Default mode, an image's caption and a link's Markdown change only from their dialogs.
             boolean formattable = editable && manuscript.canFormat();
 
-            bold.setDisable(!formattable || !words);
-            italic.setDisable(!formattable || !words);
+            boolean script = MarkdownFormatter.fitsScript(manuscript.text(), selection.getStart(), selection.getEnd());
+
+            List.of(bold, italic, strikethrough).forEach(item -> item.setDisable(!formattable || !words));
+            List.of(subscript, superscript).forEach(item -> item.setDisable(!formattable || !script));
             heading.setDisable(!formattable || !oneLine);
             List.of(list, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
             insert.setDisable(!editable);
+            footnote.setDisable(manuscript.inBlock(selection.getEnd()));
             modifyImageItem.setVisible(menuImage().isPresent());
             modifyImageItem.setDisable(!editable);
             findItem.setDisable(!editable);
@@ -169,6 +190,14 @@ final class FormattingMenu {
         shortcuts.put(shortcut, () -> format(formatting));
 
         return item;
+    }
+
+    /** A subscript or a superscript, which a selection with a space or a line break in it does not become. */
+    private static Formatting scriptFormat(Formatting script) {
+
+        return (text, start, end) -> MarkdownFormatter.fitsScript(text, start, end)
+                ? script.apply(text, start, end)
+                : TextEdit.selecting(start, end, text.substring(start, end));
     }
 
     /** A heading of {@code level}, which a selection over several lines does not become. */

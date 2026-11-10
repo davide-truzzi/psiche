@@ -1,7 +1,12 @@
 package it.infog.psiche.markdown;
 
+import it.infog.psiche.markdown.model.Script;
+import it.infog.psiche.markdown.model.Subscript;
+import it.infog.psiche.markdown.model.Superscript;
 import it.infog.psiche.markdown.model.TextEdit;
+import org.commonmark.ext.gfm.strikethrough.Strikethrough;
 import org.commonmark.node.AbstractVisitor;
+import org.commonmark.node.CustomNode;
 import org.commonmark.node.Delimited;
 import org.commonmark.node.Emphasis;
 import org.commonmark.node.Node;
@@ -21,8 +26,8 @@ import java.util.stream.Collectors;
 
 /**
  * Markdown formatting of the selected text in a chapter. Each method takes the whole text and the selection, and
- * returns the edit that formats it, selecting the formatted text. Bold and italic wrap the selection, joining the
- * same emphasis it overlaps instead of doubling it; headings, lists and quotes apply to every line the selection
+ * returns the edit that formats it, selecting the formatted text. Bold, italic, strikethrough, subscript and
+ * superscript wrap the selection, joining the same formatting it overlaps instead of doubling it; headings, lists and quotes apply to every line the selection
  * touches, or the caret's line when nothing is selected. A comment hides text from the preview and exports.
  */
 public final class MarkdownFormatter {
@@ -35,6 +40,7 @@ public final class MarkdownFormatter {
     // A scene break such as --- or * * *, which a bullet pattern would take for a list item.
     private static final Pattern SCENE_BREAK = Pattern.compile("^ {0,3}([-*_])(?:[ \\t]*\\1){2,}[ \\t]*$");
 
+    private static final String STRIKETHROUGH = "~~";
     private static final String COMMENT_OPEN = "<!--";
     private static final String COMMENT_CLOSE = "-->";
     // The markers of comments inside a selection being commented, with the space Comment puts inside them.
@@ -51,6 +57,28 @@ public final class MarkdownFormatter {
 
     public static TextEdit italic(String text, int start, int end) {
         return wrap(text, start, end, "*");
+    }
+
+    public static TextEdit strikethrough(String text, int start, int end) {
+        return wrap(text, start, end, STRIKETHROUGH);
+    }
+
+    /** Wraps the selection in tildes; see {@link #fitsScript}. */
+    public static TextEdit subscript(String text, int start, int end) {
+        return wrap(text, start, end, String.valueOf(Subscript.SIGN));
+    }
+
+    /** Wraps the selection in carets; see {@link #fitsScript}. */
+    public static TextEdit superscript(String text, int start, int end) {
+        return wrap(text, start, end, String.valueOf(Superscript.SIGN));
+    }
+
+    /**
+     * True if the selection can become a subscript or a superscript: some text, with no space or line break in it,
+     * which would leave the signs as they are written.
+     */
+    public static boolean fitsScript(String text, int start, int end) {
+        return start < end && text.substring(start, end).chars().noneMatch(Character::isWhitespace);
     }
 
     /** Makes each line a heading of {@code level}, replacing any heading or list marker it has. */
@@ -82,8 +110,9 @@ public final class MarkdownFormatter {
     }
 
     /**
-     * Removes heading, list and quote markers from the lines the selection touches, and the bold and italic marks of
-     * any emphasis that overlaps the selection, as a whole. Scene breaks, and asterisks that are not emphasis, stay.
+     * Removes heading, list and quote markers from the lines the selection touches, and the marks of any bold, italic,
+     * strikethrough, subscript or superscript that overlaps the selection, as a whole. Scene breaks, and asterisks,
+     * tildes and carets that format nothing, stay.
      */
     public static TextEdit clearFormatting(String text, int start, int end) {
 
@@ -105,11 +134,11 @@ public final class MarkdownFormatter {
             lineStart = lineEnd + 1;
         }
 
-        //emphasis
-        for (Span span : emphasis(text)) {
+        //bold, italic, strikethrough, subscript, superscript
+        for (Span span : formatted(text)) {
             if (start < span.end() && end > span.start()) {
-                removed.set(span.start(), span.start() + span.delimiter());
-                removed.set(span.end() - span.delimiter(), span.end());
+                removed.set(span.start(), span.start() + span.delimiter().length());
+                removed.set(span.end() - span.delimiter().length(), span.end());
                 from = Math.min(from, span.start());
                 to = Math.max(to, span.end());
             }
@@ -167,15 +196,15 @@ public final class MarkdownFormatter {
     }
 
     /**
-     * Wraps the words of each selected line in {@code marker}, as emphasis cannot cross a paragraph and would break a
-     * list item or heading it spanned. Spaces at either end, and the line's own markers, stay outside. Text that
-     * already has this emphasis is not wrapped again: words inside it stay as they are, and words overlapping or
+     * Wraps the words of each selected line in {@code marker}, as formatting cannot cross a paragraph and would break
+     * a list item or heading it spanned. Spaces at either end, and the line's own markers, stay outside. Text that
+     * already has this formatting is not wrapped again: words inside it stay as they are, and words overlapping or
      * touching it join it, so bolding "rem ip" in {@code **lorem** ipsum} gives {@code **lorem ip**sum}.
      */
     private static TextEdit wrap(String text, int start, int end, String marker) {
 
-        List<Span> existing = emphasis(text).stream()
-                .filter(span -> span.delimiter() == marker.length())
+        List<Span> existing = formatted(text).stream()
+                .filter(span -> span.delimiter().replace('_', '*').equals(marker))
                 .toList();
         BitSet removed = new BitSet(text.length());
         List<Range> wrapped = new ArrayList<>();
@@ -189,8 +218,8 @@ public final class MarkdownFormatter {
             int to = words.end();
             for (Span span : existing)
                 if (span.start() <= words.end() && span.end() >= words.start()) {
-                    removed.set(span.start(), span.start() + span.delimiter());
-                    removed.set(span.end() - span.delimiter(), span.end());
+                    removed.set(span.start(), span.start() + span.delimiter().length());
+                    removed.set(span.end() - span.delimiter().length(), span.end());
                     from = Math.min(from, span.start());
                     to = Math.max(to, span.end());
                 }
@@ -279,8 +308,8 @@ public final class MarkdownFormatter {
         return TextEdit.selecting(from, to, String.join("\n", lines));
     }
 
-    /** Every bold or italic span in {@code text}. */
-    private static List<Span> emphasis(String text) {
+    /** Every bold, italic, strikethrough, subscript or superscript span in {@code text}. */
+    private static List<Span> formatted(String text) {
 
         List<Span> spans = new ArrayList<>();
         PARSER.parse(text).accept(new AbstractVisitor() {
@@ -296,6 +325,15 @@ public final class MarkdownFormatter {
                 visitChildren(strong);
             }
 
+            @Override
+            public void visit(CustomNode node) {
+                if (node instanceof Strikethrough strikethrough)
+                    add(strikethrough);
+                else if (node instanceof Script script)
+                    add(script);
+                visitChildren(node);
+            }
+
             private <T extends Node & Delimited> void add(T node) {
                 List<SourceSpan> sourceSpans = node.getSourceSpans();
                 if (sourceSpans.isEmpty())
@@ -304,7 +342,7 @@ public final class MarkdownFormatter {
                 SourceSpan last = sourceSpans.getLast();
                 spans.add(new Span(first.getInputIndex(),
                                    last.getInputIndex() + last.getLength(),
-                                   node.getOpeningDelimiter().length()));
+                                   node.getOpeningDelimiter()));
             }
         });
 
@@ -362,10 +400,10 @@ public final class MarkdownFormatter {
                          int end) {
     }
 
-    /** Bold or italic text from {@code start} to {@code end}, including its delimiters of {@code delimiter} characters. */
+    /** Formatted text from {@code start} to {@code end}, including the {@code delimiter} on each side. */
     private record Span(int start,
                         int end,
-                        int delimiter) {
+                        String delimiter) {
     }
 
     @FunctionalInterface

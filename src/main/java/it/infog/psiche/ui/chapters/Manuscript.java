@@ -2,6 +2,7 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.ChapterPlace;
+import it.infog.psiche.markdown.TextBlocks;
 import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.spelling.SpellChecker;
 import it.infog.psiche.spelling.model.Word;
@@ -346,6 +347,11 @@ final class Manuscript {
     IndexRange menuSelection() { return isDefaultMode() ? menuSpot : area.getSelection(); }
 
     IndexRange selection() { return area.getSelection(); }
+    /** True if {@code position} lies inside one of Default mode's blocks, past its start and before its end. */
+    boolean inBlock(int position) {
+
+        return isDefaultMode() && TextBlocks.inside(marks.blocks(), position).isPresent();
+    }
     String selectedText() { return area.getSelectedText(); }
     void select(int start, int end) { area.selectRange(start, end); }
     /**

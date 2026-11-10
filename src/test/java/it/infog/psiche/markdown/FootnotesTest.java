@@ -2,6 +2,7 @@ package it.infog.psiche.markdown;
 
 import it.infog.psiche.markdown.model.FootnoteMark;
 import it.infog.psiche.markdown.model.FootnoteMarks;
+import it.infog.psiche.markdown.model.TextEdit;
 import it.infog.psiche.markdown.model.TextRange;
 
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,31 @@ class FootnotesTest {
         assertThat(Footnotes.place(TEXT, Footnotes.noteLink("Moon"))).isEqualTo(OptionalInt.of(45));
         assertThat(Footnotes.place(TEXT, Footnotes.referenceLink("moon"))).isEqualTo(OptionalInt.of(4));
         assertThat(Footnotes.place(TEXT, Footnotes.referenceLink("b"))).isEmpty();
+    }
+
+    @Test
+    void insertsAReferenceAtThePositionAndItsNoteAfterTheParagraphWithTheCaretThere() {
+        String text = "The moon rose.\nIt was full.\n\nNext.";
+
+        TextEdit edit = Footnotes.insert(text, 8);
+        String changed = text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
+
+        assertThat(changed).isEqualTo("The moon[^1] rose.\nIt was full.\n\n[^1]: \n\nNext.");
+        assertThat(edit.selectionStart()).isEqualTo(edit.selectionEnd()).isEqualTo(changed.indexOf("[^1]: ") + 6);
+    }
+
+    @Test
+    void insertsANoteAtTheEndOfTheTextAfterItsLastParagraph() {
+        TextEdit edit = Footnotes.insert("Last.", 5);
+
+        assertThat(edit.replacement()).isEqualTo("[^1]\n\n[^1]: ");
+    }
+
+    @Test
+    void numbersANewNoteOneAfterTheHighestNumberUsed() {
+        String text = "A[^2] b[^moon] c[^7].\n\n[^2]: Two.";
+
+        assertThat(Footnotes.insert(text, 1).replacement()).startsWith("[^8]");
     }
 
     @Test
