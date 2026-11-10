@@ -14,6 +14,8 @@ import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableSet;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -38,6 +40,9 @@ public final class ChapterEditor {
     private final ChapterPlaces places;
     private final ChapterEdits edits;
     private final ChapterLinks links;
+    private final FindBar findBar;
+    // The page with the find bar under it.
+    private final VBox node;
     private Runnable insertImage = () -> {};
     private Consumer<ImageLine> modifyImage = line -> {};
 
@@ -61,15 +66,18 @@ public final class ChapterEditor {
         places = new ChapterPlaces(manuscript, () -> chapter);
         edits = new ChapterEdits(manuscript, this::isOpen);
         links = new ChapterLinks(manuscript, this::chapter);
+        findBar = new FindBar(manuscript);
+        node = new VBox(manuscript.node(), findBar.node());
+        VBox.setVgrow(manuscript.node(), Priority.ALWAYS);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
         ContextMenu menu = FormattingMenu.attach(manuscript, () -> insertImage.run(), line -> modifyImage.accept(line),
-                links.actions());
+                links.actions(), findBar::open);
         SpellingMenu.attach(menu, manuscript, spelling::makeRight);
     }
 
     // The page
 
-    public Node node() { return manuscript.node(); }
+    public Node node() { return node; }
     public ObservableValue<String> textProperty() { return manuscript.textProperty(); }
     public String text() { return manuscript.text(); }
     /** The open chapter's text as it is on disk, without unsaved changes. */
@@ -197,6 +205,7 @@ public final class ChapterEditor {
         savedText = "";
         manuscript.setChapter(null);
         links.clear();
+        findBar.hide();
         manuscript.clear();
         dirty.set(false);
     }

@@ -23,7 +23,8 @@ import java.util.function.Supplier;
  * places there neither show nor count, and the author at one finds none.
  * <p>
  * While the author types, {@link FastRepetitions} shows the places near the caret at each key; these take their place
- * once the author pauses. The Preferences switch turns both on and off.
+ * once the author pauses. The Preferences switch turns both on and off; both also pause while the author searches the
+ * text, whose places would otherwise show twice.
  */
 final class Repetitions {
 
@@ -42,6 +43,8 @@ final class Repetitions {
     private final PlacesInView places;
     private final FastRepetitions fast;
     private boolean on = true;
+    // True while the author searches the text; see TextSearch.
+    private boolean paused;
 
     /**
      * @param notProse the parts of the text that are no prose, as image lines and links' addresses, where a word
@@ -68,6 +71,13 @@ final class Repetitions {
         findNow();
     }
 
+    /** Pauses both checks while the author searches the text, or lets them show again, as they would have. */
+    void setPaused(boolean paused) {
+
+        this.paused = paused;
+        findNow();
+    }
+
     /**
      * Lets the places go once the text changes, as the word may be another now, until the author pauses; meanwhile,
      * the fast check shows those near the caret if {@code byAuthor}, not an edit of the app's own, as opening a
@@ -76,14 +86,19 @@ final class Repetitions {
     void textChanged(boolean byAuthor) {
 
         show(List.of(), "", 0);
-        if (on && byAuthor)
+        if (showing() && byAuthor)
             fast.textChanged();
         findLater();
     }
 
+    private boolean showing() {
+
+        return on && !paused;
+    }
+
     private void findLater() {
 
-        if (on)
+        if (showing())
             findDelay.playFromStart();
     }
 
@@ -94,7 +109,7 @@ final class Repetitions {
         fast.clear();
         String text = area.getText();
         List<TextRange> skipped = notProse.get();
-        Optional<TextRange> word = on
+        Optional<TextRange> word = showing()
                 ? wanted(text).filter(found -> Occurrences.outside(found, skipped))
                 : Optional.empty();
         if (word.isEmpty()) {

@@ -26,9 +26,9 @@ import static it.infog.psiche.ui.common.Controls.menuItem;
 /**
  * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, the
  * lists grouped under List; then Insert, with Image… and the {@link LinkActions}' Link…; Modify image… on an image
- * line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection}); and the
- * editing commands the text's own menu has, which this menu replaces. Each formatting is one change, which a single
- * Undo reverts.
+ * line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection}); Find…,
+ * which opens the {@link FindBar}; and the editing commands the text's own menu has, which this menu replaces. Each
+ * formatting is one change, which a single Undo reverts.
  */
 final class FormattingMenu {
 
@@ -63,19 +63,21 @@ final class FormattingMenu {
      * @param insertImage asks for an image and writes it into the chapter, for Insert, Image…
      * @param modifyImage shows an image line of the chapter to change, for Modify image…
      * @param links       Insert, Link…, then Modify link… and Remove link, which follow Modify image…
+     * @param find        opens the find bar, for Find…
      *
      * @return the menu, for other parts of the editor to add to
      */
     static ContextMenu attach(Manuscript manuscript, Runnable insertImage, Consumer<ImageLine> modifyImage,
-                              LinkActions links) {
+                              LinkActions links, Runnable find) {
 
         FormattingMenu formatting = new FormattingMenu(manuscript);
-        ContextMenu menu = formatting.menu(insertImage, modifyImage, links);
+        ContextMenu menu = formatting.menu(insertImage, modifyImage, links, find);
         manuscript.setMenu(menu, formatting.shortcuts);
         return menu;
     }
 
-    private ContextMenu menu(Runnable insertImage, Consumer<ImageLine> modifyImage, LinkActions links) {
+    private ContextMenu menu(Runnable insertImage, Consumer<ImageLine> modifyImage, LinkActions links,
+                             Runnable find) {
 
         //formatting
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
@@ -97,6 +99,11 @@ final class FormattingMenu {
         MenuItem modifyImageItem = menuItem("Modify image…", () -> menuImage().ifPresent(modifyImage));
         shortcuts.put(LinkActions.SHORTCUT, links::edit);
 
+        //finding
+        MenuItem findItem = menuItem("Find…", find);
+        findItem.setAccelerator(FindBar.FIND);
+        shortcuts.put(FindBar.FIND, find);
+
         //editing
         MenuItem undo = menuItem("Undo", manuscript::undo);
         MenuItem redo = menuItem("Redo", manuscript::redo);
@@ -109,8 +116,8 @@ final class FormattingMenu {
         ContextMenu menu = new ContextMenu(bold, italic, heading, list, quote, comment, clear, new SeparatorMenuItem(),
                 insert, modifyImageItem);
         menu.getItems().addAll(links.modifyItems());
-        menu.getItems().addAll(new SeparatorMenuItem(), undo, redo, new SeparatorMenuItem(), cut, copy, paste, delete,
-                new SeparatorMenuItem(), selectAll);
+        menu.getItems().addAll(new SeparatorMenuItem(), findItem, new SeparatorMenuItem(), undo, redo,
+                new SeparatorMenuItem(), cut, copy, paste, delete, new SeparatorMenuItem(), selectAll);
 
         // Enable what applies to the text and selection as they are when the menu opens.
         menu.setOnShowing(event -> {
@@ -131,6 +138,7 @@ final class FormattingMenu {
             insert.setDisable(!editable);
             modifyImageItem.setVisible(menuImage().isPresent());
             modifyImageItem.setDisable(!editable);
+            findItem.setDisable(!editable);
             links.update();
 
             undo.setDisable(!editable || !manuscript.canUndo());
