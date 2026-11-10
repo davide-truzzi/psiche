@@ -4,6 +4,7 @@ import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.TextLinks;
 import it.infog.psiche.markdown.model.FootnoteMarks;
 import it.infog.psiche.markdown.model.TextRange;
+import it.infog.psiche.ui.common.OperatingSystem;
 
 import javafx.css.PseudoClass;
 import javafx.event.EventHandler;
@@ -39,8 +40,7 @@ final class LinkHover {
     private static final double TIP_OFFSET_X = 14;
     private static final double TIP_GAP = 4;
     // The key Shortcut stands for: ⌘ on macOS, Ctrl elsewhere.
-    private static final KeyCode SHORTCUT_KEY =
-            System.getProperty("os.name", "").startsWith("Mac") ? KeyCode.COMMAND : KeyCode.CONTROL;
+    private static final KeyCode SHORTCUT_KEY = OperatingSystem.isMac() ? KeyCode.COMMAND : KeyCode.CONTROL;
 
     private final StyleClassedTextArea area;
     private static final String OPEN_LINK = "Open link";

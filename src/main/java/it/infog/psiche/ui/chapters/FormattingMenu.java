@@ -1,6 +1,5 @@
 package it.infog.psiche.ui.chapters;
 
-import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.MarkdownFormatter;
 import it.infog.psiche.markdown.model.ImageLine;
@@ -27,10 +26,11 @@ import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
  * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, the
- * lists grouped under List; then Insert, with Image…, the {@link LinkActions}' Link… and Footnote; Modify image… on an
- * image line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection});
- * Find…, which opens the {@link FindBar}; and the editing commands the text's own menu has, which this menu replaces.
- * Each formatting is one change, which a single Undo reverts.
+ * lists grouped under List; then Insert, with Image…, the {@link LinkActions}' Link… and the {@link NoteActions}'
+ * Footnote; Modify image… on an image line, Modify link… with Remove link on a link, and the note's items on a
+ * footnote, shown only there (see {@link Manuscript#menuSelection}); Find…, which opens the {@link FindBar}; and the
+ * editing commands the text's own menu has, which this menu replaces. Each formatting is one change, which a single
+ * Undo reverts.
  */
 final class FormattingMenu {
 
@@ -44,8 +44,6 @@ final class FormattingMenu {
             new KeyCharacterCombination("=", KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_ANY);
     private static final KeyCombination SUPERSCRIPT =
             new KeyCharacterCombination("+", KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_ANY);
-    private static final KeyCombination FOOTNOTE =
-            new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN);
     private static final KeyCombination NUMBERED_LIST =
             new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN);
     private static final KeyCombination BULLETED_LIST =
@@ -109,11 +107,9 @@ final class FormattingMenu {
         MenuItem clear = formatItem("Clear formatting", CLEAR_FORMATTING, MarkdownFormatter::clearFormatting);
 
         //inserting
-        // Never inside a block, by the shortcut either: a reference would break the link or image line.
-        MenuItem footnote = formatItem("Footnote", FOOTNOTE, (text, start, end) -> manuscript.inBlock(end)
-                ? TextEdit.selecting(start, end, text.substring(start, end))
-                : Footnotes.insert(text, end));
-        Menu insert = new Menu("Insert", null, menuItem("Image…", insertImage), links.insertItem(), footnote);
+        NoteActions notes = new NoteActions(manuscript);
+        Menu insert = new Menu("Insert", null, menuItem("Image…", insertImage), links.insertItem(), notes.insertItem());
+        shortcuts.put(NoteActions.SHORTCUT, notes::insert);
         MenuItem modifyImageItem = menuItem("Modify image…", () -> menuImage().ifPresent(modifyImage));
         shortcuts.put(LinkActions.SHORTCUT, links::edit);
 
@@ -134,6 +130,7 @@ final class FormattingMenu {
         ContextMenu menu = new ContextMenu(bold, italic, strikethrough, subscript, superscript, heading, list, quote,
                 comment, clear, new SeparatorMenuItem(), insert, modifyImageItem);
         menu.getItems().addAll(links.modifyItems());
+        menu.getItems().addAll(notes.modifyItems());
         menu.getItems().addAll(new SeparatorMenuItem(), findItem, new SeparatorMenuItem(), undo, redo,
                 new SeparatorMenuItem(), cut, copy, paste, delete, new SeparatorMenuItem(), selectAll);
 
@@ -156,7 +153,7 @@ final class FormattingMenu {
             heading.setDisable(!formattable || !oneLine);
             List.of(list, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
             insert.setDisable(!editable);
-            footnote.setDisable(manuscript.inBlock(selection.getEnd()));
+            notes.update();
             modifyImageItem.setVisible(menuImage().isPresent());
             modifyImageItem.setDisable(!editable);
             findItem.setDisable(!editable);

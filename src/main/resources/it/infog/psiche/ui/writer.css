@@ -944,6 +944,10 @@
 
 .book-form .text-area {
     -fx-pref-width: 360;
+}
+
+.book-form .text-area,
+.note-dialog-content .text-area {
     -fx-background-color: -desk;
     -fx-background-radius: 2;
     -fx-border-color: -desk-edge;
@@ -1031,11 +1035,13 @@
     -fx-background-color: -red-pencil-16;
 }
 
-.book-form .text-area:focused {
+.book-form .text-area:focused,
+.note-dialog-content .text-area:focused {
     -fx-border-color: -brass;
 }
 
-.book-form .text-area .content {
+.book-form .text-area .content,
+.note-dialog-content .text-area .content {
     -fx-background-color: -desk;
     -fx-padding: 4 6;
 }
@@ -1747,6 +1753,15 @@
 /* An address that is no web or mail address: an error, in attention orange. */
 .link-dialog-content .form-hint.wrong-address {
     -fx-text-fill: -orange;
+}
+
+/* Footnotes */
+
+/* The note dialog: the note's text, which grows with the dialog, and under it where readers find the note. */
+.note-dialog-content {
+    -fx-spacing: 10;
+    -fx-padding: 16 20 4 20;
+    -fx-pref-width: 480;
 }
 
 /* The keychain's dialogs: what the keychain is, above the password fields; a wrong password in attention orange. */

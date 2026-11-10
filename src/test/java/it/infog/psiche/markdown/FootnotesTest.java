@@ -2,8 +2,10 @@ package it.infog.psiche.markdown;
 
 import it.infog.psiche.markdown.model.FootnoteMark;
 import it.infog.psiche.markdown.model.FootnoteMarks;
-import it.infog.psiche.markdown.model.TextEdit;
+import it.infog.psiche.markdown.model.FootnotePlace;
+import it.infog.psiche.markdown.model.NumberedNote;
 import it.infog.psiche.markdown.model.TextRange;
+import it.infog.psiche.markdown.model.enums.FootnotePart;
 
 import org.junit.jupiter.api.Test;
 
@@ -36,6 +38,39 @@ class FootnotesTest {
 
         assertThat(Footnotes.of(text).blocks()).containsExactly(new TextRange(4, 8), new TextRange(12, 19),
                 new TextRange(22, 56));
+    }
+
+    @Test
+    void tellsWhatPartOfAFootnoteASpotIsInAndWhetherItIsWrong() {
+        String text = "Moon[^1] and[^none].\n\n[^1]: A note.\n\n[^b]: Unused.";
+
+        assertThat(Footnotes.at(text, 5, 6)).hasValueSatisfying(place -> {
+            assertThat(place.part()).isEqualTo(FootnotePart.REFERENCE);
+            assertThat(place.wrong()).isFalse();
+        });
+        assertThat(Footnotes.at(text, 14, 15).map(FootnotePlace::part)).contains(FootnotePart.MISSING_REFERENCE);
+        assertThat(Footnotes.at(text, 30, 31).map(FootnotePlace::part)).contains(FootnotePart.NOTE);
+        assertThat(Footnotes.at(text, text.length() - 2, text.length() - 1).map(FootnotePlace::wrong)).contains(true);
+        assertThat(Footnotes.at(text, 0, 1)).isEmpty();
+    }
+
+    @Test
+    void numbersTheNotesAsReadersFindThemThenThoseNothingRefersTo() {
+        String text = "Sun[^b] and moon[^a] and[^b].\n\n[^a]: *Moon* note.\n\n[^z]: Unused.\n\n[^b]: Sun.\n\n"
+                + "[^b]: Never read.";
+
+        assertThat(Footnotes.numberedNotes(text)).containsExactly(
+                new NumberedNote("b", 1, "Sun.", "Sun."),
+                new NumberedNote("a", 2, "*Moon* note.", "Moon note."),
+                new NumberedNote("z", 3, "Unused.", "Unused."));
+    }
+
+    @Test
+    void summarisesALongNoteByItsFirstWordsOnOneLine() {
+        String text = "Moon[^1].\n\n[^1]: A note long enough to be cut somewhere\n    in its second line.";
+
+        assertThat(Footnotes.numberedNotes(text).getFirst().summary())
+                .isEqualTo("A note long enough to be cut somewhere i…");
     }
 
     @Test
@@ -91,87 +126,8 @@ class FootnotesTest {
     }
 
     @Test
-    void insertsAReferenceAtThePositionAndItsNoteAfterTheParagraphWithTheCaretThere() {
-        String text = "The moon rose.\nIt was full.\n\nNext.";
-
-        TextEdit edit = Footnotes.insert(text, 8);
-        String changed = text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
-
-        assertThat(changed).isEqualTo("The moon[^1] rose.\nIt was full.\n\n[^1]: \n\nNext.");
-        assertThat(edit.selectionStart()).isEqualTo(edit.selectionEnd()).isEqualTo(changed.indexOf("[^1]: ") + 6);
-    }
-
-    @Test
-    void insertsANoteAtTheEndOfTheTextAfterItsLastParagraph() {
-        TextEdit edit = Footnotes.insert("Last.", 5);
-
-        assertThat(edit.replacement()).isEqualTo("[^1]\n\n[^1]: ");
-    }
-
-    @Test
-    void numbersANewNoteOneAfterTheHighestNumberUsed() {
-        String text = "A[^2] b[^moon] c[^7].\n\n[^2]: Two.";
-
-        assertThat(Footnotes.insert(text, 1).replacement()).startsWith("[^8]");
-    }
-
-    @Test
-    void removingTheOnlyReferenceRemovesItsNoteWithABlankLine() {
-        String text = "Moon[^1] rose.\n\n[^1]: A note.\n\nAfter.";
-
-        assertThat(applied(text, Footnotes.withNotes(text, 4, 8, "").orElseThrow())).isEqualTo("Moon rose.\n\nAfter.");
-    }
-
-    @Test
-    void removingOneOfTwoReferencesKeepsTheNote() {
-        String text = "Moon[^1] and sun[^1].\n\n[^1]: A note.";
-
-        assertThat(Footnotes.withNotes(text, 4, 8, "")).isEmpty();
-    }
-
-    @Test
-    void removingANoteRemovesEveryReferenceToItAndPutsTheCaretWhereTheNoteWas() {
-        String text = "Moon[^1] and sun[^1].\n\n[^1]: A note.\n    More.\n\nAfter.";
-        int note = text.indexOf("[^1]:");
-
-        TextEdit edit = Footnotes.withNotes(text, note, note + "[^1]: A note.\n    More.".length(), "").orElseThrow();
-
-        assertThat(applied(text, edit)).isEqualTo("Moon and sun.\n\n\n\nAfter.");
-        assertThat(edit.selectionStart()).isEqualTo("Moon and sun.\n\n".length());
-    }
-
-    @Test
-    void removingASecondNoteOfALabelKeepsItsReferences() {
-        String text = "Moon[^1].\n\n[^1]: First.\n\n[^1]: Second.";
-        int second = text.indexOf("[^1]: Second.");
-
-        assertThat(Footnotes.withNotes(text, second, text.length(), "")).isEmpty();
-    }
-
-    @Test
-    void removingAReferenceAndItsNoteTogetherLeavesTheRestAsItIs() {
-        String text = "Moon[^1].\n\n[^1]: A note.\n\nAfter.";
-
-        assertThat(Footnotes.withNotes(text, 0, text.indexOf("After"), "")).isEmpty();
-    }
-
-    @Test
-    void typingOverAReferenceKeepsWhatIsTypedAndRemovesTheNote() {
-        String text = "Moon[^1] rose.\n\n[^1]: A note.";
-
-        TextEdit edit = Footnotes.withNotes(text, 0, 8, "Sun").orElseThrow();
-
-        assertThat(applied(text, edit)).isEqualTo("Sun rose.");
-        assertThat(edit.selectionStart()).isEqualTo(3);
-    }
-
-    @Test
     void findsEachReferenceToNoNoteInAPieceOfProse() {
         assertThat(Footnotes.missingNotes("Moon[^none], sun [^also] and [^ spaced].")).containsExactly(
                 new TextRange(4, 11), new TextRange(17, 24));
-    }
-
-    private static String applied(String text, TextEdit edit) {
-        return text.substring(0, edit.start()) + edit.replacement() + text.substring(edit.end());
     }
 }

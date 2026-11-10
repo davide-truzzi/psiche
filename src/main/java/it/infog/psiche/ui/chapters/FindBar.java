@@ -4,6 +4,7 @@ import it.infog.psiche.markdown.Occurrences;
 import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.markdown.model.enums.LetterCase;
 import it.infog.psiche.ui.common.Icons;
+import it.infog.psiche.ui.common.OperatingSystem;
 import javafx.beans.binding.Bindings;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -32,7 +33,7 @@ import java.util.Optional;
  * which work everywhere too); F3 with it closed opens it with the last text looked for. It stays open as another
  * chapter opens, and looks for the same text there. The search itself is the {@link TextSearch}'s.
  * <p>
- * The arrow at its left shows a second row, as Ctrl+H does (⌘⌥F on macOS, which works everywhere too): the text to put
+ * The arrow at its left shows a second row, as Ctrl+H does (⌘⌥F on macOS, where ⌘H hides the app): the text to put
  * in, Replace, which Enter in its field presses, and Replace all, after which the count tells how many were replaced.
  * Both wait while the text cannot be edited. Undo and Redo in the bar act on the text, not on its fields, so a
  * replacement made by mistake is taken back at once, the text to put in kept.
@@ -45,10 +46,10 @@ final class FindBar {
     private static final List<KeyCombination> PREVIOUS = List.of(
             new KeyCodeCombination(KeyCode.F3, KeyCombination.SHIFT_DOWN),
             new KeyCodeCombination(KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN));
-    // ⌘H hides the app on macOS, whose own way is ⌘⌥F.
-    private static final List<KeyCombination> REPLACE = List.of(
-            new KeyCodeCombination(KeyCode.H, KeyCombination.SHORTCUT_DOWN),
-            new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN));
+    // ⌘H hides the app on macOS, whose own way is ⌘⌥F; elsewhere Ctrl+Alt+F is a footnote's, as in Word.
+    private static final List<KeyCombination> REPLACE = List.of(OperatingSystem.isMac()
+            ? new KeyCodeCombination(KeyCode.F, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN)
+            : new KeyCodeCombination(KeyCode.H, KeyCombination.SHORTCUT_DOWN));
     private static final KeyCombination CLOSE = new KeyCodeCombination(KeyCode.ESCAPE);
     private static final KeyCombination UNDO = new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN);
     // As the text itself redoes.
@@ -102,7 +103,7 @@ final class FindBar {
 
         //the arrow that shows the replace row, and the row, its label under Find's
         replacing.setGraphic(icon("next"));
-        decorate(replacing, "find-replacing", "Replace (Ctrl+H)");
+        decorate(replacing, "find-replacing", "Replace (" + REPLACE.getFirst().getDisplayText() + ")");
         Region indent = new Region();
         indent.minWidthProperty().bind(replacing.widthProperty());
         replacement.getStyleClass().add("find-field");
