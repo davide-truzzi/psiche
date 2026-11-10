@@ -93,7 +93,7 @@ final class EbookFootnotes implements NodeRenderer {
     private void note(int number, FootnoteDefinition note) {
 
         html.line();
-        html.tag("aside", Map.of("id", noteId(number), "epub:type", "footnote", "role", "doc-footnote"));
+        html.tag("aside", attributes("id", noteId(number), "epub:type", "footnote", "role", "doc-footnote"));
         List<Node> parts = new ArrayList<>();
         for (Node part = note.getFirstChild(); part != null; part = part.getNext())
             parts.add(part);
@@ -122,9 +122,19 @@ final class EbookFootnotes implements NodeRenderer {
     private void back(int number) {
 
         html.text(" ");
-        html.tag("a", Map.of("href", "#" + referenceId(number), "role", "doc-backlink"));
+        html.tag("a", attributes("href", "#" + referenceId(number), "role", "doc-backlink"));
         html.text(BACK);
         html.tag("/a");
+    }
+
+    /** Attributes from names and values in turn, written in that order, so every export of a book is the same. */
+    private static Map<String, String> attributes(String... namesAndValues) {
+
+        Map<String, String> attributes = new LinkedHashMap<>();
+        for (int i = 0; i < namesAndValues.length; i += 2)
+            attributes.put(namesAndValues[i], namesAndValues[i + 1]);
+
+        return attributes;
     }
 
     private String noteId(int number) {
