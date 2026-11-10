@@ -225,6 +225,29 @@ class EpubWriterTest {
         assertPassesEpubCheck(target);
     }
 
+    @Test
+    void putsTheNotesAtTheChaptersEndAsPopUpsAndPassesEpubCheck() throws IOException {
+        Path target = tempDir.resolve("notes.epub");
+        Files.createDirectories(tempDir.resolve("chapters"));
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir.resolve("chapters"),
+                List.of(new ChapterText("01-alba", "# Alba\n\nMoon[^m] and sun[^m].\n\n[^m]: A *full*\nmoon.\n\n"
+                                + "    Second.\n"),
+                        new ChapterText("02-sera", "# Sera\n\nEvening[^e].\n\n[^e]: Again one.\n")),
+                EmptyChapters.SKIP);
+
+        writer.write(book, EpubVariant.STORES, target);
+
+        assertThat(entry(target, "EPUB/xhtml/chapter-1.xhtml")).contains(
+                "Moon<sup><a id=\"chapter-1--noteref-1\" href=\"#chapter-1--note-1\" epub:type=\"noteref\" "
+                        + "role=\"doc-noteref\">1</a></sup> and sun<sup><a href=\"#chapter-1--note-1\" "
+                        + "epub:type=\"noteref\" role=\"doc-noteref\">1</a></sup>.",
+                "<aside id=\"chapter-1--note-1\" epub:type=\"footnote\" role=\"doc-footnote\"><p>1. A <em>full</em>"
+                        + "<br />moon.</p>",
+                "<p>Second. <a href=\"#chapter-1--noteref-1\" role=\"doc-backlink\">↩</a></p></aside>");
+        assertThat(entry(target, "EPUB/xhtml/chapter-2.xhtml")).contains("<p>1. Again one. <a");
+        assertPassesEpubCheck(target);
+    }
+
     /** Three chapters: one with a described image, a scene break and links; an empty one; one without a heading. */
     private BookExport book(Optional<Path> cover, EmptyChapters empty) throws IOException {
         image("map.png", 600, 400);

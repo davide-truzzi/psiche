@@ -42,8 +42,9 @@ import java.util.function.UnaryOperator;
  *     chapter links them, links a place of the book within its one document, and prints the footnotes at the foot
  *     of the page ({@link PageFootnotes});</li>
  *     <li>the ebook keeps a scene break a real {@code <hr />}, which the book's stylesheet draws and screen readers
- *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, and a place of the book on the
- *     page of its chapter.</li>
+ *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, a place of the book on the
+ *     page of its chapter, and puts the footnotes at the chapter's end, as e-readers' pop-ups
+ *     ({@link EbookFootnotes}).</li>
  * </ul>
  */
 public final class XhtmlRenderer {
@@ -112,7 +113,8 @@ public final class XhtmlRenderer {
                     .nodeRendererFactory(context -> new SceneBreakRenderer(context.getWriter()))
                     .nodeRendererFactory(context -> new FigureRenderer(context, image -> true));
         else
-            builder.nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images))
+            builder.nodeRendererFactory(context -> new EbookFootnotes(context, chapter.id()))
+                    .nodeRendererFactory(context -> new ImageRenderer(context.getWriter(), images))
                     .nodeRendererFactory(context -> new FigureRenderer(context,
                             image -> images.href(image.getDestination()).isPresent()))
                     .attributeProviderFactory(context -> (node, tagName, attributes) -> {
