@@ -9,6 +9,9 @@
   in view), so a fast writer sees a repetition without stopping. Once you pause, the faint red of the whole chapter's
   search and its count in the status bar take their place, as before. **Highlight repetitions** in Preferences turns
   both off.
+- **Repetitions while you scroll**: the places of the word you rest on, or select, now show as soon as they come into
+  view, however fast you scroll, instead of a moment after you stop: easier to find them all, as the status bar
+  counts them.
 
 ## 0.5.1 Alpha (2026-11-08)
 

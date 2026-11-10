@@ -3,6 +3,7 @@ package it.infog.psiche.ui.chapters;
 import it.infog.psiche.markdown.Occurrences;
 import it.infog.psiche.markdown.model.TextRange;
 import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.scene.control.IndexRange;
 import javafx.util.Duration;
 import org.fxmisc.richtext.StyleClassedTextArea;
@@ -15,9 +16,12 @@ import java.util.function.Supplier;
 /**
  * The other places of the word the author is at, in the paragraphs in view, so they see a repetition as they write
  * it, as Kate shows them: a light help that never moves the text. The word is the selection, exactly as selected, or
- * else the word at the caret, once it rests a moment after typing, a click, a key or a scroll; it is found capitals
- * or not, inside longer words too. Each place shows on a faint red, as a selection of its own drawn behind the text,
- * and the status bar shows how many times the word is in the whole chapter. Image lines and links' addresses are no
+ * else the word at the caret, once it rests a moment after typing, a click or a key; it is found capitals or not,
+ * inside longer words too, in the whole chapter. Each place in view shows on a faint red, as a selection of its own
+ * drawn behind the text, and the status bar shows how many times the word is in the chapter. The places found are
+ * kept, so those coming into view show at once as the author scrolls, however fast, to look for them: only the few
+ * in view are drawn, as RichTextFX gives each paragraph shown a shape for every selection, and a common word would
+ * have thousands. Image lines and links' addresses are no
  * prose, and a word comes back there as expected: places there neither show nor count, and the author at one finds
  * none.
  * <p>
@@ -40,6 +44,10 @@ final class Repetitions {
     private final Highlights places;
     private final FastRepetitions fast;
     private boolean on = true;
+    // The word's places in the whole chapter but its own, while it is found; none once the text changes.
+    private List<TextRange> others = List.of();
+    // True while the places in view wait for the view to be laid out after a scroll.
+    private boolean showPending;
 
     /**
      * @param notProse the parts of the text that are no prose, as image lines and links' addresses, where a word
@@ -57,8 +65,8 @@ final class Repetitions {
         findDelay.setOnFinished(event -> findNow());
         area.selectionProperty().addListener((obs, old, selection) -> findLater());
         area.caretPositionProperty().addListener((obs, old, caret) -> findLater());
-        // Other paragraphs come into view.
-        area.estimatedScrollYProperty().addListener((obs, old, top) -> findLater());
+        // Other paragraphs come into view, with places of the word found already.
+        area.estimatedScrollYProperty().addListener((obs, old, top) -> showInViewLater());
     }
 
     /** Shows the repetitions from now on, or none, as Preferences asks. */
@@ -87,7 +95,20 @@ final class Repetitions {
             findDelay.playFromStart();
     }
 
-    /** Finds the places of the word the author is at in the paragraphs in view, and shows them. */
+    /** Shows the places in view once the scroll is over and the view laid out: asked for meanwhile, it is not yet. */
+    private void showInViewLater() {
+
+        if (showPending || others.isEmpty())
+            return;
+
+        showPending = true;
+        Platform.runLater(() -> {
+            showPending = false;
+            showInView();
+        });
+    }
+
+    /** Finds the places of the word the author is at in the whole chapter, and shows those in view. */
     private void findNow() {
 
         findDelay.stop();
@@ -105,13 +126,8 @@ final class Repetitions {
         TextRange own = word.get();
         String wanted = text.substring(own.start(), own.end());
         List<TextRange> all = Occurrences.of(text, wanted, skipped);
-        TextRange view = view();
-        List<TextRange> others = all.stream()
-                .filter(range -> !own.overlaps(range))
-                .filter(range -> range.start() >= view.start() && range.end() <= view.end())
-                .toList();
 
-        show(others, wanted, all.size());
+        show(all.stream().filter(range -> !own.overlaps(range)).toList(), wanted, all.size());
     }
 
     /** The text of the paragraphs in view, even partly; none before the text is laid out. */
@@ -140,10 +156,25 @@ final class Repetitions {
         return Optional.of(new TextRange(selection.getStart(), selection.getEnd()));
     }
 
-    /** Marks {@code others}, the word's places but its own, and tells the count. */
+    /** Keeps {@code others}, the word's places but its own, marks those in view, and tells the count. */
     private void show(List<TextRange> others, String word, int count) {
 
+        this.others = others;
         counted.accept(word, count);
-        places.show(others);
+        showInView();
+    }
+
+    /** Marks the places kept that are in view; with none kept, the view is not asked for, as while the text changes. */
+    private void showInView() {
+
+        if (others.isEmpty()) {
+            places.show(List.of());
+            return;
+        }
+
+        TextRange view = view();
+        places.show(others.stream()
+                .filter(range -> range.start() >= view.start() && range.end() <= view.end())
+                .toList());
     }
 }
