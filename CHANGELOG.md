@@ -12,6 +12,14 @@
 - **Repetitions while you scroll**: the places of the word you rest on, or select, now show as soon as they come into
   view, however fast you scroll, instead of a moment after you stop: easier to find them all, as the status bar
   counts them.
+- **Find and replace**: **Find…** in the editor's right-click menu, or Ctrl+F (⌘F on macOS), opens a bar under the
+  text, hidden until then, with the selection or the word at the caret. Enter and Shift+Enter, or F3 and Shift+F3
+  (⌘G on macOS), go from place to place round the chapter, `3 of 17` telling where you are; **Aa** makes capitals
+  count. A line break can be looked for too: it shows as ↵, and Ctrl+Enter types one. A link's text and an image's
+  caption are searched, never their address or file. The arrow at the bar's left, or Ctrl+H (⌘⌥F on macOS), shows
+  **Replace** and **Replace all**, each a single step for Undo. The search is in the open chapter.
+- The editor's right-click menu is shorter: the lists are under **List**, images and links under **Insert**, and
+  **Modify image…**, **Modify link…** and **Remove link** show only on an image or a link.
 
 ## 0.5.1 Alpha (2026-11-08)
 
