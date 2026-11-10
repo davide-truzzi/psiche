@@ -267,8 +267,8 @@ my-book/              ← the folder; the book's title is set in its properties
   - **Bold** `Ctrl+B` and **Italic** `Ctrl+I` wrap the selected text, line by line. Text that is already bold or
     italic is not marked twice: a selection overlapping it joins it, so bolding `rem ip` in `**lorem** ipsum` gives
     `**lorem ip**sum`.
-  - **Heading 1–4** `Ctrl+1`…`Ctrl+4`, **Bulleted list** `Ctrl+Shift+8`, **Numbered list** `Ctrl+Shift+7` and
-    **Quote** `Ctrl+Shift+Q` apply to the lines the selection touches, or the caret's line.
+  - **Heading 1–4** `Ctrl+1`…`Ctrl+4`, **List**, then **Bulleted** `Ctrl+Shift+8` or **Numbered** `Ctrl+Shift+7`,
+    and **Quote** `Ctrl+Shift+Q` apply to the lines the selection touches, or the caret's line.
   - **Comment** `Ctrl+Shift+C` turns the selection into an HTML comment, `<!-- a note -->`, which the preview, the
     exports and the counts leave out; with nothing selected, the caret's line, or an empty comment on an empty line.
     A selection over several lines takes them whole. With the caret or selection in a comment, it makes it text
@@ -320,6 +320,29 @@ my-book/              ← the folder; the book's title is set in its properties
   being written gets its other places boxed in red at each key, from its second letter, in four paragraphs around
   it: its own, the two before and the one after, as far as they are in view. Once you pause, the faint red of the
   whole chapter's search takes their place. **Highlight repetitions** in Preferences turns both off.
+- **Find and replace**: **Find…** in the editor's right-click menu, or `Ctrl+F` (`Cmd+F` on macOS), opens a bar under
+  the text with the selection, or the word at the caret, and selects its first place. The bar is hidden until then.
+  - Capitals don't count unless **Aa** is on, and a text is found inside longer words too. Accents count, and so do
+    the two apostrophes, `'` and `’`, which look different in print.
+  - A line break is a character like the others: it shows as **↵** in the field, `Ctrl+Enter` types one, and text
+    pasted keeps them, so a search can span paragraphs. A chapter written on Windows is found the same.
+  - The Markdown is searched as written, so `a **bold** phrase` is not found by "a bold phrase". A link's text and an
+    image's caption are searched; their address and file name are not, and no place reaches across a link's or an
+    image's Markdown.
+  - Every place in view shows on the repetitions' faint red, which pause while the bar is open; the bar tells which
+    place you are at among how many, as `3 of 17`, and `No matches` turns its field red.
+  - `Enter` and `Shift+Enter` in the field, or `F3` and `Shift+F3` in the text (`Cmd+G` and `Cmd+Shift+G` on macOS),
+    go to the next and previous place, round the chapter's end or start (`1 of 17 · from the top`). The text moves
+    only when the place is out of view, which then comes a third of the way down. `F3` with the bar closed opens it
+    with the last text looked for.
+  - In Default mode, a place inside a link or an image cannot be selected alone, as a selection takes them whole: it
+    shows in the selection's red, with the caret before the link or image.
+  - The arrow at the bar's left, or `Ctrl+H` (`Cmd+Option+F` on macOS), shows **Replace**. **Replace** changes the
+    place you are at and goes to the next; **Replace all** changes every place at once and tells how many. Each
+    Replace is one step for Undo, and Replace all a single one; `Ctrl+Z` in the bar undoes it in the text at once,
+    and the bar's fields keep what you typed. With **Aa** on, only the places with the same capitals are replaced.
+  - The search is in the open chapter only. The bar stays open as you open another chapter, and looks there for the
+    same text. `Esc` or its cross closes it, the place you were at still selected.
 - **Save chapters** in the Book menu, or `Ctrl+Shift+S` / `Cmd+Shift+S`, saves every chapter with unsaved changes. To
   save one chapter, open or not, use **Save** in its right-click menu, or `Ctrl+S` / `Cmd+S` for the open one. Nothing
   is written to disk otherwise.
@@ -336,7 +359,7 @@ my-book/              ← the folder; the book's title is set in its properties
   cancelled.
 
 ### Images
-- **Insert image…**, in the editor's right-click menu, or **Add image** at the foot of the Media tab, puts a JPEG or
+- **Insert**, then **Image…**, in the editor's right-click menu, or **Add image** at the foot of the Media tab, puts a JPEG or
   PNG image into the chapter. When the chapter's folder holds images its text does not show, they are offered first,
   with **Choose another file…** for a new one. The image's dialog shows it with its format, size in pixels and
   weight, and a **Caption**, filled in from the file's name. **Insert** copies the file into `media/<chapter>/` under
@@ -373,14 +396,14 @@ my-book/              ← the folder; the book's title is set in its properties
 - Spelling checks the caption, never the file's name. Repetitions leave image lines out.
 
 ### Links
-- **Insert link…** in the editor's right-click menu, or `Ctrl+K` (`Cmd+K` on macOS), links the selection to a web
+- **Insert**, then **Link…**, in the editor's right-click menu, or `Ctrl+K` (`Cmd+K` on macOS), links the selection to a web
   address, or to a chapter of the book, at its start or at one of its headings. The dialog takes the **Text**, filled
   in from the selection, and **Link to**: *A web address*, where `www.example.com` gets `https://` in front and a mail
   address `mailto:`, or *A chapter of the book*, with the chapters in the book's order and then the chapter's
   sections. A link to another chapter is written from the chapter's file, `[the storm](02-the-crossing.md#the-storm)`,
   so it works on GitHub and in other Markdown viewers too.
-- With the caret in a link, the item reads **Modify link…** (`Ctrl+K` too), and **Remove link** drops the link and
-  keeps its text. Each is one step for Undo.
+- On a link, the menu adds **Modify link…** (`Ctrl+K` too) and **Remove link**, which drops the link and keeps its
+  text; they show only there. Each is one step for Undo.
 - A link typed by hand, `[text](address)`, works the same, however the address is written. Only inline links are
   Psiche's: links by reference and `<https://…>` addresses stay plain Markdown, and an address pasted as text is not
   made a link.
@@ -630,22 +653,24 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `chapters.ChapterChanges` | Creates, renames and deletes chapters after asking the author; a renamed or deleted chapter's notes and images move with it, through `NoteStore` and `ChapterMedia`, a renamed one's links follow it through `BookLinks`, and the rename or deletion is committed alone, once everything else is saved and committed |
 | `chapters.ChapterView` | The open chapter in the editor and in what follows it, the preview, the history, the notes, the images and the status bar: opens and closes it, reads it again after Synchronize, shows a past version |
 | `chapters.BookReading`, `BookHeadings` | Reads the saved chapters once, on a thread of its own, when the book opens and a chapter is saved, added, removed or renamed, for the book's counts and for the headings links are checked against, which `BookHeadings` keeps in the book's order |
-| `chapters.ChapterLinks`, `LinkActions`, `LinkDialog`, `LinkHover` | The links: which lead nowhere, following one from the editor or the preview; Insert link…, Modify link… and Remove link with `Ctrl+K`; the link's dialog; the hand and *Open link* tip while `Ctrl` is held over one |
+| `chapters.ChapterLinks`, `LinkActions`, `LinkDialog`, `LinkHover` | The links: which lead nowhere, following one from the editor or the preview; Insert, Link…, Modify link… and Remove link with `Ctrl+K`; the link's dialog; the hand and *Open link* tip while `Ctrl` is held over one |
 | `chapters.ChapterEdits`, `ChapterSpelling`, `ChapterPlaces`, `DetachedButtons` | Changes to the open chapter from outside its text, each one Undo; the spell checking as Preferences asks; where each chapter was left; the Detached notes and Detached images buttons, shown while something is kept |
 | `chapters.ChapterCell` | A chapter in the list: its revision dot, its title, the *unsaved* mark while it has unsaved changes, and its menu |
 | `chapters.ChapterRevisions` | Which chapters changed since the last commit, for the revision dots: read from Git on the Git thread when the list is refreshed, a chapter is saved or gains unsaved changes, after a commit, and when the window gets the focus back, so commits made outside Psiche Writer show too |
 | `chapters.DeletedChapters` | *Deleted chapters*: lists the chapters deleted from the book in `DeletedChaptersDialog`, writes the one picked back with its last text, offers back the notes it had then, and commits it on its own, once everything else is saved and committed |
 | `chapters.ChapterEditor` | The manuscript editor for one chapter at a time: which chapter is open, the text last saved, which chapters have unsaved changes, and `open` / `close` / `save` / `saveAll` / `discardAll`, plus `replaceAll`, which swaps in a restored version as one undoable edit. The page it writes on is `Manuscript`, with `FormattingMenu` |
-| `chapters.Manuscript` | The page the author writes on, a RichTextFX `StyleClassedTextArea` in a scroll pane: the welcome and its logo until a book opens (`Welcome`), the font size from Preferences, where the text starts for the status bar, and the current position for the preview to follow (the caret's while writing, the one a third of the way down the view while scrolling to read). Cut, copy and paste are plain text (`PlainTextArea`). Only it and its parts (`PlainTextArea`, `TextMarks`, `Repetitions`, `Welcome`) know which text control the editor uses |
+| `chapters.Manuscript` | The page the author writes on, a RichTextFX `StyleClassedTextArea` in a scroll pane: the welcome and its logo until a book opens (`Welcome`), the font size from Preferences, where the text starts for the status bar, and the current position for the preview to follow (the caret's while writing, the one a third of the way down the view while scrolling to read). Cut, copy and paste are plain text (`PlainTextArea`). Only it and its parts (`PlainTextArea`, `TextMarks`, `Repetitions`, `TextSearch`, `Welcome`) know which text control the editor uses |
 | `chapters.TextMarks` | The marks on the manuscript's text: the comments, greyed with a brass dot in the margin, and the spelling mistakes from `Mistakes`, underlined with a red dot; it restyles only the paragraphs whose marks change, as restyling one in view can move the view |
 | `chapters.CaretBlink` | Blinks the manuscript's caret from a timer of its own, as RichTextFX's animation would draw the window sixty times a second; only while the editor has the focus in the active window, shown at once on a key or a click, and steady ten seconds after the last one, as in GTK |
 | `chapters.MarginMarks` | The dots in the manuscript's margin, one layer per kind: the comments' brass ones in the margin's middle, the spelling mistakes' red ones beside them. Placed after each layout pass so the dots sit on the lines as they show, with a dot per line in view that has such a part, and the edge dots that count those above and below the view and scroll to the next one |
 | `chapters.SpellingMenu` | Over a marked word, the spelling part of the manuscript's right-click menu: up to five suggestions, each replacing the word as one undoable change, then Add to dictionary and Ignore, which put it in the author's words for every book |
 | `chapters.BookCounts` | The whole book's characters, words and pages under the chapter list, counted from the saved chapters on a thread of its own when the book opens, a chapter is saved, or the chapters change; collapsible, which the settings remember |
-| `chapters.Repetitions` | The other places of the word the author is at, the selection or the word at the caret, found in the whole chapter a moment after a change or a click, and kept: those in view are marked, and on a scroll those coming into view at once, as soon as it is laid out, with no new search. Only the ones in view are drawn, as RichTextFX gives each paragraph shown a shape for every selection, which a common word's thousands would make slow. Each is drawn as an extra RichTextFX selection behind the text (`Highlights`, which moves the selections it has rather than adding new ones), never as a style of the text: restyling a paragraph in view makes it measured again, which can move the view. The count of the whole chapter goes to the status bar. While the author types, `FastRepetitions` shows them first |
+| `chapters.Repetitions` | The other places of the word the author is at, the selection or the word at the caret, found in the whole chapter a moment after a change or a click, and kept by `PlacesInView`: those in view are marked, and on a scroll those coming into view at once, as soon as it is laid out, with no new search. Only the ones in view are drawn, as RichTextFX gives each paragraph shown a shape for every selection, which a common word's thousands would make slow. Each is drawn as an extra RichTextFX selection behind the text (`Highlights`, which moves the selections it has rather than adding new ones), never as a style of the text: restyling a paragraph in view makes it measured again, which can move the view. The count of the whole chapter goes to the status bar. While the author types, `FastRepetitions` shows them first |
 | `chapters.FastRepetitions` | The other places of the word being typed, from its second letter, found at each change the author makes (not the app's own edits, as a chapter opening or Undo) in four paragraphs around the caret, two before and one after, within the view; RichTextFX's blank lines between Markdown paragraphs are not counted. Drawn as boxes through `Highlights`, until `Repetitions` takes their place after the pause |
+| `chapters.TextSearch` | The search of the open chapter for the find bar: the places of a text, capitals or not and line breaks however written, found with `Occurrences` outside the Markdown of links and images, and found again as the text changes; the next and previous place, round the chapter; the place gone to as the selection, or as a mark in the selection's look inside a Default-mode block; the view moved only for a place out of it. Its places are marked like the repetitions', through `PlacesInView`, which pause meanwhile. Replace as one Undo step, Replace all as a single RichTextFX multi-change |
+| `chapters.FindBar`, `FindField`, `LineBreakSigns` | The find bar under the editor, hidden until Find… or `Ctrl+F`: the field, previous and next, Aa, the count and the cross, and the Replace row its arrow or `Ctrl+H` shows; its keys in the field and in the text (`F3`, `Esc`). Its fields show line breaks as ↵ and type one with `Ctrl+Enter` |
 | `chapters.Mistakes`, `TextStyles`, `Spelling` | The spelling mistakes: found by the book's `SpellChecker` a moment after typing stops, moved with the text meanwhile, and let go when typing touches one; `TextStyles` gives the text its comment and mistake styles together; `Spelling` picks the dictionary of the open book's language while checking is on, reading it on a thread of its own the first time and keeping it |
-| `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, above the editing commands |
+| `chapters.FormattingMenu` | The manuscript's right-click menu: the Markdown formatting items with their shortcuts, each one change a single Undo reverts, the lists under List; Insert, with Image… and Link…; Modify image… and the link's items only where they apply; then the editing commands |
 | `chapters.Drafts` | Unsaved text per chapter, kept in memory until it is saved or discarded; `saveAll` writes every chapter it can and keeps the drafts of those it cannot |
 | `chapters.UnsavedChanges` | Asks whether to save or discard unsaved chapters before a book is replaced, a commit, an export or closing the window |
 | `preview.PreviewPane` | The typeset preview in a `WebView`: `render` shows a chapter at once from the top, `renderLater` follows the author's typing after a 500 ms pause and keeps the scroll position, and `followPosition` scrolls to the part of the page rendered from a character of the Markdown, as far down its block as it is through the block's text; while hidden behind the History tab it holds back both and catches up when shown; a render of the page already shown, for the same folder, theme and font size, only replaces its article, without loading the page and its stylesheet again |
@@ -718,6 +743,7 @@ callbacks (`ErrorReporter`, the check before committing, the after-commit hook, 
 - The book's DOCX lists its chapters without their pages (see Export above).
 - Images are JPEG or PNG only, and live in their chapter's folder: the book has no images of its own besides its
   cover.
+- Find and replace works in the open chapter only, on the Markdown as written; there is no search of the whole book.
 - Links lead to chapters and their headings, or to the web; not to notes or other files of the book. A heading
   renamed by hand is not followed by the links to it.
 - The EPUB declares no accessibility conformance (`dcterms:conformsTo`): that needs someone to evaluate the book.

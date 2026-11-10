@@ -10,6 +10,7 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.ReadOnlyIntegerProperty;
 import javafx.beans.property.ReadOnlyIntegerWrapper;
+import javafx.beans.value.ObservableBooleanValue;
 import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
@@ -44,7 +45,7 @@ import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
  * logo until a book opens. It knows where the author is in the text, the caret while writing and the place in view
  * while scrolling to read, and where the text starts, so the status bar can line up with it. Its text is a RichTextFX
  * {@link StyleClassedTextArea}, which only it and the parts it is made of know: the {@link PlainTextArea}, the
- * {@link TextMarks}, the {@link Repetitions} and the {@link Welcome}.
+ * {@link TextMarks}, the {@link Repetitions}, the {@link TextSearch} and the {@link Welcome}.
  */
 final class Manuscript {
 
@@ -61,6 +62,7 @@ final class Manuscript {
     private final TextMarks marks = new TextMarks(area);
     private final LinkHover linkHover = new LinkHover(area);
     private final Repetitions repetitions;
+    private final TextSearch search;
     // The page that stacks the text over the welcome's logo, and the marks' dots over the text.
     private final StackPane page = new StackPane(scrolled);
     private final Welcome welcome;
@@ -93,10 +95,13 @@ final class Manuscript {
         // Kept by the area it listens to.
         new CaretBlink(area);
         repetitions = new Repetitions(area, marks::notProse, repetitionsCounted);
+        search = new TextSearch(area, marks::imageAndLinkMarkers, () -> isDefaultMode() ? marks.blocks() : List.of(),
+                repetitions);
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             marks.follow(change);
             repetitions.textChanged(!area.isAppEdit());
+            search.textChanged();
         });
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, this::menuRequested);
         this.welcome = new Welcome(area, page, welcome);
@@ -171,6 +176,7 @@ final class Manuscript {
     /** Lets the author edit the text, or only read it, as while the book is being exported. */
     void setEditable(boolean editable) { area.setEditable(editable); }
     boolean isEditable() { return area.isEditable(); }
+    ObservableBooleanValue editableProperty() { return area.editableProperty(); }
 
     // The welcome, while no book is open
 
@@ -260,6 +266,9 @@ final class Manuscript {
             if (paragraph instanceof Parent text)
                 text.requestLayout();
     }
+
+    /** The search of the text, which the find bar drives. */
+    TextSearch search() { return search; }
 
     /** Shows the other places of the word the author is at, as Preferences asks, or none. */
     void highlightRepetitions(boolean on) {
@@ -356,6 +365,7 @@ final class Manuscript {
     void paste() { area.paste(); }
     void deleteSelection() { area.deleteText(area.getSelection()); }
     void selectAll() { area.selectAll(); }
+    void focus() { area.requestFocus(); }
 
     /** Puts the caret at {@code place}, with its paragraph at the top of the view, and the focus. */
     private void show(ChapterPlace place) {

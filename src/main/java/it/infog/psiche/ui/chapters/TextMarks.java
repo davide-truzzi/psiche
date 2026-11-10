@@ -139,6 +139,12 @@ final class TextMarks {
      */
     List<TextRange> notProse() { return notProse; }
 
+    /**
+     * The Markdown around the links' text and the images' captions, in order: a search finds nothing in or across it,
+     * so it leaves the addresses and the files' names as they are.
+     */
+    List<TextRange> imageAndLinkMarkers() { return imageAndLinkMarkers; }
+
     /** The text's links, broken or not, and its image lines, in order: Default mode's blocks; see TextBlocks. */
     List<TextRange> blocks() { return blocks; }
 

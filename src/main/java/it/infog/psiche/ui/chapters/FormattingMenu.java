@@ -24,10 +24,11 @@ import java.util.function.Consumer;
 import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
- * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, then
- * Insert image…, which reads Modify image… on an image line (see {@link Manuscript#menuSelection}), and the
- * {@link LinkActions}, above the editing commands the text's own menu has, which this menu
- * replaces. Each formatting is one change, which a single Undo reverts.
+ * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, the
+ * lists grouped under List; then Insert, with Image… and the {@link LinkActions}' Link…; Modify image… on an image
+ * line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection}); Find…,
+ * which opens the {@link FindBar}; and the editing commands the text's own menu has, which this menu replaces. Each
+ * formatting is one change, which a single Undo reverts.
  */
 final class FormattingMenu {
 
@@ -59,22 +60,24 @@ final class FormattingMenu {
     /**
      * Gives {@code manuscript} the menu on a right-click, and its shortcuts while it has the focus.
      *
-     * @param insertImage asks for an image and writes it into the chapter, for Insert image…
+     * @param insertImage asks for an image and writes it into the chapter, for Insert, Image…
      * @param modifyImage shows an image line of the chapter to change, for Modify image…
-     * @param links       Insert, Modify and Remove link, whose items follow Insert image…
+     * @param links       Insert, Link…, then Modify link… and Remove link, which follow Modify image…
+     * @param find        opens the find bar, for Find…
      *
      * @return the menu, for other parts of the editor to add to
      */
     static ContextMenu attach(Manuscript manuscript, Runnable insertImage, Consumer<ImageLine> modifyImage,
-                              LinkActions links) {
+                              LinkActions links, Runnable find) {
 
         FormattingMenu formatting = new FormattingMenu(manuscript);
-        ContextMenu menu = formatting.menu(insertImage, modifyImage, links);
+        ContextMenu menu = formatting.menu(insertImage, modifyImage, links, find);
         manuscript.setMenu(menu, formatting.shortcuts);
         return menu;
     }
 
-    private ContextMenu menu(Runnable insertImage, Consumer<ImageLine> modifyImage, LinkActions links) {
+    private ContextMenu menu(Runnable insertImage, Consumer<ImageLine> modifyImage, LinkActions links,
+                             Runnable find) {
 
         //formatting
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
@@ -84,15 +87,22 @@ final class FormattingMenu {
             heading.getItems().add(formatItem("Heading " + level,
                     new KeyCodeCombination(HEADING_KEYS.get(level - 1), KeyCombination.SHORTCUT_DOWN),
                     headingFormat(level)));
-        MenuItem bulletedList = formatItem("Bulleted list", BULLETED_LIST, MarkdownFormatter::bulletedList);
-        MenuItem numberedList = formatItem("Numbered list", NUMBERED_LIST, MarkdownFormatter::numberedList);
+        Menu list = new Menu("List", null,
+                formatItem("Bulleted", BULLETED_LIST, MarkdownFormatter::bulletedList),
+                formatItem("Numbered", NUMBERED_LIST, MarkdownFormatter::numberedList));
         MenuItem quote = formatItem("Quote", QUOTE, MarkdownFormatter::quote);
         MenuItem comment = formatItem("Comment", COMMENT, MarkdownFormatter::comment);
         MenuItem clear = formatItem("Clear formatting", CLEAR_FORMATTING, MarkdownFormatter::clearFormatting);
 
         //inserting
-        MenuItem image = menuItem("Insert image…", () -> menuImage().ifPresentOrElse(modifyImage, insertImage));
+        Menu insert = new Menu("Insert", null, menuItem("Image…", insertImage), links.insertItem());
+        MenuItem modifyImageItem = menuItem("Modify image…", () -> menuImage().ifPresent(modifyImage));
         shortcuts.put(LinkActions.SHORTCUT, links::edit);
+
+        //finding
+        MenuItem findItem = menuItem("Find…", find);
+        findItem.setAccelerator(FindBar.FIND);
+        shortcuts.put(FindBar.FIND, find);
 
         //editing
         MenuItem undo = menuItem("Undo", manuscript::undo);
@@ -103,11 +113,11 @@ final class FormattingMenu {
         MenuItem delete = menuItem("Delete", manuscript::deleteSelection);
         MenuItem selectAll = menuItem("Select All", manuscript::selectAll);
 
-        ContextMenu menu = new ContextMenu(bold, italic, heading, bulletedList, numberedList, quote, comment, clear,
-                new SeparatorMenuItem(), image);
-        menu.getItems().addAll(links.items());
-        menu.getItems().addAll(new SeparatorMenuItem(), undo, redo, new SeparatorMenuItem(), cut, copy, paste, delete,
-                new SeparatorMenuItem(), selectAll);
+        ContextMenu menu = new ContextMenu(bold, italic, heading, list, quote, comment, clear, new SeparatorMenuItem(),
+                insert, modifyImageItem);
+        menu.getItems().addAll(links.modifyItems());
+        menu.getItems().addAll(new SeparatorMenuItem(), findItem, new SeparatorMenuItem(), undo, redo,
+                new SeparatorMenuItem(), cut, copy, paste, delete, new SeparatorMenuItem(), selectAll);
 
         // Enable what applies to the text and selection as they are when the menu opens.
         menu.setOnShowing(event -> {
@@ -124,9 +134,11 @@ final class FormattingMenu {
             bold.setDisable(!formattable || !words);
             italic.setDisable(!formattable || !words);
             heading.setDisable(!formattable || !oneLine);
-            List.of(bulletedList, numberedList, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
-            image.setText(menuImage().isPresent() ? "Modify image…" : "Insert image…");
-            image.setDisable(!editable);
+            List.of(list, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
+            insert.setDisable(!editable);
+            modifyImageItem.setVisible(menuImage().isPresent());
+            modifyImageItem.setDisable(!editable);
+            findItem.setDisable(!editable);
             links.update();
 
             undo.setDisable(!editable || !manuscript.canUndo());

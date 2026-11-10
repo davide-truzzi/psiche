@@ -453,13 +453,18 @@
     -rtfx-blink-rate: 0ms;
 }
 
-.manuscript .selection {
+/* The place a search went to inside a link or an image in Default mode, which a selection would take whole: drawn as
+   the selection is. */
+.manuscript .selection,
+.manuscript .found-current {
     -fx-fill: -red-pencil-45;
 }
 
 /* The other places of the word the author is at, selected or at the caret, each drawn as a selection of its own:
-   the selection's red, fainter, so a repetition shows while the text stays easy to read. */
-.manuscript .repeated {
+   the selection's red, fainter, so a repetition shows while the text stays easy to read. The places of a search look
+   the same: the author knows they are searching. */
+.manuscript .repeated,
+.manuscript .found {
     -fx-fill: -red-pencil-20;
 }
 
@@ -471,6 +476,92 @@
     -fx-stroke: -red-pencil-30;
     -fx-stroke-width: 2;
     -fx-stroke-type: inside;
+}
+
+/* The find bar, under the text, hidden until asked for: the field, the count, and small buttons drawn as the Open
+   recent list's cross; the field's border turns red while the text is nowhere in the chapter. Its arrow shows the
+   replace row under it, and turns down while it does. */
+.find-bar {
+    -fx-spacing: 6;
+    -fx-padding: 8 24 8 16;
+    -fx-background-color: -desk-raised;
+    -fx-border-color: -desk-edge transparent transparent transparent;
+}
+
+.find-row {
+    -fx-alignment: center-left;
+    -fx-spacing: 8;
+}
+
+/* As wide as the longer of the two, Replace, so the fields line up. */
+.find-label {
+    -fx-text-fill: -paper-dim;
+    -fx-min-width: 60;
+}
+
+/* A width of its own, so the buttons after it stay put as the count changes. */
+.find-field {
+    -fx-pref-width: 260;
+}
+
+.find-field:no-matches,
+.find-field:no-matches:focused {
+    -fx-border-color: -red-pencil;
+}
+
+.find-count {
+    -fx-text-fill: -graphite;
+}
+
+.find-bar-button {
+    -fx-padding: 6 8;
+}
+
+.find-bar-icon {
+    -fx-fill: transparent;
+    -fx-stroke: -paper-dim;
+    -fx-stroke-width: 1.6;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.find-bar-button:hover .find-bar-icon {
+    -fx-stroke: -paper;
+}
+
+.find-replacing {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 6 4;
+    -fx-cursor: hand;
+}
+
+.find-replacing:hover .find-bar-icon {
+    -fx-stroke: -paper;
+}
+
+.find-replacing:selected .find-bar-icon {
+    -fx-rotate: 90;
+}
+
+.find-case {
+    -fx-background-color: transparent;
+    -fx-background-radius: 2;
+    -fx-border-color: -desk-edge;
+    -fx-border-radius: 2;
+    -fx-text-fill: -paper-dim;
+    -fx-padding: 5 8;
+}
+
+.find-case:hover {
+    -fx-border-color: -brass;
+    -fx-text-fill: -paper;
+}
+
+.find-case:selected {
+    -fx-background-color: -desk-edge;
+    -fx-border-color: -brass;
+    -fx-text-fill: -paper;
 }
 
 /* The page sits a pixel in from the left, where the text area had its border; the scroll pane itself ignores its

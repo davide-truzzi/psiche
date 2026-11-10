@@ -25,11 +25,11 @@ import java.util.function.Supplier;
 import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
- * Insert link… and Remove link in the manuscript's right-click menu. On a link, Insert link… reads Modify link…, and
- * Remove link shows, which keeps the link's text: the link under the right-click in Default mode, the one the caret or
- * the selection is in in Advanced; see {@link Manuscript#menuSelection}. Ctrl+K, as in word processors, inserts or
- * modifies at the caret. A link is made from the selection, on one line and outside an image; each change is one edit,
- * which a single Undo reverts.
+ * Link… in the Insert submenu of the manuscript's right-click menu, and on a link Modify link… and Remove link, which
+ * keeps the link's text: the link under the right-click in Default mode, the one the caret or the selection is in in
+ * Advanced; see {@link Manuscript#menuSelection}. Ctrl+K, as in word processors, inserts or modifies at the caret. A
+ * link is made from the selection, on one line and outside an image; each change is one edit, which a single Undo
+ * reverts.
  */
 final class LinkActions {
 
@@ -38,7 +38,8 @@ final class LinkActions {
     private final Manuscript manuscript;
     private final Supplier<Optional<Chapter>> chapter;
     private final BookHeadings headings;
-    private final MenuItem edit = menuItem("Insert link…", this::editAtMenu);
+    private final MenuItem insert = menuItem("Link…", this::editAtMenu);
+    private final MenuItem modify = menuItem("Modify link…", this::editAtMenu);
     private final MenuItem remove = menuItem("Remove link", this::remove);
 
     /**
@@ -50,39 +51,48 @@ final class LinkActions {
         this.manuscript = manuscript;
         this.chapter = chapter;
         this.headings = headings;
-        edit.setAccelerator(SHORTCUT);
+        insert.setAccelerator(SHORTCUT);
+        modify.setAccelerator(SHORTCUT);
     }
 
-    /** The menu's items: Insert link… or Modify link…, then Remove link. */
-    List<MenuItem> items() {
+    /** Link…, for the menu's Insert submenu. */
+    MenuItem insertItem() {
 
-        return List.of(edit, remove);
+        return insert;
+    }
+
+    /** Modify link… and Remove link, for the menu's top level, where they show only on a link. */
+    List<MenuItem> modifyItems() {
+
+        return List.of(modify, remove);
     }
 
     /** Names, shows and enables the items for where the menu opens. */
     void update() {
 
         Optional<TextLink> link = linkAt(manuscript.menuSelection());
-        edit.setText(link.isPresent() ? "Modify link…" : "Insert link…");
-        edit.setDisable(!canEdit(link));
+        // A link never goes inside another.
+        insert.setDisable(link.isPresent() || !canEdit(link));
+        modify.setVisible(link.isPresent());
+        modify.setDisable(!canEdit(link));
         remove.setVisible(link.isPresent());
         remove.setDisable(!manuscript.isEditable());
     }
 
-    /** Ctrl+K: Insert link… or Modify link… at the caret or the selection, in both modes. */
+    /** Ctrl+K: inserts a link, or modifies the one at the caret or the selection, in both modes. */
     void edit() {
 
         edit(manuscript.selection());
     }
 
-    /** The menu's Insert link… or Modify link…, on where the menu opened. */
+    /** The menu's Link… or Modify link…, on where the menu opened. */
     private void editAtMenu() {
 
         edit(manuscript.menuSelection());
     }
 
     /**
-     * Insert link… or Modify link…: asks for the link's text and where it leads, and writes it in place of the link at
+     * Link… or Modify link…: asks for the link's text and where it leads, and writes it in place of the link at
      * {@code target}, or of the selection; the caret ends after it.
      */
     private void edit(IndexRange target) {
