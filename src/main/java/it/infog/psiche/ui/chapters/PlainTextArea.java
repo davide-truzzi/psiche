@@ -36,6 +36,8 @@ final class PlainTextArea extends StyleClassedTextArea {
 
     private Supplier<List<TextRange>> blocks = List::of;
     private Widening widening = (text, start, end, replacement) -> Optional.empty();
+    private Copying copying = String::substring;
+    private Pasting pasting = (text, start, end, pasted) -> Optional.empty();
     // True while an edit of the app's own runs, which no block refuses.
     private boolean free;
     // Where the caret was before the key being handled, to tell which way it moved.
@@ -73,6 +75,16 @@ final class PlainTextArea extends StyleClassedTextArea {
     void setWidening(Widening widening) {
 
         this.widening = widening;
+    }
+
+    /**
+     * Copies the selection as {@code copying} gives it, and pastes as {@code pasting} says, so the parts of blocks
+     * elsewhere go along, as a footnote's note with its reference; with none, plain text is copied and pasted as it is.
+     */
+    void setClipboard(Copying copying, Pasting pasting) {
+
+        this.copying = copying;
+        this.pasting = pasting;
     }
 
     /** True while an edit of the app's own runs, as a chapter's text shown, a formatting or an Undo. */
@@ -162,7 +174,7 @@ final class PlainTextArea extends StyleClassedTextArea {
             return;
 
         ClipboardContent content = new ClipboardContent();
-        content.putString(getSelectedText());
+        content.putString(copying.copied(getText(), getSelection().getStart(), getSelection().getEnd()));
         Clipboard.getSystemClipboard().setContent(content);
     }
 
@@ -170,8 +182,20 @@ final class PlainTextArea extends StyleClassedTextArea {
     public void paste() {
 
         String text = Clipboard.getSystemClipboard().getString();
-        if (text != null)
-            replaceSelection(text.replace("\r\n", "\n").replace('\r', '\n'));
+        if (text == null)
+            return;
+
+        String pasted = text.replace("\r\n", "\n").replace('\r', '\n');
+        Optional<TextRange> range = allowed(getSelection().getStart(), getSelection().getEnd());
+        Optional<TextEdit> edit = range.flatMap(found -> pasting.pasted(getText(), found.start(), found.end(), pasted));
+        if (edit.isEmpty()) {
+            replaceSelection(pasted);
+            return;
+        }
+
+        // One change, which a single Undo takes back.
+        freely(() -> replaceText(edit.get().start(), edit.get().end(), edit.get().replacement()));
+        moveTo(edit.get().selectionStart());
     }
 
     private Optional<TextRange> allowed(int start, int end) {
@@ -195,5 +219,17 @@ final class PlainTextArea extends StyleClassedTextArea {
     @FunctionalInterface
     interface Widening {
         Optional<TextEdit> widen(String text, int start, int end, String replacement);
+    }
+
+    /** What a copy of the text from {@code start} to {@code end} puts on the clipboard. */
+    @FunctionalInterface
+    interface Copying {
+        String copied(String text, int start, int end);
+    }
+
+    /** The edit that pastes {@code pasted} in place of {@code start} to {@code end}; empty to paste it as it is. */
+    @FunctionalInterface
+    interface Pasting {
+        Optional<TextEdit> pasted(String text, int start, int end, String pasted);
     }
 }

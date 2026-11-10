@@ -168,6 +168,9 @@ final class TextMarks {
      */
     List<TextRange> blocks() { return blocks; }
 
+    /** The whole notes, right or wrong, from their opening to their last paragraph's end, in order. */
+    List<TextRange> wholeNotes() { return inOrder(Stream.concat(notes.stream(), wrongNotes.stream())); }
+
     /** True if formatting the selection from {@code start} to {@code end} keeps the blocks whole; see TextBlocks. */
     boolean formattable(int start, int end) {
 

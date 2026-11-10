@@ -98,7 +98,7 @@ final class Manuscript {
         new CaretBlink(area);
         repetitions = new Repetitions(area, marks::notProse, repetitionsCounted);
         search = new TextSearch(area, marks::imageAndLinkMarkers, () -> isDefaultMode() ? marks.blocks() : List.of(),
-                repetitions);
+                () -> isDefaultMode() ? marks.wholeNotes() : List.of(), repetitions);
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             marks.follow(change);
@@ -264,6 +264,8 @@ final class Manuscript {
         area.pseudoClassStateChanged(DEFAULT_MODE, on);
         area.setBlocks(on ? marks::blocks : List::of);
         area.setWidening(on ? FootnoteEdits::withNotes : (text, start, end, replacement) -> Optional.empty());
+        area.setClipboard(on ? FootnoteEdits::copied : String::substring,
+                on ? FootnoteEdits::pasted : (text, start, end, pasted) -> Optional.empty());
         // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will.
         for (Node paragraph : area.lookupAll(".paragraph-text"))
             if (paragraph instanceof Parent text)

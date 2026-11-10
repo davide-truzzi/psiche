@@ -7,7 +7,11 @@ import it.infog.psiche.markdown.model.TextRange;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -24,7 +28,8 @@ import static it.infog.psiche.markdown.Footnotes.key;
  * The edits that write, change and remove a chapter's footnotes, each one change that a single Undo takes back. A
  * note is written as the note dialog gives it, paragraphs between blank lines, its opening before the first line and
  * every line after it set in by four spaces, so it never ends before its last paragraph. A new note is numbered one
- * after the highest number a label of the chapter is, and goes after the paragraph its reference is in.
+ * after the highest number a label of the chapter is, and goes after the paragraph its reference is in. Notes go
+ * where their text goes: a copy takes them along, and a paste puts them after the paragraph it lands in.
  */
 public final class FootnoteEdits {
 
@@ -135,6 +140,82 @@ public final class FootnoteEdits {
     }
 
     /**
+     * The text from {@code start} to {@code end} as a copy takes it, with the notes of the references in it that it
+     * does not hold, each after a blank line, as they are written: the notes go where the text goes.
+     */
+    public static String copied(String text, int start, int end) {
+
+        FootnoteMarks marks = Footnotes.of(text);
+        TextRange selection = new TextRange(start, end);
+        Predicate<FootnoteMark> inside = mark -> within(mark.block(), selection);
+        Set<String> held = keys(marks.notes().stream().filter(inside));
+
+        StringBuilder copied = new StringBuilder(text.substring(start, end));
+        marks.references().stream().filter(inside)
+                .flatMap(reference -> Footnotes.noteOf(marks, reference.label()).stream())
+                .distinct()
+                .filter(note -> !held.contains(key(note.label())))
+                .forEach(note -> copied.append(NOTE_BREAK)
+                        .append(text, note.block().start(), note.block().end()));
+
+        return copied.toString();
+    }
+
+    /**
+     * The edit that pastes {@code pasted} in place of {@code start} to {@code end} with its notes after the paragraph
+     * it lands in, each after a blank line. A note the rest of the text has already, the same label and text, as one
+     * whose other references stay when one is cut, is that note: it stays where it is, and the pasted references lead
+     * to it. Any other label the rest of the text has gets the next free number, in the pasted references and notes
+     * alike, so the two never mix. The caret goes after the pasted text. Empty if {@code pasted} has no notes, to paste
+     * it as it is.
+     */
+    public static Optional<TextEdit> pasted(String text, int start, int end, String pasted) {
+
+        if (Footnotes.of(pasted).notes().isEmpty())
+            return Optional.empty();
+
+        //notes the rest of the text has as they are, which stay where they are; other labels it has, numbered anew
+        String rest = text.substring(0, start) + text.substring(end);
+        FootnoteMarks restMarks = Footnotes.of(rest);
+        Set<String> kept = keys(Footnotes.of(pasted).notes().stream().filter(note -> Footnotes.noteOf(restMarks,
+                note.label()).filter(found -> noteText(rest, found).equals(noteText(pasted, note))).isPresent()));
+        Set<String> taken = new HashSet<>(keys(Stream.of(restMarks.references(), restMarks.notes())
+                .flatMap(List::stream)));
+        taken.removeAll(kept);
+        String renumbered = renumbered(pasted, taken, nextNumber(rest));
+
+        //the notes, taken out of the pasted text
+        FootnoteMarks marks = Footnotes.of(renumbered);
+        List<TextRange> noteParts = marks.notes().stream().map(note -> withBlankLine(renumbered, note.block()))
+                .toList();
+        String body = removing(renumbered, new TextRange(0, 0), "", noteParts).replacement();
+        List<String> notes = marks.notes().stream()
+                .filter(note -> !kept.contains(key(note.label())))
+                .map(note -> renumbered.substring(note.block().start(), note.block().end()))
+                .toList();
+
+        //the text with the pasted one in, and the new notes after its paragraph
+        String changed = text.substring(0, start) + body + text.substring(end);
+        int paragraphEnd = paragraphEnd(changed, start + body.length());
+        if (!notes.isEmpty())
+            changed = changed.substring(0, paragraphEnd) + NOTE_BREAK + String.join(NOTE_BREAK, notes)
+                    + changed.substring(paragraphEnd);
+        TextEdit edit = TextEdit.between(text, changed);
+        int caret = start + body.length();
+
+        return Optional.of(new TextEdit(edit.start(), edit.end(), edit.replacement(), caret, caret));
+    }
+
+    /**
+     * {@code replacement}, put in place of a part of a note, with each line it starts set in as the note's are, so the
+     * note does not end there.
+     */
+    public static String inNote(String replacement) {
+
+        return replacement.replace("\n", "\n" + NOTE_INDENT);
+    }
+
+    /**
      * The edit that replaces {@code start} to {@code end} with {@code replacement} and leaves no footnote broken: a
      * note whose every reference it removes goes too, with a blank line beside it, and so do the references of a note
      * it removes, unless another note of their label stays. Empty if it leaves none broken as it is.
@@ -143,8 +224,7 @@ public final class FootnoteEdits {
 
         FootnoteMarks marks = Footnotes.of(text);
         TextRange removed = new TextRange(start, end);
-        Predicate<FootnoteMark> gone = mark -> removed.start() <= mark.block().start()
-                && mark.block().end() <= removed.end();
+        Predicate<FootnoteMark> gone = mark -> within(mark.block(), removed);
         Set<String> staying = keys(marks.references().stream().filter(Predicate.not(gone)));
         Set<String> stayingNotes = keys(marks.notes().stream().filter(Predicate.not(gone)));
         Set<String> goneReferences = keys(marks.references().stream().filter(gone));
@@ -179,6 +259,39 @@ public final class FootnoteEdits {
             written.append('\n').append(lines[i].isEmpty() ? "" : NOTE_INDENT + lines[i]);
 
         return written.toString();
+    }
+
+    /**
+     * {@code pasted} with every label in {@code taken}, in its references and notes, numbered anew from {@code next}
+     * on, one number to each.
+     */
+    private static String renumbered(String pasted, Set<String> taken, int next) {
+
+        FootnoteMarks marks = Footnotes.of(pasted);
+        Map<String, String> numbers = new HashMap<>();
+        int number = next;
+        for (FootnoteMark mark : Stream.of(marks.references(), marks.notes()).flatMap(List::stream).toList())
+            if (taken.contains(key(mark.label())) && !numbers.containsKey(key(mark.label())))
+                numbers.put(key(mark.label()), String.valueOf(number++));
+        if (numbers.isEmpty())
+            return pasted;
+
+        //each label, from the last back, so the earlier ones stay where they are
+        StringBuilder result = new StringBuilder(pasted);
+        Stream.of(marks.references(), marks.notes()).flatMap(List::stream)
+                .filter(mark -> numbers.containsKey(key(mark.label())))
+                .sorted(Comparator.comparingInt((FootnoteMark mark) -> mark.range().start()).reversed())
+                .forEach(mark -> {
+                    int labelStart = mark.range().start() + LABEL_OPENING.length();
+                    result.replace(labelStart, labelStart + mark.label().length(), numbers.get(key(mark.label())));
+                });
+
+        return result.toString();
+    }
+
+    private static boolean within(TextRange inner, TextRange outer) {
+
+        return outer.start() <= inner.start() && inner.end() <= outer.end();
     }
 
     private static String reference(String label) {
