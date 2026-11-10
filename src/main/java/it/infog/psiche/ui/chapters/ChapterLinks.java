@@ -126,9 +126,12 @@ final class ChapterLinks {
 
     /**
      * True if {@code destination} leads somewhere: a web or mail address always, as the welcome's with no chapter open;
-     * a link of the open chapter's to a chapter or heading that is there.
+     * a link of the open chapter's to a chapter or heading that is there; a footnote's to its note or reference.
      */
     private boolean leadsSomewhere(String destination) {
+
+        if (Footnotes.isFootnoteLink(destination))
+            return Footnotes.place(manuscript.text(), destination).isPresent();
 
         Optional<Chapter> open = chapter.get();
         LinkTarget target = TextLinks.target(destination, open.map(Chapter::title).orElse(""));

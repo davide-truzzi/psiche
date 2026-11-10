@@ -6,6 +6,8 @@ import it.infog.psiche.markdown.HtmlComments;
 import it.infog.psiche.markdown.ImageLines;
 import it.infog.psiche.markdown.TextBlocks;
 import it.infog.psiche.markdown.TextLinks;
+import it.infog.psiche.markdown.model.FootnoteMark;
+import it.infog.psiche.markdown.model.FootnoteMarks;
 import it.infog.psiche.markdown.model.ImageLine;
 import it.infog.psiche.markdown.model.TextLink;
 import it.infog.psiche.markdown.model.TextRange;
@@ -30,7 +32,8 @@ import java.util.stream.Stream;
 /**
  * The marks on the manuscript's text: its comments in grey, with a brass dot in the margin on each line in view that
  * has one, its images in green, its links in teal, its images whose file is missing and its links that lead nowhere
- * in orange, the Markdown's markers around them, and its spelling mistakes, found by {@link Mistakes}, with a dotted
+ * in orange, its footnotes' marks in amber and the wrong ones in orange, the Markdown's markers around them all, and
+ * its spelling mistakes, found by {@link Mistakes}, with a dotted
  * red line under them and a red dot beside. They follow the text as it changes. Only the paragraphs whose marks
  * change are restyled: a restyled paragraph is measured again, which can move the view.
  */
@@ -47,10 +50,16 @@ final class TextMarks {
     private List<TextRange> missingImages = List.of();
     private List<TextRange> links = List.of();
     private List<TextRange> brokenLinks = List.of();
-    // The comments' <!-- and -->, and the images' and the links' Markdown around their text, in order.
+    private List<TextRange> footnotes = List.of();
+    private List<TextRange> wrongFootnotes = List.of();
+    // The footnotes' marks, right or wrong, in order.
+    private List<TextRange> footnoteMarks = List.of();
+    // The comments' <!-- and -->, the images' and the links' Markdown around their text, and the footnotes' around
+    // their labels, in order.
     private List<TextRange> commentMarkers = List.of();
     private List<TextRange> imageAndLinkMarkers = List.of();
-    // The image lines and the links' addresses, which are no prose, in order.
+    private List<TextRange> footnoteMarkers = List.of();
+    // The image lines, the links' addresses and the footnotes' marks, which are no prose, in order.
     private List<TextRange> notProse = List.of();
     // The links, broken or not, and the image lines, in order: the blocks of Default mode.
     private List<TextRange> blocks = List.of();
@@ -81,6 +90,7 @@ final class TextMarks {
     void follow(PlainTextChange change) {
 
         findComments();
+        findFootnotes();
         findImagesAndLinks();
         mistakes.follow(change);
         restyle();
@@ -179,8 +189,8 @@ final class TextMarks {
         //markers, no prose and blocks
         imageAndLinkMarkers = inOrder(Stream.concat(lines.stream().map(ImageLine::markers),
                 found.stream().map(TextLink::markers)).flatMap(List::stream));
-        notProse = inOrder(Stream.of(images.stream(), found.stream().map(TextLink::address),
-                Footnotes.of(text).ranges().stream()).flatMap(Function.identity()));
+        notProse = inOrder(Stream.of(images.stream(), found.stream().map(TextLink::address), footnoteMarks.stream())
+                .flatMap(Function.identity()));
         blocks = inOrder(Stream.concat(images.stream(), found.stream().map(TextLink::range)));
     }
 
@@ -193,6 +203,25 @@ final class TextMarks {
         commentMarks.setParts(comments);
     }
 
+    /**
+     * Finds the footnotes' references and notes' openings, in amber, and those that are wrong, in orange: a reference
+     * to no note, a note no reference leads to, a note of a label an earlier one has.
+     */
+    private void findFootnotes() {
+
+        FootnoteMarks marks = Footnotes.of(area.getText());
+        List<FootnoteMark> wrong = Footnotes.wrong(marks);
+
+        footnotes = inOrder(Stream.concat(marks.references().stream(), marks.notes().stream())
+                .filter(mark -> !wrong.contains(mark))
+                .map(FootnoteMark::range));
+        wrongFootnotes = wrong.stream().map(FootnoteMark::range).toList();
+        footnoteMarks = marks.ranges();
+        footnoteMarkers = inOrder(Stream.of(marks.references(), marks.notes(), marks.missing())
+                .flatMap(List::stream)
+                .flatMap(mark -> Footnotes.markers(mark).stream()));
+    }
+
     /** Shows each mark in its style; see {@link TextStyles}. */
     private void restyle() {
 
@@ -203,7 +232,10 @@ final class TextMarks {
         parts.put(TextStyles.MISSING_IMAGE, missingImages);
         parts.put(TextStyles.LINK, links);
         parts.put(TextStyles.BROKEN_LINK, brokenLinks);
-        parts.put(TextStyles.MARKER, inOrder(Stream.concat(commentMarkers.stream(), imageAndLinkMarkers.stream())));
+        parts.put(TextStyles.FOOTNOTE, footnotes);
+        parts.put(TextStyles.WRONG_FOOTNOTE, wrongFootnotes);
+        parts.put(TextStyles.MARKER, inOrder(Stream.of(commentMarkers, imageAndLinkMarkers, footnoteMarkers)
+                .flatMap(List::stream)));
         StyleSpans<Collection<String>> styles = TextStyles.of(area.getLength(), parts);
         int start = 0;
         for (int paragraph = 0; paragraph < area.getParagraphs().size(); paragraph++) {

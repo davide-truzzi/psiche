@@ -9,14 +9,16 @@ import java.util.stream.Stream;
  *
  * @param references each reference to a note, {@code [^moon]}
  * @param notes      each note's opening, {@code [^moon]:}
+ * @param missing    each reference to no note, which stays as it is written
  */
 public record FootnoteMarks(List<FootnoteMark> references,
-                            List<FootnoteMark> notes) {
+                            List<FootnoteMark> notes,
+                            List<FootnoteMark> missing) {
 
-    /** Where every mark is, references and notes' openings together, in the order of the text. */
+    /** Where every mark is, references, notes' openings and references to no note, in the order of the text. */
     public List<TextRange> ranges() {
 
-        return Stream.concat(references.stream(), notes.stream())
+        return Stream.of(references, notes, missing).flatMap(List::stream)
                 .map(FootnoteMark::range)
                 .sorted(Comparator.comparingInt(TextRange::start))
                 .toList();

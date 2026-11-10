@@ -35,6 +35,7 @@
     -graphite-20: rgba(125, 115, 102, 0.2);
     -sage-13: rgba(143, 174, 107, 0.13);
     -orange-16: rgba(232, 119, 46, 0.16);
+    -amber-13: rgba(217, 164, 65, 0.13);
     -teal-13: rgba(99, 184, 179, 0.13);
     -ink-9: rgba(42, 34, 25, 0.09);
     -ink-12: rgba(42, 34, 25, 0.12);
@@ -368,8 +369,19 @@
     -fx-fill: -orange;
 }
 
+/* A footnote's reference, [^moon], and its note's opening, [^moon]:, in amber, apart from the links' teal; a wrong
+   one, a reference to no note, a note nothing refers to, or one of a label used before, in attention orange. */
+.manuscript .paragraph-text .text.footnote {
+    -fx-fill: -amber;
+}
+
+.manuscript .paragraph-text .text.wrong-footnote {
+    -fx-fill: -orange;
+}
+
 /* Default mode, from Preferences, lets the Markdown recede; Advanced shows it as written. The markers, a link's [
-   and ](address), an image's ![ and ](file), a comment's <!-- and -->, are their element's colour, faded. */
+   and ](address), an image's ![ and ](file), a comment's <!-- and -->, a footnote's [^ and ] or ]:, are their
+   element's colour, faded. */
 .manuscript:default-mode .paragraph-text .text.marker {
     -fx-opacity: 0.22;
 }
@@ -379,7 +391,7 @@
     -rtfx-background-color: -graphite-20;
 }
 
-/* A link and an image line on a faint tint of their colour, -teal and -sage. */
+/* A link, an image line and a footnote's mark on a faint tint of their colour, -teal, -sage and -amber. */
 .manuscript:default-mode .paragraph-text .text.link {
     -rtfx-background-color: -teal-13;
 }
@@ -388,9 +400,15 @@
     -rtfx-background-color: -sage-13;
 }
 
-/* An error, a link that leads nowhere or a missing image, on a tint of -orange, a little stronger than the others. */
+.manuscript:default-mode .paragraph-text .text.footnote {
+    -rtfx-background-color: -amber-13;
+}
+
+/* An error, a link that leads nowhere, a missing image or a wrong footnote, on a tint of -orange, a little stronger
+   than the others. */
 .manuscript:default-mode .paragraph-text .text.broken-link,
-.manuscript:default-mode .paragraph-text .text.missing-image {
+.manuscript:default-mode .paragraph-text .text.missing-image,
+.manuscript:default-mode .paragraph-text .text.wrong-footnote {
     -rtfx-background-color: -orange-16;
 }
 

@@ -15,8 +15,9 @@ import java.util.TreeSet;
 /**
  * The style classes of the manuscript's text, which writer.css draws: its comments in grey, the ones the preview
  * leaves out, its spelling mistakes with a dotted line under them, its images in green, its links in teal, and its
- * images whose file is missing and its links that lead nowhere in orange, and the Markdown's markers around a
- * link's text, an image's caption and a comment, which Default mode fades. A part can have several, as a mistake
+ * images whose file is missing and its links that lead nowhere in orange, its footnotes' references and notes'
+ * openings in amber, the wrong ones in orange, and the Markdown's markers around a link's text, an image's caption, a
+ * comment and a footnote's label, which Default mode fades. A part can have several, as a mistake
  * inside a comment, for the moment it takes a check to see it is one, has both.
  */
 final class TextStyles {
@@ -27,6 +28,8 @@ final class TextStyles {
     static final String MISSING_IMAGE = "missing-image";
     static final String LINK = "link";
     static final String BROKEN_LINK = "broken-link";
+    static final String FOOTNOTE = "footnote";
+    static final String WRONG_FOOTNOTE = "wrong-footnote";
     static final String MARKER = "marker";
 
     private TextStyles() {
