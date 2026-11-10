@@ -78,7 +78,7 @@ public final class MediaPane extends BorderPane {
     private final HBox footer;
     private final SplitPane content;
     private final Label empty = new Label("No images in this chapter yet.\n"
-            + "Right-click in the text and choose Insert image…, or Add image below.");
+            + "Right-click in the text and choose Insert, then Image…, or Add image below.");
 
     private BookFolder book;
     private Chapter chapter;

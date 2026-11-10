@@ -24,10 +24,11 @@ import java.util.function.Consumer;
 import static it.infog.psiche.ui.common.Controls.menuItem;
 
 /**
- * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, then
- * Insert image…, which reads Modify image… on an image line (see {@link Manuscript#menuSelection}), and the
- * {@link LinkActions}, above the editing commands the text's own menu has, which this menu
- * replaces. Each formatting is one change, which a single Undo reverts.
+ * The manuscript's right-click menu: Markdown formatting for the selection, each item also run by its shortcut, the
+ * lists grouped under List; then Insert, with Image… and the {@link LinkActions}' Link…; Modify image… on an image
+ * line and Modify link… with Remove link on a link, shown only there (see {@link Manuscript#menuSelection}); and the
+ * editing commands the text's own menu has, which this menu replaces. Each formatting is one change, which a single
+ * Undo reverts.
  */
 final class FormattingMenu {
 
@@ -59,9 +60,9 @@ final class FormattingMenu {
     /**
      * Gives {@code manuscript} the menu on a right-click, and its shortcuts while it has the focus.
      *
-     * @param insertImage asks for an image and writes it into the chapter, for Insert image…
+     * @param insertImage asks for an image and writes it into the chapter, for Insert, Image…
      * @param modifyImage shows an image line of the chapter to change, for Modify image…
-     * @param links       Insert, Modify and Remove link, whose items follow Insert image…
+     * @param links       Insert, Link…, then Modify link… and Remove link, which follow Modify image…
      *
      * @return the menu, for other parts of the editor to add to
      */
@@ -84,14 +85,16 @@ final class FormattingMenu {
             heading.getItems().add(formatItem("Heading " + level,
                     new KeyCodeCombination(HEADING_KEYS.get(level - 1), KeyCombination.SHORTCUT_DOWN),
                     headingFormat(level)));
-        MenuItem bulletedList = formatItem("Bulleted list", BULLETED_LIST, MarkdownFormatter::bulletedList);
-        MenuItem numberedList = formatItem("Numbered list", NUMBERED_LIST, MarkdownFormatter::numberedList);
+        Menu list = new Menu("List", null,
+                formatItem("Bulleted", BULLETED_LIST, MarkdownFormatter::bulletedList),
+                formatItem("Numbered", NUMBERED_LIST, MarkdownFormatter::numberedList));
         MenuItem quote = formatItem("Quote", QUOTE, MarkdownFormatter::quote);
         MenuItem comment = formatItem("Comment", COMMENT, MarkdownFormatter::comment);
         MenuItem clear = formatItem("Clear formatting", CLEAR_FORMATTING, MarkdownFormatter::clearFormatting);
 
         //inserting
-        MenuItem image = menuItem("Insert image…", () -> menuImage().ifPresentOrElse(modifyImage, insertImage));
+        Menu insert = new Menu("Insert", null, menuItem("Image…", insertImage), links.insertItem());
+        MenuItem modifyImageItem = menuItem("Modify image…", () -> menuImage().ifPresent(modifyImage));
         shortcuts.put(LinkActions.SHORTCUT, links::edit);
 
         //editing
@@ -103,9 +106,9 @@ final class FormattingMenu {
         MenuItem delete = menuItem("Delete", manuscript::deleteSelection);
         MenuItem selectAll = menuItem("Select All", manuscript::selectAll);
 
-        ContextMenu menu = new ContextMenu(bold, italic, heading, bulletedList, numberedList, quote, comment, clear,
-                new SeparatorMenuItem(), image);
-        menu.getItems().addAll(links.items());
+        ContextMenu menu = new ContextMenu(bold, italic, heading, list, quote, comment, clear, new SeparatorMenuItem(),
+                insert, modifyImageItem);
+        menu.getItems().addAll(links.modifyItems());
         menu.getItems().addAll(new SeparatorMenuItem(), undo, redo, new SeparatorMenuItem(), cut, copy, paste, delete,
                 new SeparatorMenuItem(), selectAll);
 
@@ -124,9 +127,10 @@ final class FormattingMenu {
             bold.setDisable(!formattable || !words);
             italic.setDisable(!formattable || !words);
             heading.setDisable(!formattable || !oneLine);
-            List.of(bulletedList, numberedList, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
-            image.setText(menuImage().isPresent() ? "Modify image…" : "Insert image…");
-            image.setDisable(!editable);
+            List.of(list, quote, comment, clear).forEach(item -> item.setDisable(!formattable));
+            insert.setDisable(!editable);
+            modifyImageItem.setVisible(menuImage().isPresent());
+            modifyImageItem.setDisable(!editable);
             links.update();
 
             undo.setDisable(!editable || !manuscript.canUndo());
