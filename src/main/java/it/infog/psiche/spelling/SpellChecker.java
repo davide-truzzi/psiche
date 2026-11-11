@@ -1,5 +1,6 @@
 package it.infog.psiche.spelling;
 
+import it.infog.psiche.common.EditDistance;
 import it.infog.psiche.spelling.model.Word;
 import it.infog.psiche.spelling.model.SpellingLanguage;
 import org.apache.lucene.analysis.hunspell.Dictionary;
