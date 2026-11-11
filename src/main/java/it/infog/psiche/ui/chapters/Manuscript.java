@@ -63,6 +63,7 @@ final class Manuscript {
     // The page, with its scroll bar, around the text, which draws only the paragraphs in view.
     private final VirtualizedScrollPane<StyleClassedTextArea> scrolled = new VirtualizedScrollPane<>(area);
     private final TextMarks marks = new TextMarks(area);
+    private final PinMarks pins = new PinMarks(area);
     private final LinkHover linkHover = new LinkHover(area);
     private final Repetitions repetitions;
     private final TextSearch search;
@@ -88,8 +89,9 @@ final class Manuscript {
         area.getStyleClass().add("manuscript");
         scrolled.getStyleClass().add("manuscript-scroll");
         page.getStyleClass().add("manuscript-page");
-        // The dots in the margin, and the tip over a link, over the text.
+        // The dots in the left margin, the pins in the right one, and the tip over a link, over the text.
         page.getChildren().addAll(marks.layers());
+        page.getChildren().add(pins.node());
         page.getChildren().add(linkHover.layer());
         area.setWrapText(true);
         area.setEditable(false);
@@ -103,6 +105,7 @@ final class Manuscript {
         // Each change says where it was, so the mistakes found already can move with the text.
         area.plainTextChanges().subscribe(change -> {
             marks.follow(change);
+            pins.follow(change);
             repetitions.textChanged(!area.isAppEdit());
             search.textChanged();
         });
@@ -275,6 +278,8 @@ final class Manuscript {
 
     /** The search of the text, which the find bar drives. */
     TextSearch search() { return search; }
+    /** The pinned notes' marks in the right margin, which follow their paragraphs. */
+    PinMarks pins() { return pins; }
 
     /** Shows the other places of the word the author is at, as Preferences asks, or none. */
     void highlightRepetitions(boolean on) {

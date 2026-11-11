@@ -22,8 +22,9 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
- * The open chapter, in the editor and in what follows it: the preview, the history, the notes, the images and the
- * status bar. It opens and closes a chapter there, reads it again after Synchronize, and shows a past version of it.
+ * The open chapter, in the editor and in what follows it: the preview, the history, the notes and their pins, the
+ * images and the status bar. It opens and closes a chapter there, reads it again after Synchronize, and shows a past
+ * version of it.
  */
 final class ChapterView {
 
@@ -37,6 +38,7 @@ final class ChapterView {
     private final MediaPane mediaPane;
     private final ChapterStatus status;
     private final ChapterRevisions revisions;
+    private final ChapterPins pins;
     private final StatusBar statusBar;
     private final Supplier<Window> window;
 
@@ -57,6 +59,7 @@ final class ChapterView {
         this.revisions = revisions;
         this.statusBar = statusBar;
         this.window = window;
+        pins = new ChapterPins(chapterEditor, notesPane, statusBar);
     }
 
     /** The open book, its repository and its notes, whose chapters are shown; {@code null}s once it closes. */
@@ -74,6 +77,7 @@ final class ChapterView {
             preview.render(chapterEditor.text(), book.chaptersDir());
             history.show(repository, chapter);
             notesPane.show(notes, chapter.title());
+            pins.open(chapter.title());
             mediaPane.show(book, chapter);
             status.showChapter();
             status.countChapter();
@@ -84,6 +88,7 @@ final class ChapterView {
     void close() {
 
         chapterEditor.close();
+        pins.close();
         history.show(repository, null);
         notesPane.show(notes, null);
         mediaPane.show(null, null);

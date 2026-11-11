@@ -3,6 +3,7 @@ package it.infog.psiche.notes;
 import it.infog.psiche.common.EditDistance;
 import it.infog.psiche.notes.model.NotePin;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -11,7 +12,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.ToIntFunction;
+import java.util.function.BiConsumer;
+import java.util.function.IntUnaryOperator;
 import java.util.regex.Pattern;
 
 /**
@@ -20,6 +22,9 @@ import java.util.regex.Pattern;
  * with the pin's opening text; the nearest one that starts with it; the one most like it, nearest first, if its
  * opening is the same but for capitals and spacing, or at least {@value #ALIKE_PERCENT}% alike; otherwise none, and
  * the note is unpinned. One paragraph holds one pin: a pin whose paragraph another holds goes to the nearest free one.
+ * <p>
+ * While the chapter is open, the pins follow their paragraphs as the text changes: see {@link #shifted} and
+ * {@link #settled}.
  * <p>
  * A paragraph is an editor line, as the editor and the Media tab count them; a blank one never holds a pin.
  */
@@ -77,6 +82,102 @@ public final class NotePins {
         return OptionalInt.empty();
     }
 
+    /**
+     * The free paragraph nearest to {@code pin}'s number that starts with its opening text, neither blank nor in
+     * {@code taken}, as a pin moved off its paragraph goes back there once Undo brings it back; none if there is none.
+     */
+    public static OptionalInt startingWith(List<String> lines, Set<Integer> taken, NotePin pin) {
+
+        return nearest(lines, pin.paragraph(),
+                index -> !taken.contains(index) && lines.get(index).startsWith(pin.text()) ? 0 : -1);
+    }
+
+    /**
+     * Where a paragraph starting at {@code start} starts after a change at {@code at} that took {@code removed} away
+     * and put {@code inserted} there: where it was, if before the change; where the change is, if the change took its
+     * start away; moved by the change otherwise, as by line breaks typed at its start, which push it down.
+     */
+    public static int shifted(int start, int at, String removed, String inserted) {
+
+        int removedEnd = at + removed.length();
+        boolean pushedDown = removed.isEmpty() && inserted.endsWith("\n");
+        if (start < at || start == at && !pushedDown)
+            return start;
+
+        return start < removedEnd ? at : start + inserted.length() - removed.length();
+    }
+
+    /**
+     * True if a change at {@code at} that took {@code removed} away took away the start of a paragraph starting at
+     * {@code start}, and so the paragraph, its pin left on another; a paragraph joined to the one before it is not.
+     */
+    public static boolean uprooted(int start, int at, String removed) {
+
+        return start > at && start < at + removed.length();
+    }
+
+    /**
+     * The pins on {@code paragraphs}, the notes' paragraphs in {@code lines} after a change, in the order of the text
+     * before it, one to a paragraph. A pin keeps its paragraph if it is free and not blank, the first one in the text
+     * first, as when two pinned paragraphs are joined, unless the change {@code uprooted} its own. A pin moved off its
+     * own paragraph, kept in {@code homes} as it was, goes back there once a free paragraph starts with its opening
+     * again, as after an Undo. Any other goes to the nearest free paragraph, which {@code moved} is told, and is kept
+     * in {@code homes} as it was in {@code before}; or is left out if there is none.
+     *
+     * @param uprooted the ids of the notes whose paragraphs the change took away; see {@link #uprooted}
+     * @param homes    the pins moved off their paragraphs, as they were, by note id; changed as pins leave and come
+     *                 back
+     */
+    public static Map<String, NotePin> settled(List<String> lines, Map<String, Integer> paragraphs,
+                                               Set<String> uprooted, Map<String, NotePin> before,
+                                               Map<String, NotePin> homes, BiConsumer<String, Integer> moved) {
+
+        Set<Integer> taken = new HashSet<>();
+        List<String> displaced = new ArrayList<>();
+        Map<String, Integer> placed = new LinkedHashMap<>();
+
+        //pins on their own paragraphs, first in the order of the text
+        paragraphs.forEach((id, paragraph) -> {
+            if (homes.containsKey(id))
+                return;
+            if (!uprooted.contains(id) && !lines.get(paragraph).isBlank() && taken.add(paragraph))
+                placed.put(id, paragraph);
+            else
+                displaced.add(id);
+        });
+
+        //pins moved off theirs, back there if it is back, or kept where they are
+        paragraphs.forEach((id, paragraph) -> {
+            if (!homes.containsKey(id))
+                return;
+            OptionalInt home = startingWith(lines, taken, homes.get(id));
+            if (home.isPresent()) {
+                homes.remove(id);
+                taken.add(home.getAsInt());
+                placed.put(id, home.getAsInt());
+            } else if (!uprooted.contains(id) && !lines.get(paragraph).isBlank() && taken.add(paragraph))
+                placed.put(id, paragraph);
+            else
+                displaced.add(id);
+        });
+
+        //the others, to the nearest free paragraph
+        for (String id : displaced) {
+            OptionalInt free = nearestFree(lines, taken, paragraphs.get(id));
+            if (free.isEmpty())
+                continue;
+
+            homes.putIfAbsent(id, before.get(id));
+            taken.add(free.getAsInt());
+            placed.put(id, free.getAsInt());
+            moved.accept(id, free.getAsInt());
+        }
+
+        Map<String, NotePin> settled = new LinkedHashMap<>();
+        placed.forEach((id, paragraph) -> settled.put(id, NotePin.of(paragraph, lines.get(paragraph))));
+        return settled;
+    }
+
     /** The editor's lines of {@code text}, the last one too, even if empty. */
     public static List<String> lines(String text) {
 
@@ -90,13 +191,13 @@ public final class NotePins {
             return OptionalInt.of(pin.paragraph());
 
         //the nearest paragraph that starts with the pin's text
-        OptionalInt same = nearest(lines, pin.paragraph(), line -> line.startsWith(pin.text()) ? 0 : -1);
+        OptionalInt same = nearest(lines, pin.paragraph(), index -> lines.get(index).startsWith(pin.text()) ? 0 : -1);
         if (same.isPresent())
             return same;
 
         //the paragraph most like it
         String wanted = normalized(pin.text());
-        return nearest(lines, pin.paragraph(), line -> distance(normalized(opening(line)), wanted));
+        return nearest(lines, pin.paragraph(), index -> distance(normalized(opening(lines.get(index))), wanted));
     }
 
     private static boolean isAtItsNumber(List<String> lines, NotePin pin) {
@@ -106,10 +207,10 @@ public final class NotePins {
     }
 
     /**
-     * The paragraph whose text is the least far from the one looked for, by {@code distance}, which gives -1 for a
-     * paragraph that is not it, and then nearest to {@code paragraph}; blank ones are left out.
+     * The paragraph whose text is the least far from the one looked for, by {@code distance} of its number, which gives
+     * -1 for a paragraph that is not it, and then nearest to {@code paragraph}; blank ones are left out.
      */
-    private static OptionalInt nearest(List<String> lines, int paragraph, ToIntFunction<String> distance) {
+    private static OptionalInt nearest(List<String> lines, int paragraph, IntUnaryOperator distance) {
 
         int best = -1;
         int bestDistance = Integer.MAX_VALUE;
@@ -117,7 +218,7 @@ public final class NotePins {
             if (lines.get(index).isBlank())
                 continue;
 
-            int far = distance.applyAsInt(lines.get(index));
+            int far = distance.applyAsInt(index);
             boolean nearer = far >= 0 && (far < bestDistance || far == bestDistance
                     && Math.abs(index - paragraph) < Math.abs(best - paragraph));
             if (nearer) {

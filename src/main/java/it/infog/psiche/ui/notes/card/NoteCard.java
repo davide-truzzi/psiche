@@ -11,9 +11,7 @@ import javafx.geometry.Bounds;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -27,15 +25,12 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import javafx.util.Duration;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static it.infog.psiche.ui.common.Controls.editingItems;
 import static it.infog.psiche.ui.common.Controls.hSpacer;
-import static it.infog.psiche.ui.common.Controls.menuItem;
 import static it.infog.psiche.ui.common.Controls.setShown;
 
 /**
@@ -43,7 +38,8 @@ import static it.infog.psiche.ui.common.Controls.setShown;
  * it by, with a paperclip that opens the file menu; the text typed in place; and a corner to resize it from. Pressing
  * anywhere on it brings it to the front, so the note dragged last lies over the others. Its colour dot opens a row of
  * swatches. Under the text, the file it carries; a file dropped on it takes the place of the one it had. A right-click
- * offers what fits: the file's actions, the colours, Move to chapter and Detach. It tells its {@link Board} what
+ * offers what fits: the file's actions, the colours, on a chapter's board the pin's actions, Move to chapter and
+ * Detach. A note pinned to a paragraph shows a pin among the toolbar's icons. It tells its {@link Board} what
  * changed: the text a moment after the author stops typing, or on leaving it, and its place, size, colour and stacking
  * order once they settle.
  */
@@ -66,6 +62,9 @@ public final class NoteCard extends VBox {
         /** Where the card's note can go: another chapter's board, or the other board the Notes tab shows. */
         NoteMoveActions moves();
 
+        /** What the card's note can do with a pin; none on the book's board, whose notes are pinned nowhere. */
+        Optional<NotePinActions> pins();
+
         /** Clears the Duplicate on Import tag: the author keeps both versions. */
         void clearDuplicateTag(NoteCard card);
 
@@ -81,9 +80,13 @@ public final class NoteCard extends VBox {
     static final double MAX_WIDTH = 600;
     static final double MAX_HEIGHT = 600;
 
-    private static final Duration SAVE_DELAY = Duration.seconds(1);
+    /** How long a change waits for the next one before it is written: a note's text, a pin moved by typing. */
+    public static final Duration SAVE_DELAY = Duration.seconds(1);
+
     private static final double TEXT_MIN_HEIGHT = 32;
     private static final PseudoClass SELECTED = PseudoClass.getPseudoClass("selected");
+    // Shown on the board by a click on its pin in the editor's margin, until the author types.
+    private static final PseudoClass FOUND = PseudoClass.getPseudoClass("found");
     private static final String COLOR_STYLE = "note-%s";
     private static final String DUPLICATE_STYLE = "note-duplicate";
 
@@ -92,6 +95,8 @@ public final class NoteCard extends VBox {
     private final TextArea text = new TextArea();
     private final PauseTransition saveDelay = new PauseTransition(SAVE_DELAY);
     private final StackPane band = new StackPane();
+    // The pin among the toolbar's icons while the note is pinned, with room around it as the paperclip has.
+    private final StackPane pin = new StackPane(Icons.shape("note-pin"));
     private final ColorSwatches swatches = new ColorSwatches(this::recolor);
     private final CardDrag drag;
     private final CardFileSlot fileSlot;
@@ -146,7 +151,7 @@ public final class NoteCard extends VBox {
             event.consume();
         });
         setOnContextMenuRequested(event -> {
-            board.showMenu(this, menuItems(), event.getScreenX(), event.getScreenY());
+            board.showMenu(this, CardMenus.items(this, board), event.getScreenX(), event.getScreenY());
             event.consume();
         });
 
@@ -200,6 +205,24 @@ public final class NoteCard extends VBox {
     public void setSelected(boolean selected) {
 
         pseudoClassStateChanged(SELECTED, selected);
+    }
+
+    /** Shows the pin among the toolbar's icons while the note is pinned to a paragraph. */
+    public void setPinned(boolean pinned) {
+
+        setShown(pin, pinned);
+    }
+
+    /** Marks the note as the one found by a click on its pin, with a darker border, or takes the mark away. */
+    public void setFound(boolean found) {
+
+        pseudoClassStateChanged(FOUND, found);
+    }
+
+    /** The note's text as typed, saved or not. */
+    public String text() {
+
+        return text.getText();
     }
 
     public void setDuplicateOnImport(boolean duplicate) {
@@ -271,14 +294,19 @@ public final class NoteCard extends VBox {
     // Layout
 
     /**
-     * The toolbar at the top: the grip to drag the note by, then, on hover or while the note is selected, the paperclip
-     * that opens the file menu, the note's colour and its delete button.
+     * The toolbar at the top: the grip to drag the note by, then, on hover or while the note is selected, the pin while
+     * the note is pinned, the paperclip that opens the file menu, the note's colour and its delete button.
      */
     private HBox topStrip() {
 
         Region grip = new Region();
         grip.setShape(Icons.shape("grip"));
         grip.getStyleClass().add("note-grip");
+
+        pin.getChildren().getFirst().getStyleClass().add("note-pin");
+        pin.getStyleClass().add("note-pin-slot");
+        Tooltip.install(pin, new Tooltip("Pinned to a paragraph"));
+        setShown(pin, false);
 
         SVGPath paperclip = Icons.shape("paperclip");
         paperclip.getStyleClass().add("note-paperclip");
@@ -287,7 +315,7 @@ public final class NoteCard extends VBox {
         file.setTooltip(new Tooltip("File"));
         file.setOnAction(event -> {
             Bounds bounds = file.localToScreen(file.getBoundsInLocal());
-            board.showMenu(this, fileMenuItems(), bounds.getMinX(), bounds.getMaxY());
+            board.showMenu(this, CardMenus.fileItems(this, board), bounds.getMinX(), bounds.getMaxY());
         });
 
         Button colorDot = new Button();
@@ -300,7 +328,7 @@ public final class NoteCard extends VBox {
         delete.setTooltip(new Tooltip("Detach"));
         delete.setOnAction(event -> board.delete(this));
 
-        HBox tools = new HBox(file, colorDot, delete);
+        HBox tools = new HBox(pin, file, colorDot, delete);
         tools.getStyleClass().add("note-tools");
         tools.setAlignment(Pos.CENTER_RIGHT);
 
@@ -312,40 +340,8 @@ public final class NoteCard extends VBox {
         return strip;
     }
 
-    /** The note's menu, on a right-click: the file menu, then the colours, Move to chapter and Detach. */
-    private List<MenuItem> menuItems() {
-
-        List<MenuItem> items = new ArrayList<>(fileMenuItems());
-        Menu colors = new Menu("Colour");
-        for (NoteColor each : NoteColor.values())
-            colors.getItems().add(menuItem(each.label(), () -> recolor(each)));
-
-        NoteMoveActions moves = board.moves();
-        items.addAll(List.of(new SeparatorMenuItem(), colors));
-        moves.otherBoard().ifPresent(name ->
-                items.add(menuItem("Move to " + name, () -> moves.moveToOtherBoard(this))));
-        items.addAll(List.of(menuItem("Move to chapter…", () -> moves.moveToChapter(this), moves.hasOtherChapters()),
-                menuItem("Detach", () -> board.delete(this))));
-        return items;
-    }
-
-    /** The file menu: with a file, Open, Show in folder, Replace file, Remove file; without, Attach file and Paste. */
-    private List<MenuItem> fileMenuItems() {
-
-        List<MenuItem> items = new ArrayList<>();
-        if (attachment().isPresent()) {
-            items.add(menuItem("Open", () -> board.files().open(this), Files.exists(attachment().get())));
-            items.add(menuItem("Show in folder", () -> board.files().showInFolder(this)));
-            items.add(menuItem("Replace file…", () -> board.files().chooseFile(this)));
-            items.add(menuItem("Remove file", () -> board.files().remove(this)));
-        } else {
-            items.add(menuItem("Attach file…", () -> board.files().chooseFile(this)));
-            items.add(menuItem("Paste", () -> board.files().paste(this)));
-        }
-        return items;
-    }
-
-    private void recolor(NoteColor newColor) {
+    /** Gives the note {@code newColor}, and keeps it. */
+    void recolor(NoteColor newColor) {
 
         if (newColor == color)
             return;

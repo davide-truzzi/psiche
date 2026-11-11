@@ -4,6 +4,9 @@ import it.infog.psiche.notes.model.NotePin;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -118,5 +121,163 @@ class NotePinsTest {
         List<String> lines = NotePins.lines("A\nB\n");
 
         assertThat(NotePins.nearestFree(lines, Set.of(), 9)).isEqualTo(OptionalInt.of(1));
+    }
+
+    // Following the text as it changes
+
+    @Test
+    void typingBeforeAParagraphMovesItsStartAndTypingAfterItDoesNot() {
+        assertThat(NotePins.shifted(10, 3, "", "abc")).isEqualTo(13);
+        assertThat(NotePins.shifted(10, 12, "", "abc")).isEqualTo(10);
+        assertThat(NotePins.shifted(10, 10, "", "abc")).isEqualTo(10);
+    }
+
+    @Test
+    void lineBreaksTypedAtAParagraphsStartPushItDown() {
+        assertThat(NotePins.shifted(10, 10, "", "\n\n")).isEqualTo(12);
+    }
+
+    @Test
+    void aParagraphWhoseStartIsTakenAwayStartsWhereTheChangeIs() {
+        assertThat(NotePins.shifted(10, 5, "abcdefgh", "")).isEqualTo(5);
+        assertThat(NotePins.shifted(10, 8, "\n\n", "")).isEqualTo(8);
+    }
+
+    @Test
+    void typingInsideAPinnedParagraphKeepsItsPinAndItsNewOpening() {
+        Editing editing = new Editing("One.\n\nTwo.\n\nThree.", Map.of("a", 2));
+
+        editing.change(5, "", "Zero.\n\n");
+
+        assertThat(editing.pins).containsExactly(Map.entry("a", new NotePin(4, "Two.")));
+        assertThat(editing.moved).isEmpty();
+    }
+
+    @Test
+    void twoPinnedParagraphsJoinedKeepTheFirstsPinAndMoveTheSecondToTheNearestFreeAfter() {
+        Editing editing = new Editing("One.\n\nTwo.\n\nThree.", Map.of("first", 0, "second", 2));
+
+        editing.change(4, "\n\n", "");
+
+        assertThat(editing.text).isEqualTo("One.Two.\n\nThree.");
+        assertThat(editing.pins).containsOnly(Map.entry("first", new NotePin(0, "One.Two.")),
+                Map.entry("second", new NotePin(2, "Three.")));
+        assertThat(editing.moved).containsExactly(Map.entry("second", 2));
+    }
+
+    @Test
+    void undoingTheJoinBringsTheMovedPinBackToItsParagraph() {
+        Editing editing = new Editing("One.\n\nTwo.\n\nThree.", Map.of("first", 0, "second", 2));
+        editing.change(4, "\n\n", "");
+
+        editing.change(4, "", "\n\n");
+
+        assertThat(editing.pins).containsOnly(Map.entry("first", new NotePin(0, "One.")),
+                Map.entry("second", new NotePin(2, "Two.")));
+        assertThat(editing.homes).isEmpty();
+    }
+
+    @Test
+    void aPinnedParagraphDeletedSendsItsPinToTheNearestFreeParagraph() {
+        Editing editing = new Editing("One.\n\nTwo.\n\nThree.", Map.of("a", 2, "b", 4));
+
+        editing.change(4, "\n\nTwo.", "");
+
+        assertThat(editing.text).isEqualTo("One.\n\nThree.");
+        assertThat(editing.pins).containsOnly(Map.entry("a", new NotePin(0, "One.")),
+                Map.entry("b", new NotePin(2, "Three.")));
+        assertThat(editing.moved).containsExactly(Map.entry("a", 0));
+    }
+
+    @Test
+    void aParagraphJoinedToAnUnpinnedOneAboveKeepsItsPinOnTheJoinedParagraph() {
+        Editing editing = new Editing("One.\n\nTwo.\n\nThree.", Map.of("a", 2));
+
+        editing.change(4, "\n\n", "");
+
+        assertThat(editing.pins).containsExactly(Map.entry("a", new NotePin(0, "One.Two.")));
+        assertThat(editing.moved).isEmpty();
+    }
+
+    @Test
+    void undoingADeletionBringsThePinBackToItsParagraph() {
+        Editing editing = new Editing("One.\n\nTwo.\n\nThree.", Map.of("a", 2));
+        editing.change(4, "\n\nTwo.", "");
+
+        editing.change(4, "", "\n\nTwo.");
+
+        assertThat(editing.pins).containsExactly(Map.entry("a", new NotePin(2, "Two.")));
+    }
+
+    @Test
+    void aPinnedParagraphEmptiedSendsItsPinToTheNearestFreeParagraph() {
+        Editing editing = new Editing("One.\nTwo.\nThree.", Map.of("a", 1));
+
+        editing.change(5, "Two.", "");
+
+        assertThat(editing.pins).containsExactly(Map.entry("a", new NotePin(2, "Three.")));
+    }
+
+    @Test
+    void aPinWithNoFreeParagraphLeftIsLetGo() {
+        Editing editing = new Editing("One.", Map.of("a", 0));
+
+        editing.change(0, "One.", "");
+
+        assertThat(editing.pins).isEmpty();
+    }
+
+    @Test
+    void aMovedPinGoesBackOnlyToAFreeParagraphStartingWithItsOpening() {
+        List<String> lines = NotePins.lines("Two.\nOne.\nTwo.");
+
+        assertThat(NotePins.startingWith(lines, Set.of(), new NotePin(1, "Two."))).isEqualTo(OptionalInt.of(0));
+        assertThat(NotePins.startingWith(lines, Set.of(0), new NotePin(1, "Two."))).isEqualTo(OptionalInt.of(2));
+        assertThat(NotePins.startingWith(lines, Set.of(0, 2), new NotePin(1, "Two."))).isEmpty();
+    }
+
+    /** A chapter's text being edited with pins on it, as the editor follows them. */
+    private static final class Editing {
+
+        private final Map<String, NotePin> homes = new HashMap<>();
+        private final Map<String, Integer> moved = new LinkedHashMap<>();
+        private String text;
+        private Map<String, NotePin> pins = new LinkedHashMap<>();
+
+        Editing(String text, Map<String, Integer> paragraphs) {
+            this.text = text;
+            List<String> lines = NotePins.lines(text);
+            paragraphs.entrySet().stream().sorted(Map.Entry.comparingByValue())
+                    .forEach(entry -> pins.put(entry.getKey(), NotePin.of(entry.getValue(),
+                            lines.get(entry.getValue()))));
+        }
+
+        /** Replaces {@code removed}, at {@code at}, with {@code inserted}, and moves the pins as the editor does. */
+        void change(int at, String removed, String inserted) {
+            List<String> before = NotePins.lines(text);
+            text = text.substring(0, at) + inserted + text.substring(at + removed.length());
+
+            Map<String, Integer> paragraphs = new LinkedHashMap<>();
+            Set<String> uprooted = new HashSet<>();
+            pins.forEach((id, pin) -> {
+                int start = start(before, pin.paragraph());
+                paragraphs.put(id, paragraphOf(NotePins.shifted(start, at, removed, inserted)));
+                if (NotePins.uprooted(start, at, removed))
+                    uprooted.add(id);
+            });
+            moved.clear();
+            pins = NotePins.settled(NotePins.lines(text), paragraphs, uprooted, pins, homes, moved::put);
+        }
+
+        private static int start(List<String> lines, int paragraph) {
+            int start = 0;
+            for (int i = 0; i < paragraph; i++)
+                start += lines.get(i).length() + 1;
+            return start;
+        }
+
+        private int paragraphOf(int offset) {
+            return (int) text.substring(0, offset).chars().filter(character -> character == '\n').count();
+        }
     }
 }

@@ -325,6 +325,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         TabPane tabs = new TabPane(previewTab, notesTab, mediaTab, historyTab);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add("chapter-tabs");
+        // A click on a pin in the editor's margin shows its note.
+        notes.boardPins().setOnReveal(() -> tabs.getSelectionModel().select(notesTab));
 
         return tabs;
     }
