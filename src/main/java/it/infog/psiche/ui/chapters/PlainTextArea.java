@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.markdown.Footnotes;
 import it.infog.psiche.markdown.TextBlocks;
 import it.infog.psiche.markdown.model.TextEdit;
 import it.infog.psiche.markdown.model.TextRange;
@@ -31,13 +32,10 @@ import java.util.function.Supplier;
  */
 final class PlainTextArea extends StyleClassedTextArea {
 
-    // Footnotes are written with these, which an edit must remove for a block's other parts to go with it.
-    private static final String FOOTNOTE_SIGN = "[^";
-
     private Supplier<List<TextRange>> blocks = List::of;
-    private Widening widening = (text, start, end, replacement) -> Optional.empty();
-    private Copying copying = String::substring;
-    private Pasting pasting = (text, start, end, pasted) -> Optional.empty();
+    private Widening widening = Widening.NONE;
+    private Copying copying = Copying.PLAIN;
+    private Pasting pasting = Pasting.PLAIN;
     // True while an edit of the app's own runs, which no block refuses.
     private boolean free;
     // Where the caret was before the key being handled, to tell which way it moved.
@@ -114,18 +112,15 @@ final class PlainTextArea extends StyleClassedTextArea {
         }
 
         allowed(start, end).ifPresent(range -> {
+            // Footnotes are written with these, which an edit must remove for a block's other parts to go with it.
             Optional<TextEdit> wider = range.start() < range.end()
-                    && getText(range.start(), range.end()).contains(FOOTNOTE_SIGN)
+                    && getText(range.start(), range.end()).contains(Footnotes.LABEL_OPENING)
                     ? widening.widen(getText(), range.start(), range.end(), replacement.getText())
                     : Optional.empty();
-            if (wider.isEmpty()) {
+            if (wider.isPresent())
+                applyWhole(wider.get());
+            else
                 super.replace(range.start(), range.end(), replacement);
-                return;
-            }
-
-            // One change, which a single Undo takes back.
-            freely(() -> replaceText(wider.get().start(), wider.get().end(), wider.get().replacement()));
-            moveTo(wider.get().selectionStart());
         });
     }
 
@@ -188,14 +183,17 @@ final class PlainTextArea extends StyleClassedTextArea {
         String pasted = text.replace("\r\n", "\n").replace('\r', '\n');
         Optional<TextRange> range = allowed(getSelection().getStart(), getSelection().getEnd());
         Optional<TextEdit> edit = range.flatMap(found -> pasting.pasted(getText(), found.start(), found.end(), pasted));
-        if (edit.isEmpty()) {
+        if (edit.isPresent())
+            applyWhole(edit.get());
+        else
             replaceSelection(pasted);
-            return;
-        }
+    }
 
-        // One change, which a single Undo takes back.
-        freely(() -> replaceText(edit.get().start(), edit.get().end(), edit.get().replacement()));
-        moveTo(edit.get().selectionStart());
+    /** Applies {@code edit} as one change, which a single Undo takes back, the caret where it says. */
+    private void applyWhole(TextEdit edit) {
+
+        freely(() -> replaceText(edit.start(), edit.end(), edit.replacement()));
+        moveTo(edit.selectionStart());
     }
 
     private Optional<TextRange> allowed(int start, int end) {
@@ -218,18 +216,24 @@ final class PlainTextArea extends StyleClassedTextArea {
     /** Widens an edit by the author over parts of blocks elsewhere in the text; empty to leave it as it is. */
     @FunctionalInterface
     interface Widening {
+        Widening NONE = (text, start, end, replacement) -> Optional.empty();
+
         Optional<TextEdit> widen(String text, int start, int end, String replacement);
     }
 
     /** What a copy of the text from {@code start} to {@code end} puts on the clipboard. */
     @FunctionalInterface
     interface Copying {
+        Copying PLAIN = String::substring;
+
         String copied(String text, int start, int end);
     }
 
     /** The edit that pastes {@code pasted} in place of {@code start} to {@code end}; empty to paste it as it is. */
     @FunctionalInterface
     interface Pasting {
+        Pasting PLAIN = (text, start, end, pasted) -> Optional.empty();
+
         Optional<TextEdit> pasted(String text, int start, int end, String pasted);
     }
 }

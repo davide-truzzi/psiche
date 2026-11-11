@@ -174,8 +174,7 @@ final class TextSearch {
     /** {@code replacement} for {@code place}: inside a note, its line breaks set in as the note's lines are. */
     private String fitted(TextRange place, String replacement) {
 
-        boolean inNote = notes.get().stream()
-                .anyMatch(note -> note.start() <= place.start() && place.end() <= note.end());
+        boolean inNote = notes.get().stream().anyMatch(note -> note.contains(place));
         return inNote ? FootnoteEdits.inNote(replacement) : replacement;
     }
 

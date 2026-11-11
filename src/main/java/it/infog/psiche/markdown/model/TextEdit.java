@@ -15,6 +15,12 @@ public record TextEdit(int start,
         return new TextEdit(start, end, replacement, start, start + replacement.length());
     }
 
+    /** Replaces {@code start} to {@code end}, with the caret, and no selection, at {@code caret}. */
+    public static TextEdit caretAt(int start, int end, String replacement, int caret) {
+
+        return new TextEdit(start, end, replacement, caret, caret);
+    }
+
     /**
      * The edit that turns {@code text} into {@code changed}, replacing only the stretch between the first and the last
      * character that differ, and selecting what it puts there.

@@ -9,4 +9,10 @@ public record TextRange(int start,
 
         return start < other.end && other.start < end || start <= other.start && other.end <= end;
     }
+
+    /** True if every character of {@code other} lies in this, or {@code other}, empty, lies at its edges or inside. */
+    public boolean contains(TextRange other) {
+
+        return start <= other.start && other.end <= end;
+    }
 }

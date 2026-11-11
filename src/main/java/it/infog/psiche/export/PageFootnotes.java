@@ -66,8 +66,7 @@ final class PageFootnotes implements NodeRenderer {
 
         inNote = true;
         html.tag("span", Map.of("class", "footnote"));
-        for (Node part = note.get().getFirstChild(); part != null; part = part.getNext())
-            paragraph(part);
+        ChapterNotes.parts(note.get()).forEach(this::paragraph);
         html.tag("/span");
         inNote = false;
     }

@@ -236,9 +236,7 @@ final class TextMarks {
         notes = marks.notes().stream().filter(note -> !wrong.contains(note)).map(FootnoteMark::block).toList();
         wrongNotes = marks.notes().stream().filter(wrong::contains).map(FootnoteMark::block).toList();
         footnoteBlocks = marks.blocks();
-        footnoteMarkers = inOrder(Stream.of(marks.references(), marks.notes(), marks.missing())
-                .flatMap(List::stream)
-                .flatMap(mark -> Footnotes.markers(mark).stream()));
+        footnoteMarkers = inOrder(marks.all().flatMap(mark -> Footnotes.markers(mark).stream()));
     }
 
     /** Shows each mark in its style; see {@link TextStyles}. */

@@ -57,7 +57,6 @@ final class ScriptExtension implements Parser.ParserExtension, HtmlRenderer.Html
 
     private static boolean childHasSpace(Node node) {
 
-
         for (Node child = node.getFirstChild(); child != null; child = child.getNext())
             if (hasSpace(child))
                 return true;

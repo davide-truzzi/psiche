@@ -18,8 +18,7 @@ public record FootnoteMarks(List<FootnoteMark> references,
     /** What Default mode keeps whole: every reference, to a note or not, and every whole note, in order. */
     public List<TextRange> blocks() {
 
-        return Stream.of(references, notes, missing).flatMap(List::stream)
-                .map(FootnoteMark::block)
+        return all().map(FootnoteMark::block)
                 .sorted(Comparator.comparingInt(TextRange::start))
                 .toList();
     }
@@ -27,9 +26,14 @@ public record FootnoteMarks(List<FootnoteMark> references,
     /** Where every mark is, references, notes' openings and references to no note, in the order of the text. */
     public List<TextRange> ranges() {
 
-        return Stream.of(references, notes, missing).flatMap(List::stream)
-                .map(FootnoteMark::range)
+        return all().map(FootnoteMark::range)
                 .sorted(Comparator.comparingInt(TextRange::start))
                 .toList();
+    }
+
+    /** Every mark, references, notes' openings and references to no note, list after list. */
+    public Stream<FootnoteMark> all() {
+
+        return Stream.of(references, notes, missing).flatMap(List::stream);
     }
 }

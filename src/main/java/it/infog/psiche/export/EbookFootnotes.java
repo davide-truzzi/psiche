@@ -10,7 +10,6 @@ import org.commonmark.renderer.NodeRenderer;
 import org.commonmark.renderer.html.HtmlNodeRendererContext;
 import org.commonmark.renderer.html.HtmlWriter;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,9 +93,7 @@ final class EbookFootnotes implements NodeRenderer {
 
         html.line();
         html.tag("aside", attributes("id", noteId(number), "epub:type", "footnote", "role", "doc-footnote"));
-        List<Node> parts = new ArrayList<>();
-        for (Node part = note.getFirstChild(); part != null; part = part.getNext())
-            parts.add(part);
+        List<Node> parts = ChapterNotes.parts(note);
 
         //its paragraphs, the first with its number, the last with the way back
         for (int i = 0; i < parts.size(); i++) {

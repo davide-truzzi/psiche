@@ -48,7 +48,8 @@ public final class Footnotes {
     private static final Parser PARSER = MarkdownSyntax.parser(IncludeSourceSpans.BLOCKS_AND_INLINES);
     private static final String NOTE_LINK = "#fn-";
     private static final String REFERENCE_LINK = "#fnref-";
-    static final String LABEL_OPENING = "[^";
+    /** What opens a footnote's label, in a reference and a note alike. */
+    public static final String LABEL_OPENING = "[^";
     static final String LABEL_CLOSING = "]";
     static final String NOTE_OPENING_END = "]:";
     // A reference that leads to no note, as the parser leaves it in the text.
@@ -108,7 +109,7 @@ public final class Footnotes {
      */
     public static List<FootnoteMark> wrong(FootnoteMarks marks) {
 
-        Set<String> referred = marks.references().stream().map(mark -> key(mark.label())).collect(Collectors.toSet());
+        Set<String> referred = keys(marks.references().stream());
         Set<String> written = new HashSet<>();
         List<FootnoteMark> wrong = new ArrayList<>(marks.missing());
         for (FootnoteMark note : marks.notes())
@@ -164,7 +165,7 @@ public final class Footnotes {
     public static List<NumberedNote> numberedNotes(String text) {
 
         FootnoteMarks marks = of(text);
-        Set<String> referred = marks.references().stream().map(mark -> key(mark.label())).collect(Collectors.toSet());
+        Set<String> referred = keys(marks.references().stream());
         List<FootnoteMark> read = new ArrayList<>(marks.references().stream()
                 .flatMap(reference -> noteOf(marks, reference.label()).stream())
                 .distinct()
@@ -182,7 +183,26 @@ public final class Footnotes {
     /** The note of {@code label} readers see, the first one written; empty if it has none. */
     public static Optional<FootnoteMark> noteOf(FootnoteMarks marks, String label) {
 
-        return marks.notes().stream().filter(note -> key(note.label()).equals(key(label))).findFirst();
+        return marks.notes().stream().filter(labelled(label)).findFirst();
+    }
+
+    /** A label as the parser compares it: its spaces as one, its capitals ignored. */
+    public static String key(String label) {
+
+        return label.strip().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT);
+    }
+
+    /** True for a mark of {@code label}, whatever its capitals and spaces. */
+    static Predicate<FootnoteMark> labelled(String label) {
+
+        String wanted = key(label);
+        return mark -> key(mark.label()).equals(wanted);
+    }
+
+    /** The keys of the labels of {@code marks}. */
+    static Set<String> keys(Stream<FootnoteMark> marks) {
+
+        return marks.map(mark -> key(mark.label())).collect(Collectors.toSet());
     }
 
     /** True if {@code destination} is a link of the preview's footnotes, to a note or back to its reference. */
@@ -238,14 +258,7 @@ public final class Footnotes {
     /** Where the {@code index}th mark of {@code marks} with {@code label}, counted from 0, starts. */
     private static OptionalInt nth(List<FootnoteMark> marks, String label, int index) {
 
-        Predicate<FootnoteMark> labelled = mark -> key(mark.label()).equals(key(label));
-        return marks.stream().filter(labelled).skip(index).mapToInt(mark -> mark.range().start()).findFirst();
-    }
-
-    /** A label as the parser compares it: its spaces as one, its capitals ignored. */
-    public static String key(String label) {
-
-        return label.strip().replaceAll("\\s+", " ").toUpperCase(Locale.ROOT).toLowerCase(Locale.ROOT);
+        return marks.stream().filter(labelled(label)).skip(index).mapToInt(mark -> mark.range().start()).findFirst();
     }
 
     private static TextRange range(Node node) {

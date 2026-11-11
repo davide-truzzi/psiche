@@ -16,6 +16,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.stage.Window;
 
 import java.util.List;
 import java.util.Optional;
@@ -68,7 +69,6 @@ final class NoteActions {
 
         boolean editable = manuscript.isEditable();
         Optional<FootnotePlace> place = placeAtMenu();
-        Optional<FootnotePart> part = place.map(FootnotePlace::part);
         boolean wrongNote = place.filter(found -> found.part() == FootnotePart.NOTE && found.wrong()).isPresent();
         boolean rightOne = place.filter(found -> found.part() != FootnotePart.MISSING_REFERENCE && !found.wrong())
                 .isPresent();
@@ -77,7 +77,7 @@ final class NoteActions {
         insert.setDisable(!canInsert());
         modify.setVisible(rightOne);
         remove.setVisible(rightOne || wrongNote);
-        write.setVisible(part.filter(FootnotePart.MISSING_REFERENCE::equals).isPresent());
+        write.setVisible(place.filter(found -> found.part() == FootnotePart.MISSING_REFERENCE).isPresent());
         removeReference.setVisible(write.isVisible());
         modifyItems().forEach(item -> item.setDisable(!editable));
     }
@@ -95,8 +95,7 @@ final class NoteActions {
             return;
         }
 
-        NoteDialog dialog = new NoteDialog(manuscript.node().getScene().getWindow(), Optional.empty(),
-                Footnotes.numberedNotes(text));
+        NoteDialog dialog = new NoteDialog(window(), Optional.empty(), Footnotes.numberedNotes(text));
         if (!dialog.showAndWait())
             return;
 
@@ -114,8 +113,7 @@ final class NoteActions {
         if (note.isEmpty())
             return;
 
-        NoteDialog dialog = new NoteDialog(manuscript.node().getScene().getWindow(),
-                Optional.of(FootnoteEdits.noteText(text, note.get())), List.of());
+        NoteDialog dialog = new NoteDialog(window(), Optional.of(FootnoteEdits.noteText(text, note.get())), List.of());
         if (!dialog.showAndWait())
             return;
 
@@ -141,7 +139,7 @@ final class NoteActions {
         if (place.isEmpty())
             return;
 
-        NoteDialog dialog = new NoteDialog(manuscript.node().getScene().getWindow(), Optional.empty(), List.of());
+        NoteDialog dialog = new NoteDialog(window(), Optional.empty(), List.of());
         if (dialog.showAndWait())
             apply(FootnoteEdits.added(manuscript.text(), place.get().mark(), dialog.text()));
     }
@@ -168,10 +166,15 @@ final class NoteActions {
         return manuscript.isEditable() && !manuscript.inBlock(manuscript.selection().getEnd());
     }
 
+    private Window window() {
+
+        return manuscript.node().getScene().getWindow();
+    }
+
     private boolean confirmRemoving() {
 
         ButtonType removing = new ButtonType("Remove", ButtonData.OK_DONE);
-        return Dialogs.choose(manuscript.node().getScene().getWindow(), "Remove this note and its references?",
+        return Dialogs.choose(window(), "Remove this note and its references?",
                         "The note is empty. Undo brings it back.", ButtonType.CANCEL, removing)
                 .filter(removing::equals)
                 .isPresent();

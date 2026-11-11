@@ -74,7 +74,7 @@ public final class TextBlocks {
 
         return links.stream()
                 .filter(link -> reaches(selection, link.range()))
-                .allMatch(link -> within(link.range(), selection) || within(selection, link.label()));
+                .allMatch(link -> selection.contains(link.range()) || link.label().contains(selection));
     }
 
     /** The block {@code position} lies strictly inside, past its start and before its end; if any. */
@@ -88,10 +88,5 @@ public final class TextBlocks {
 
         return selection.start() < block.end() && block.start() < selection.end()
                 || block.start() < selection.start() && selection.end() < block.end();
-    }
-
-    private static boolean within(TextRange inner, TextRange outer) {
-
-        return outer.start() <= inner.start() && inner.end() <= outer.end();
     }
 }

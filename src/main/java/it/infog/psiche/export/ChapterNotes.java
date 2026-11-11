@@ -9,8 +9,10 @@ import org.commonmark.node.CustomBlock;
 import org.commonmark.node.CustomNode;
 import org.commonmark.node.Node;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -66,6 +68,16 @@ public final class ChapterNotes {
     public boolean printsNote(FootnoteReference reference) {
 
         return notes.containsKey(key(reference)) && printed.add(key(reference));
+    }
+
+    /** The paragraphs of {@code note}, and any other block it holds, in order. */
+    public static List<Node> parts(FootnoteDefinition note) {
+
+        List<Node> parts = new ArrayList<>();
+        for (Node part = note.getFirstChild(); part != null; part = part.getNext())
+            parts.add(part);
+
+        return parts;
     }
 
     private static String key(FootnoteReference reference) {

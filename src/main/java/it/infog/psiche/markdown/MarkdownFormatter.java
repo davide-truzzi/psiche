@@ -27,8 +27,9 @@ import java.util.stream.Collectors;
 /**
  * Markdown formatting of the selected text in a chapter. Each method takes the whole text and the selection, and
  * returns the edit that formats it, selecting the formatted text. Bold, italic, strikethrough, subscript and
- * superscript wrap the selection, joining the same formatting it overlaps instead of doubling it; headings, lists and quotes apply to every line the selection
- * touches, or the caret's line when nothing is selected. A comment hides text from the preview and exports.
+ * superscript wrap the selection, joining the same formatting it overlaps instead of doubling it; headings, lists and
+ * quotes apply to every line the selection touches, or the caret's line when nothing is selected. A comment hides text
+ * from the preview and exports.
  */
 public final class MarkdownFormatter {
 
@@ -327,10 +328,11 @@ public final class MarkdownFormatter {
 
             @Override
             public void visit(CustomNode node) {
-                if (node instanceof Strikethrough strikethrough)
-                    add(strikethrough);
-                else if (node instanceof Script script)
-                    add(script);
+                switch (node) {
+                    case Strikethrough strikethrough -> add(strikethrough);
+                    case Script script -> add(script);
+                    default -> {}
+                }
                 visitChildren(node);
             }
 

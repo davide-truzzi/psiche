@@ -328,7 +328,7 @@ final class ChapterRenderer extends AbstractVisitor {
 
         inNote = true;
         body.openNote(notes.number(reference));
-        for (Node part = note.get().getFirstChild(); part != null; part = part.getNext()) {
+        for (Node part : ChapterNotes.parts(note.get())) {
             body.openParagraph(Style.FOOTNOTE);
             if (part instanceof Paragraph)
                 visitChildren(part);
