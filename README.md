@@ -12,13 +12,13 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 ## Status
 
-**0.5.1 Alpha**, the fifth release for testing, with fixes for saving on Windows. Psiche Writer does what a book needs
-from first draft to export: create or open a book, write its chapters in Markdown with a typeset preview beside them,
-with images and links to the web or between chapters, keep notes on each chapter's board and on the book's own, commit
-with Git and, if you want, keep the book in step with a remote repository, browse or restore earlier versions, and
-export the book to PDF, ODT, DOCX or EPUB. It is not finished: keep a copy of your books, read
-[Limitations](#limitations), and expect things to change before 1.0. What each release holds is in
-[CHANGELOG.md](CHANGELOG.md).
+**0.6.0 Alpha**, the sixth release for testing and the last Alpha: the Betas that follow fix bugs only, up to 1.0.
+Psiche Writer does what a book needs from first draft to export: create or open a book, write its chapters in Markdown
+with a typeset preview beside them, with images, footnotes and links to the web or between chapters, keep notes on each
+chapter's board, pinned to the paragraphs they are about if you want, and on the book's own, commit with Git and, if you
+want, keep the book in step with a remote repository, browse or restore earlier versions, and export the book to PDF,
+ODT, DOCX or EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and expect things to
+change before 1.0. What each release holds is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Book layout
 

@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.6.0 Alpha (not released yet)
+## 0.6.0 Alpha (2026-11-11)
+
+The sixth release for testing, and the last Alpha: footnotes and the rest of the Markdown Guide's extended syntax,
+find and replace, repetitions shown while you type, and notes pinned to the paragraphs they are about. From now on,
+the Betas fix bugs only, up to 1.0.
 
 ### What is new
 
