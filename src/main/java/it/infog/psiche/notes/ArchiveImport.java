@@ -5,6 +5,7 @@ import it.infog.psiche.common.CopyProgress;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.NotePin;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,9 @@ import static it.infog.psiche.notes.NoteFolders.PROPERTIES_FILE;
 import static it.infog.psiche.notes.NoteFolders.TEXT_FILE;
 import static it.infog.psiche.notes.NoteFolders.attachmentName;
 import static it.infog.psiche.notes.NoteFolders.layout;
+import static it.infog.psiche.notes.NoteFolders.pin;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
+import static it.infog.psiche.notes.NoteFolders.putPin;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
 import static it.infog.psiche.notes.NoteFolders.subfolders;
@@ -183,7 +186,7 @@ final class ArchiveImport {
             Properties written = PropertiesFiles.readLeniently(properties);
             Note read = readNote(work).orElseThrow(() -> new IOException("Cannot read the note " + note.id()));
             written.setProperty(NotePrints.CONTENT_KEY, NotePrints.content(read));
-            written.setProperty(NotePrints.LAYOUT_KEY, NotePrints.layout(read.layout()));
+            written.setProperty(NotePrints.LAYOUT_KEY, NotePrints.layout(read));
             PropertiesFiles.write(properties, written, "");
             move(work, target);
         } finally {
@@ -211,19 +214,23 @@ final class ArchiveImport {
         String baseLayout = base.getProperty(NotePrints.LAYOUT_KEY, "");
         String myContent = NotePrints.content(current);
         String theirContent = NotePrints.content(theirs.text(), theirs.file(), theirs.fileSize());
-        String myLayout = NotePrints.layout(current.layout());
+        String myLayout = NotePrints.layout(current);
         NoteLayout theirLayout = layout(theirs.properties());
-        String theirLayoutPrint = NotePrints.layout(theirLayout);
+        Optional<NotePin> theirPin = pin(theirs.properties());
+        String theirLayoutPrint = NotePrints.layout(theirLayout, theirPin);
 
         boolean contentChangedThere = !theirContent.equals(myContent) && !theirContent.equals(baseContent);
         boolean layoutChangedThere = !theirLayoutPrint.equals(myLayout) && !theirLayoutPrint.equals(baseLayout);
 
-        //layout: theirs if only they changed it; a note's place in the stack stays this computer's
+        //layout and pin: theirs if only they changed them; a note's place in the stack stays this computer's
         NoteLayout layout = current.layout();
+        Optional<NotePin> pin = current.pin();
         boolean layoutTaken = layoutChangedThere && myLayout.equals(baseLayout);
-        if (layoutTaken)
+        if (layoutTaken) {
             layout = new NoteLayout(theirLayout.x(), theirLayout.y(), theirLayout.width(), theirLayout.height(),
                     layout.order(), theirLayout.color());
+            pin = theirPin;
+        }
 
         //content: theirs if only they changed it; both versions if both did
         boolean contentTaken = contentChangedThere && myContent.equals(baseContent);
@@ -234,9 +241,11 @@ final class ArchiveImport {
 
         // From now on the zip's versions are what this computer last imported.
         NoteLayout kept = layout;
+        Optional<NotePin> keptPin = pin;
         Optional<String> file = contentTaken ? theirs.file() : Optional.empty();
         store.updateProperties(mine, properties -> {
             putLayout(properties, kept);
+            putPin(properties, keptPin);
             if (contentTaken)
                 file.ifPresentOrElse(name -> properties.setProperty(FILE_KEY, name),
                         () -> properties.remove(FILE_KEY));
@@ -266,7 +275,7 @@ final class ArchiveImport {
 
     /**
      * Adds the zip's version of a note beside the one in {@code mine}, which keeps its own: on the same board, over
-     * the other notes, tagged Duplicate on Import, with a new id.
+     * the other notes, tagged Duplicate on Import, with a new id, unpinned, as a paragraph holds one note's pin.
      */
     private void addDuplicate(ZipNote note, Path mine, NoteLayout beside, String content) throws IOException {
 
@@ -280,9 +289,10 @@ final class ArchiveImport {
             NoteLayout placed = besides(beside, layout(written), top);
 
             putLayout(written, placed);
+            putPin(written, Optional.empty());
             written.setProperty(DUPLICATE_KEY, "true");
             written.setProperty(NotePrints.CONTENT_KEY, content);
-            written.setProperty(NotePrints.LAYOUT_KEY, NotePrints.layout(placed));
+            written.setProperty(NotePrints.LAYOUT_KEY, NotePrints.layout(placed, Optional.empty()));
             PropertiesFiles.write(properties, written, "");
 
             // The new id's folder is made empty, so no other note takes it, then the duplicate takes its place.

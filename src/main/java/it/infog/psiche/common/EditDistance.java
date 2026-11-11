@@ -1,17 +1,17 @@
-package it.infog.psiche.spelling;
+package it.infog.psiche.common;
 
 /**
  * How many letters must change to turn one word into another: a letter added, removed or replaced, or two letters
- * side by side swapped, as typing slips do. Only small distances matter for suggestions, so a pair further apart than
- * asked is told as such without working out by how much.
+ * side by side swapped, as typing slips do. Only small distances matter, to spelling suggestions and to finding a
+ * pinned paragraph again, so a pair further apart than asked is told as such without working out by how much.
  */
-final class EditDistance {
+public final class EditDistance {
 
     private EditDistance() {
     }
 
     /** The edits between {@code a} and {@code b}, or {@code max + 1} if they need more than {@code max}. */
-    static int between(String a, String b, int max) {
+    public static int between(String a, String b, int max) {
 
         if (Math.abs(a.length() - b.length()) > max)
             return max + 1;

@@ -2,6 +2,7 @@ package it.infog.psiche.notes;
 
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.NotePin;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -16,14 +17,14 @@ import java.util.Optional;
 /**
  * A note's two fingerprints, which an import compares to tell which side changed it since the last export or import
  * here: one of its content, the text and the file's name and size (hashing whole multi-GB files at every export would
- * be too slow), and one of its place, size and colour. The stacking order is left out: bringing a note to the front by
- * a click is no change to carry over.
+ * be too slow), and one of its place, size, colour and pin. The stacking order is left out: bringing a note to the
+ * front by a click is no change to carry over.
  */
 final class NotePrints {
 
     /** Where a note keeps the fingerprint of its content at its last export or import here. */
     static final String CONTENT_KEY = "contentPrint";
-    /** Where a note keeps the fingerprint of its place, size and colour at its last export or import here. */
+    /** Where a note keeps the fingerprint of its place, size, colour and pin at its last export or import here. */
     static final String LAYOUT_KEY = "layoutPrint";
 
     // A file named but gone from the note's folder.
@@ -46,10 +47,21 @@ final class NotePrints {
         return hash(text + '\0' + file.orElse("") + '\0' + (file.isPresent() ? size : MISSING));
     }
 
-    static String layout(NoteLayout layout) {
+    /** The fingerprint of {@code note}'s place, size, colour and pin. */
+    static String layout(Note note) {
 
+        return layout(note.layout(), note.pin());
+    }
+
+    /**
+     * The fingerprint of a note's place, size, colour and pin. An unpinned note's is the one it had before notes
+     * could be pinned, so pins alone make no note look changed since its last export or import.
+     */
+    static String layout(NoteLayout layout, Optional<NotePin> pin) {
+
+        String pinned = pin.map(each -> "," + each.paragraph() + "," + each.text()).orElse("");
         return hash(layout.x() + "," + layout.y() + "," + layout.width() + "," + layout.height() + ","
-                + layout.color().key());
+                + layout.color().key() + pinned);
     }
 
     private static long size(Path file) {

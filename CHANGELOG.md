@@ -35,6 +35,18 @@
   - The counts and the spelling take in the notes' text, not their labels; the find bar finds the labels too.
 - The editor's right-click menu is shorter: the lists are under **List**, images and links under **Insert**, and
   **Modify image…**, **Modify link…** and **Remove link** show only on an image or a link.
+- **Pinned notes**: a chapter's note can be pinned to the paragraph it is about. **Pin to current paragraph**, in the
+  note's right-click menu, pins it to the paragraph of the editor's caret. A pin then shows in the editor's right
+  margin beside the paragraph, the note's first line as its tooltip; a click on it shows the note in the middle of
+  the Notes tab, with a thick brass border until you type. A pinned note has a pin among its toolbar's icons, and
+  **Go to paragraph** and **Unpin** in its menu.
+  - A paragraph holds one note, and a note one paragraph: pinning a note where another is pinned asks first.
+  - Pins follow their paragraphs as you write. A pinned paragraph joined to another pinned one, emptied or deleted
+    sends its note to the nearest free paragraph, as the status bar says, and Undo brings it back. After a Revert or a
+    restore from History, pins are found again by their paragraphs' first words; a pin whose paragraph is gone is
+    let go, the note staying on the board.
+  - Moving a note to another chapter or to the book, or detaching it, unpins it. Pins travel with Export notes and
+    Import notes, and in a Psiche project.
 
 ### What is fixed
 
@@ -44,6 +56,9 @@
   anything inside it, dropped on the window opens it too.
 - **Open recent**: a book that is not found, as one moved elsewhere, now says where it was looked for, and a cross
   beside it takes it alone off the list; before, only **Clear list** could, with all the others.
+- **Right-click menus** now open as you release the button, as on Windows. Dragging the editor's scroll bar right
+  after choosing an item from a menu used to select the text, or move the split between the editor and the tabs,
+  instead.
 
 ## 0.5.1 Alpha (2026-11-08)
 

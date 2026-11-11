@@ -59,6 +59,8 @@ public final class NotesPane extends StackPane {
     private final BooleanProperty showing = new SimpleBooleanProperty();
     private final NoteFiles files;
     private final NotesThread notes;
+    private final PinnedNotes pins;
+    private final BoardPins boardPins;
 
     private boolean loaded;
     // True while the book is exported: the notes can be looked at, but not changed.
@@ -88,6 +90,7 @@ public final class NotesPane extends StackPane {
 
         this.files = new NoteFiles(browser);
         this.notes = new NotesThread(errors);
+        this.pins = new PinnedNotes(notes, errors);
 
         //board, inside a viewport that shows the part in view
         board = new NoteBoard(notes, files, statusBar, errors, showing, firstNote, this::reloadShown);
@@ -97,6 +100,9 @@ public final class NotesPane extends StackPane {
         message.setMouseTransparent(true);
 
         bar = new BoardBar(viewport, () -> board.createAround(viewport.centre()));
+        boardPins = new BoardPins(board, viewport, boardSwitch, statusBar,
+                () -> loaded && shownBoard() == NotesBoard.CHAPTER);
+        board.setPins(boardPins);
         StackPane.setAlignment(bar, Pos.BOTTOM_RIGHT);
 
         //the switch above the board
@@ -241,8 +247,21 @@ public final class NotesPane extends StackPane {
     public void settle() {
 
         board.cards().forEach(NoteCard::flushText);
+        pins.flush();
         viewport.settle();
         notes.settle();
+    }
+
+    /** The open chapter's pins on disk, which the editor shows on their paragraphs. */
+    public PinnedNotes pins() {
+
+        return pins;
+    }
+
+    /** The pins of the notes on the open chapter's board, and the note shown by a click on its pin in the editor. */
+    public BoardPins boardPins() {
+
+        return boardPins;
     }
 
     /** The thread the board's notes are read and written on, for other work on the notes to run in turn with it. */
@@ -363,6 +382,7 @@ public final class NotesPane extends StackPane {
         loaded = true;
         updateMessage();
         viewport.open(result.view());
+        boardPins.loaded();
     }
 
     private void updateMessage() {

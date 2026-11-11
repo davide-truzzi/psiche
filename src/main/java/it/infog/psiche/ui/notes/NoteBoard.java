@@ -7,6 +7,7 @@ import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.notes.card.NoteCard;
 import it.infog.psiche.ui.notes.card.NoteFileActions;
+import it.infog.psiche.ui.notes.card.NotePinActions;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -26,6 +27,7 @@ import javafx.scene.layout.Pane;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -56,6 +58,8 @@ final class NoteBoard extends Pane implements NoteCard.Board {
 
     // Runs once something has gone to Detached notes: a note, or a file the note no longer carries.
     private Runnable onBinned = () -> {};
+    // The notes' pins, on the open chapter's board; none until given.
+    private BoardPins pins;
     private NoteCard selected;
     private int topOrder;
 
@@ -100,6 +104,11 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     void setOnBinned(Runnable onBinned) {
 
         this.onBinned = onBinned;
+    }
+
+    void setPins(BoardPins pins) {
+
+        this.pins = pins;
     }
 
     /** Tells that something has gone to Detached notes. */
@@ -190,6 +199,8 @@ final class NoteBoard extends Pane implements NoteCard.Board {
      */
     void remove(NoteCard card) {
 
+        if (pins != null)
+            pins.left(card);
         getChildren().remove(card);
         if (card == selected)
             selected = null;
@@ -236,6 +247,12 @@ final class NoteBoard extends Pane implements NoteCard.Board {
     public NoteMoves moves() {
 
         return moves;
+    }
+
+    @Override
+    public Optional<NotePinActions> pins() {
+
+        return pins == null ? Optional.empty() : pins.forCards();
     }
 
     @Override

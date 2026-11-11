@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+     stroke="#2a2219" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <!-- A push pin, on a note's toolbar while the note is pinned to a paragraph.
+       The app reads only the paths; .note-pin in writer.css gives the ink and size. -->
+  <path d="M8 3h8"/>
+  <path d="M9.5 3v6.5L6 14v3h12v-3l-3.5-4.5V3"/>
+  <path d="M12 17v5"/>
+</svg>

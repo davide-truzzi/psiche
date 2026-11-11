@@ -148,6 +148,10 @@ public final class ChapterEditor {
     public ChapterEdits edits() { return edits; }
     /** Where the author left each chapter of the open book, where it opens again. */
     ChapterPlaces places() { return places; }
+    /** The open chapter's pinned notes, on their paragraphs in the right margin. */
+    PinMarks pins() { return manuscript.pins(); }
+    /** Where the caret is in the open chapter's text. */
+    int caret() { return manuscript.caret(); }
     /** The open chapter's links: checked against the book's headings, and followed from the preview. */
     ChapterLinks links() { return links; }
     /** Opens the web and mail links the author Ctrl-clicks in the manuscript with {@code browser}. */
@@ -176,6 +180,9 @@ public final class ChapterEditor {
         }
 
         places.remember();
+        // The pins of the chapter shown so far are not this one's; read again, the same chapter keeps them.
+        if (!chapter.equals(this.chapter))
+            manuscript.pins().clear();
         this.book = book;
         this.chapter = chapter;
         savedText = text;
@@ -199,6 +206,7 @@ public final class ChapterEditor {
     void close() {
 
         places.remember();
+        manuscript.pins().clear();
         drafts.clear();
         book = null;
         chapter = null;

@@ -45,6 +45,8 @@ final class BoardViewport extends Pane {
     private final Runnable emptySpotPressed;
     // Where the board opens, kept until the viewport has a size: a tab behind another may have none yet.
     private BoardView pending;
+    // The note to show in the middle of the view, once the board is open there; null with none.
+    private NoteLayout centred;
     // Where a pan began: the pointer, in the scene, and the board's offset then.
     private Point2D panStart;
     private Point2D panOrigin;
@@ -107,6 +109,7 @@ final class BoardViewport extends Pane {
 
         settleDelay.stop();
         pending = null;
+        centred = null;
         setView(1, 0, 0);
     }
 
@@ -118,6 +121,16 @@ final class BoardViewport extends Pane {
 
         settleDelay.stop();
         settled.accept(view());
+    }
+
+    /**
+     * Shows {@code note} in the middle of the view, at the zoom the view has, as far as the board's edges let it; once
+     * the board opens where it was last looked at, if it has yet to, and once the viewport has a size.
+     */
+    void centreOn(NoteLayout note) {
+
+        centred = note;
+        applyPending();
     }
 
     /** The board point in the middle of the view. */
@@ -258,20 +271,31 @@ final class BoardViewport extends Pane {
     /** Keeps the view in bounds as the viewport changes size, and shows a board waiting for a size to open in. */
     private void resized() {
 
-        if (pending != null)
+        if (pending != null || centred != null)
             applyPending();
         else
             setView(zoom.getX(), pan.getX(), pan.getY());
     }
 
+    /** Shows the board where it opens, then the note to centre, as soon as the viewport has a size. */
     private void applyPending() {
 
-        if (pending == null || getWidth() <= 0 || getHeight() <= 0)
+        if (getWidth() <= 0 || getHeight() <= 0)
             return;
 
-        double level = Math.clamp(pending.zoom(), fitZoom(), MAX_ZOOM);
-        setView(level, -pending.x() * level, -pending.y() * level);
-        pending = null;
+        if (pending != null) {
+            double level = Math.clamp(pending.zoom(), fitZoom(), MAX_ZOOM);
+            setView(level, -pending.x() * level, -pending.y() * level);
+            pending = null;
+        }
+
+        if (centred != null) {
+            double level = zoom.getX();
+            setView(level, getWidth() / 2 - (centred.x() + centred.width() / 2) * level,
+                    getHeight() / 2 - (centred.y() + centred.height() / 2) * level);
+            centred = null;
+            settleDelay.playFromStart();
+        }
     }
 
     private BoardView view() {

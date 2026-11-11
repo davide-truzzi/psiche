@@ -5,6 +5,7 @@ import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.ImportReport;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.NotePin;
 import it.infog.psiche.notes.model.NotesManifest;
 import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.notes.model.enums.NoteColor;
@@ -25,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -167,6 +169,60 @@ class NotesArchiveTest {
         assertThat(beside.x()).isEqualTo(LAYOUT.x() + LAYOUT.width() + 16);
         assertThat(beside.y()).isEqualTo(LAYOUT.y());
         assertThat(beside.order()).isGreaterThan(notes.getFirst().layout().order());
+    }
+
+    @Test
+    void aPinTravelsWithItsNote() {
+        NoteStore laptop = laptop();
+        Note note = laptop.create("01-alba", LAYOUT);
+        laptop.savePin("01-alba", note.id(), Optional.of(new NotePin(7, "Dawn over the salt pans.")));
+
+        importInto(desktop(), export(laptop));
+
+        assertThat(desktop().notes("01-alba")).extracting(Note::pin)
+                .containsExactly(Optional.of(new NotePin(7, "Dawn over the salt pans.")));
+    }
+
+    @Test
+    void aPinChangedOnlyInTheZipIsTakenAndOneChangedOnlyHereIsKept() {
+        NoteStore laptop = laptop();
+        Note taken = laptop.create("01-alba", LAYOUT);
+        Note kept = laptop.create("01-alba", layout(400, 60));
+        importInto(desktop(), export(laptop));
+
+        laptop.savePin("01-alba", taken.id(), Optional.of(new NotePin(7, "Dawn.")));
+        desktop().savePin("01-alba", kept.id(), Optional.of(new NotePin(2, "Noon.")));
+        ImportReport report = importInto(desktop(), export(laptop));
+
+        assertThat(report).isEqualTo(new ImportReport(0, 1, 0));
+        assertThat(desktop().notes("01-alba")).extracting(Note::id, Note::pin).containsExactlyInAnyOrder(
+                tuple(taken.id(), Optional.of(new NotePin(7, "Dawn."))),
+                tuple(kept.id(), Optional.of(new NotePin(2, "Noon."))));
+    }
+
+    @Test
+    void anUnpinnedNoteExportedBeforePinsExistedIsNotChangedByThem() {
+        Note note = laptop().create("01-alba", LAYOUT);
+
+        assertThat(NotePrints.layout(note)).isEqualTo(NotePrints.layout(LAYOUT, Optional.empty()));
+        assertThat(NotePrints.layout(LAYOUT, Optional.of(new NotePin(0, "A"))))
+                .isNotEqualTo(NotePrints.layout(LAYOUT, Optional.empty()));
+    }
+
+    @Test
+    void aDuplicateOnImportIsUnpinnedAndTheOriginalKeepsItsPin() {
+        NoteStore laptop = laptop();
+        Note note = laptop.create("01-alba", LAYOUT);
+        laptop.savePin("01-alba", note.id(), Optional.of(new NotePin(7, "Dawn.")));
+        importInto(desktop(), export(laptop));
+        desktop().saveText("01-alba", note.id(), "Here.");
+        laptop.saveText("01-alba", note.id(), "There.");
+
+        importInto(desktop(), export(laptop));
+
+        assertThat(desktop().notes("01-alba")).extracting(Note::duplicateOnImport, Note::pin).containsExactly(
+                tuple(false, Optional.of(new NotePin(7, "Dawn."))),
+                tuple(true, Optional.empty()));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.markdown.model.TextRange;
+import it.infog.psiche.ui.common.Icons;
 import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
@@ -19,25 +20,53 @@ import java.util.Optional;
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
 
 /**
- * Dots in the manuscript's left margin where parts of its text are, of one kind, such as its comments or its spelling
- * mistakes: one on each line in view where such a part starts, or where one that started above the view first shows,
- * following it as the text scrolls; and one in the top and the bottom margins while parts lie beyond the view that
- * way, which a click scrolls to the next one. Each kind has its own place across the margin, so dots of two kinds on
- * one line sit side by side. A layer over the text, which only the edge dots take the mouse from.
+ * Dots in the manuscript's margin where parts of its text are, of one kind, such as its comments or its spelling
+ * mistakes in the left margin, or its pinned notes in the right one: one on each line in view where such a part
+ * starts, or where one that started above the view first shows, following it as the text scrolls; and one in the top
+ * and the bottom margins while parts lie beyond the view that way, which a click scrolls to the next one. Each kind has
+ * its own place across the margin, so dots of two kinds on one line sit side by side. A kind may draw an icon instead
+ * of a dot, and give the marks on the lines a tooltip and an action of their own. A layer over the text, which only
+ * the edge dots, and such marks, take the mouse from.
  */
 final class MarginMarks {
 
+    /** The margin the marks are in. */
+    enum Side {
+        LEFT,
+        RIGHT
+    }
+
+    /** What the mark on a line tells and does, given the part it marks, by its place among the parts. */
+    interface LineActions {
+
+        String tip(int part);
+
+        void clicked(int part);
+    }
+
+    /** A mark on a line: where its middle is, in the layer, and the first part it marks there. */
+    private record Line(double centre,
+                        int part) {
+    }
+
     private static final String EDGE = "margin-edge";
+    private static final String CLICKABLE = "margin-mark-clickable";
     private static final String ABOVE = "%s above";
     private static final String BELOW = "%s below";
 
     private final StyleClassedTextArea area;
+    private final Side side;
     private final String markStyle;
+    // The drawing of an icon in ui/icons, or null for a dot.
+    private final String icon;
     private final double offset;
     private final String one;
     private final String many;
     private final Pane layer = new Pane();
     private final List<Region> lineMarks = new ArrayList<>();
+    // The first part each mark on a line shows, and its tooltip if it has one, in the order of lineMarks.
+    private final List<Integer> lineParts = new ArrayList<>();
+    private final List<Tooltip> lineTips = new ArrayList<>();
     private final StackPane up;
     private final StackPane down;
     private final Tooltip upTip = new Tooltip();
@@ -45,6 +74,8 @@ final class MarginMarks {
     // Places the dots after each layout of the window that needs it, once the text's lines are where they show.
     private final Runnable afterLayout = this::placeIfNeeded;
     private List<TextRange> parts = List.of();
+    // None while the marks on the lines are dots the mouse goes through.
+    private LineActions actions;
     // True from a change in what is in view until the dots are placed again.
     private boolean outdated;
     // True from a click on an edge dot until the part it went to is a third of the way down.
@@ -54,16 +85,26 @@ final class MarginMarks {
     // True from placing the dots after a change until they are placed once more, on the next pulse.
     private boolean settling;
 
-    /**
-     * @param markStyle the style class of the dots, which gives them their colour
-     * @param offset    how far right of the margin's middle the dots sit, in pixels
-     * @param one       one such part, as "comment", for the edge dots' tooltips
-     * @param many      several, as "comments"
-     */
+    /** Dots in the left margin; see the other constructor. */
     MarginMarks(StyleClassedTextArea area, String markStyle, double offset, String one, String many) {
 
+        this(area, Side.LEFT, markStyle, null, offset, one, many);
+    }
+
+    /**
+     * @param markStyle the style class of the marks, which gives them their colour
+     * @param icon      the name of the drawing in ui/icons the marks show, or null for dots
+     * @param offset    how far right of the margin's middle the marks sit, in pixels
+     * @param one       one such part, as "comment", for the edge marks' tooltips
+     * @param many      several, as "comments"
+     */
+    MarginMarks(StyleClassedTextArea area, Side side, String markStyle, String icon, double offset, String one,
+                String many) {
+
         this.area = area;
+        this.side = side;
         this.markStyle = markStyle;
+        this.icon = icon;
         this.offset = offset;
         this.one = one;
         this.many = many;
@@ -93,6 +134,12 @@ final class MarginMarks {
     Node node() {
 
         return layer;
+    }
+
+    /** Gives the marks on the lines a tooltip and an action, from {@code actions}, instead of letting the mouse by. */
+    void setLineActions(LineActions actions) {
+
+        this.actions = actions;
     }
 
     /** Shows {@code parts}, where the text has them now, in order. */
@@ -146,9 +193,10 @@ final class MarginMarks {
         TextRange shown = shown();
         int above = 0;
         int below = 0;
-        List<Double> lines = new ArrayList<>();
+        List<Line> lines = new ArrayList<>();
         int lineEnd = -1;
-        for (TextRange part : parts) {
+        for (int index = 0; index < parts.size(); index++) {
+            TextRange part = parts.get(index);
             int first = Math.max(part.start(), shown.start());
             if (part.end() <= shown.start())
                 above++;
@@ -160,7 +208,7 @@ final class MarginMarks {
                     continue;
                 double centre = layer.screenToLocal(line.get()).getCenterY();
                 if (centre >= top && centre <= bottom)
-                    lines.add(centre);
+                    lines.add(new Line(centre, index));
                 lineEnd = lineEnd(line.get());
             }
         }
@@ -209,23 +257,45 @@ final class MarginMarks {
         return area.hit(area.getWidth() - area.getPadding().getRight() - 1, y).getInsertionIndex();
     }
 
-    /** One dot in the left margin at each of {@code centres}, reusing the dots already there. */
-    private void showLines(List<Double> centres) {
+    /** One mark in the margin on each of {@code lines}, reusing the marks already there. */
+    private void showLines(List<Line> lines) {
 
-        while (lineMarks.size() < centres.size()) {
-            Region mark = mark();
-            mark.setMouseTransparent(true);
-            lineMarks.add(mark);
-            layer.getChildren().add(mark);
-        }
+        while (lineMarks.size() < lines.size())
+            addLineMark();
 
         double x = marginCentre();
         for (int i = 0; i < lineMarks.size(); i++) {
             Region mark = lineMarks.get(i);
-            mark.setVisible(i < centres.size());
-            if (i < centres.size())
-                centreAt(mark, x, centres.get(i));
+            mark.setVisible(i < lines.size());
+            if (i >= lines.size())
+                continue;
+
+            centreAt(mark, x, lines.get(i).centre());
+            lineParts.set(i, lines.get(i).part());
+            if (actions != null)
+                lineTips.get(i).setText(actions.tip(lines.get(i).part()));
         }
+    }
+
+    /** One more mark for a line: a dot the mouse goes through, or one with a tooltip and an action. */
+    private void addLineMark() {
+
+        Region mark = mark();
+        int place = lineMarks.size();
+        lineMarks.add(mark);
+        lineParts.add(-1);
+        layer.getChildren().add(mark);
+        if (actions == null) {
+            mark.setMouseTransparent(true);
+            lineTips.add(null);
+            return;
+        }
+
+        Tooltip tip = new Tooltip();
+        Tooltip.install(mark, tip);
+        lineTips.add(tip);
+        mark.getStyleClass().add(CLICKABLE);
+        mark.setOnMouseClicked(event -> actions.clicked(lineParts.get(place)));
     }
 
     /** The edge dots, each shown while parts lie beyond the view its way, and saying how many. */
@@ -264,10 +334,14 @@ final class MarginMarks {
         });
     }
 
-    /** Where the dots sit across the left margin, its middle and this kind's offset, in the layer's coordinates. */
+    /** Where the marks sit across their margin, its middle and this kind's offset, in the layer's coordinates. */
     private double marginCentre() {
 
-        return layer.sceneToLocal(area.localToScene(0, 0)).getX() + area.getPadding().getLeft() / 2 + offset;
+        double left = layer.sceneToLocal(area.localToScene(0, 0)).getX();
+        return switch (side) {
+            case LEFT -> left + area.getPadding().getLeft() / 2 + offset;
+            case RIGHT -> left + area.getWidth() - area.getPadding().getRight() / 2 + offset;
+        };
     }
 
     private static void centreAt(Region node, double x, double y) {
@@ -280,6 +354,8 @@ final class MarginMarks {
 
         Region mark = new Region();
         mark.getStyleClass().add(markStyle);
+        if (icon != null)
+            mark.setShape(Icons.shape(icon));
         return mark;
     }
 

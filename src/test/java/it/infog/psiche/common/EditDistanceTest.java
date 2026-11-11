@@ -1,4 +1,4 @@
-package it.infog.psiche.spelling;
+package it.infog.psiche.common;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

@@ -11,10 +11,12 @@ import java.util.Optional;
  * @param layout            where it sits on the board and how it looks
  * @param duplicateOnImport true if an import added it beside a version of it changed on this computer too
  * @param attachment        the file it carries, if any
+ * @param pin               the paragraph of its chapter it is pinned to, if any
  */
 public record Note(String id,
                    String text,
                    NoteLayout layout,
                    boolean duplicateOnImport,
-                   Optional<Path> attachment) {
+                   Optional<Path> attachment,
+                   Optional<NotePin> pin) {
 }
