@@ -149,7 +149,7 @@ public final class NotesArchive {
 
         try {
             String content = NotePrints.content(note);
-            String layout = NotePrints.layout(note.layout());
+            String layout = NotePrints.layout(note);
             store.updateProperties(folder, properties -> {
                 properties.setProperty(NotePrints.CONTENT_KEY, content);
                 properties.setProperty(NotePrints.LAYOUT_KEY, layout);

@@ -6,6 +6,7 @@ import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.NotePin;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,6 +36,7 @@ import static it.infog.psiche.notes.NoteFolders.TEXT_FILE;
 import static it.infog.psiche.notes.NoteFolders.moveNotes;
 import static it.infog.psiche.notes.NoteFolders.number;
 import static it.infog.psiche.notes.NoteFolders.putLayout;
+import static it.infog.psiche.notes.NoteFolders.putPin;
 import static it.infog.psiche.notes.NoteFolders.readNote;
 import static it.infog.psiche.notes.NoteFolders.readNotes;
 import static it.infog.psiche.notes.NoteFolders.removeIfEmpty;
@@ -43,7 +45,7 @@ import static it.infog.psiche.notes.NoteFolders.writeAtomically;
 /**
  * A book's chapter notes, kept in {@code notes/} at the book's root, outside Git. Each chapter with notes has a folder
  * named like the chapter's file, without {@code .md}, holding one folder per note, named by the note's id: in it,
- * {@code note.md} holds the text, {@code note.properties} the note's place, size, colour and tag and the name
+ * {@code note.md} holds the text, {@code note.properties} the note's place, size, colour, tag and pin and the name
  * of the file it carries, and the file itself sits beside them. The chapter's folder also keeps
  * {@code board.properties}, where its board was last looked at.
  * <p>
@@ -125,7 +127,7 @@ public final class NoteStore {
 
         writeAtomically(folder.resolve(TEXT_FILE), "");
         saveLayout(chapter, id, layout);
-        return new Note(id, "", layout, false, Optional.empty());
+        return new Note(id, "", layout, false, Optional.empty(), Optional.empty());
     }
 
     /**
@@ -159,6 +161,12 @@ public final class NoteStore {
     public void saveLayout(String chapter, String id, NoteLayout layout) {
 
         updateProperties(noteFolder(chapter, id), properties -> putLayout(properties, layout));
+    }
+
+    /** Pins the note to {@code pin}'s paragraph of its chapter, or unpins it if {@code pin} is empty. */
+    public void savePin(String chapter, String id, Optional<NotePin> pin) {
+
+        updateProperties(noteFolder(chapter, id), properties -> putPin(properties, pin));
     }
 
     /** Marks the note as added by an import beside another version of it, or clears the mark. */
@@ -220,6 +228,8 @@ public final class NoteStore {
                 if (Files.exists(folder.resolve(own)))
                     Files.copy(folder.resolve(own), copy.resolve(own));
             Files.move(file.get(), copy.resolve(file.get().getFileName()));
+            // The note keeps its pin on the board; its copy, which may be restored beside it, must not.
+            updateProperties(copy, properties -> putPin(properties, Optional.empty()));
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot keep the file of the note " + folder + " in " + bin, e);
         }
@@ -262,8 +272,8 @@ public final class NoteStore {
 
     /**
      * Moves the note, with its file, from {@code from}'s board to {@code to}'s, in the same place, over the notes
-     * there; a chapter with no notes left keeps no folder. A note already there under its id keeps it, and this one
-     * takes a new one.
+     * there, unpinned: its paragraph is in {@code from}'s text. A chapter with no notes left keeps no folder. A note
+     * already there under its id keeps it, and this one takes a new one.
      */
     public void moveNote(String from, String id, String to) {
 
@@ -281,6 +291,7 @@ public final class NoteStore {
                 NoteLayout layout = NoteFolders.layout(properties);
                 putLayout(properties, new NoteLayout(layout.x(), layout.y(), layout.width(), layout.height(), top + 1,
                         layout.color()));
+                putPin(properties, Optional.empty());
             });
             removeIfEmpty(chapterFolder(from));
         } catch (IOException e) {
@@ -333,11 +344,15 @@ public final class NoteStore {
         detached.markChapterDeleted(bin);
     }
 
-    /** Moves the note to a folder named after its chapter and the time, where Detached notes finds it. */
+    /**
+     * Moves the note, unpinned, to a folder named after its chapter and the time, where Detached notes finds it: its
+     * paragraph may hold another note's pin by the time it is restored.
+     */
     public void binNote(String chapter, String id) {
 
         Path note = noteFolder(chapter, id);
         Path bin = detached.deletedFolder(chapter);
+        updateProperties(note, properties -> putPin(properties, Optional.empty()));
         try {
             Files.createDirectories(bin);
             move(note, bin.resolve(id));

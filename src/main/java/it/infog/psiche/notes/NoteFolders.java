@@ -5,6 +5,7 @@ import it.infog.psiche.common.PropertiesFiles;
 import it.infog.psiche.common.SafeFiles;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.NotePin;
 import it.infog.psiche.notes.model.enums.NoteColor;
 
 import org.slf4j.Logger;
@@ -27,9 +28,9 @@ import static it.infog.psiche.common.SafeFiles.move;
 /**
  * How a note is kept on disk, for {@link NoteStore}, {@link DetachedNoteStore} and {@link NotesArchive}: a folder
  * named by the note's id, with {@value #TEXT_FILE} for its text, {@value #PROPERTIES_FILE} for its place, size, colour,
- * tag and the name of its file, and the file beside them. Every file is written whole to a temporary file that then
- * takes its place, so a crash cannot leave half a note behind; temporary files, and folders whose name starts with a
- * dot, are never read as notes.
+ * tag, pin and the name of its file, and the file beside them. Every file is written whole to a temporary file that
+ * then takes its place, so a crash cannot leave half a note behind; temporary files, and folders whose name starts
+ * with a dot, are never read as notes.
  */
 final class NoteFolders {
 
@@ -39,6 +40,9 @@ final class NoteFolders {
     static final Set<String> OWN_FILES = Set.of(TEXT_FILE, PROPERTIES_FILE);
     static final String FILE_KEY = "file";
     static final String DUPLICATE_KEY = "duplicateOnImport";
+    // Where a pinned note keeps its paragraph's number and opening text.
+    static final String PIN_PARAGRAPH_KEY = "pinParagraph";
+    static final String PIN_TEXT_KEY = "pinText";
 
     private static final Logger log = LoggerFactory.getLogger(NoteFolders.class);
     // Written beside the file they replace, and left out when a note's folder is read.
@@ -61,7 +65,7 @@ final class NoteFolders {
 
             boolean duplicate = Boolean.parseBoolean(properties.getProperty(DUPLICATE_KEY));
             return Optional.of(new Note(folder.getFileName().toString(), text, layout(properties), duplicate,
-                    attachment(folder, properties)));
+                    attachment(folder, properties), pin(properties)));
         } catch (IOException | UncheckedIOException e) {
             log.warn("Skipping the note in {}: it cannot be read", folder, e);
             return Optional.empty();
@@ -99,6 +103,29 @@ final class NoteFolders {
         properties.setProperty("height", String.valueOf(layout.height()));
         properties.setProperty("order", String.valueOf(layout.order()));
         properties.setProperty("color", layout.color().key());
+    }
+
+    /** The paragraph a note is pinned to, as its properties hold it; none if they hold no whole pin. */
+    static Optional<NotePin> pin(Properties properties) {
+
+        String text = properties.getProperty(PIN_TEXT_KEY);
+        int paragraph = (int) number(properties, PIN_PARAGRAPH_KEY, -1);
+        if (text == null || paragraph < 0)
+            return Optional.empty();
+
+        return Optional.of(new NotePin(paragraph, text));
+    }
+
+    /** Puts {@code pin} in a note's {@code properties}, or takes the one they hold away if it is empty. */
+    static void putPin(Properties properties, Optional<NotePin> pin) {
+
+        pin.ifPresentOrElse(each -> {
+            properties.setProperty(PIN_PARAGRAPH_KEY, String.valueOf(each.paragraph()));
+            properties.setProperty(PIN_TEXT_KEY, each.text());
+        }, () -> {
+            properties.remove(PIN_PARAGRAPH_KEY);
+            properties.remove(PIN_TEXT_KEY);
+        });
     }
 
     /**

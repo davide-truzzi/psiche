@@ -3,6 +3,8 @@ package it.infog.psiche.notes;
 import it.infog.psiche.notes.model.BoardView;
 import it.infog.psiche.notes.model.Note;
 import it.infog.psiche.notes.model.NoteLayout;
+import it.infog.psiche.notes.model.NotePin;
+import it.infog.psiche.notes.model.OrphanGroup;
 import it.infog.psiche.notes.model.enums.NoteColor;
 import it.infog.psiche.notes.model.enums.OrphanCause;
 
@@ -32,7 +34,8 @@ class NoteStoreTest extends BookNotesTest {
 
         assertThat(note.id()).matches("20261101-093000-[0-9a-f]{4}");
         assertThat(store(MORNING).notes("01-alba")).containsExactly(
-                new Note(note.id(), "Marco lies about the letter.\nHe read it.", moved, false, Optional.empty()));
+                new Note(note.id(), "Marco lies about the letter.\nHe read it.", moved, false, Optional.empty(),
+                        Optional.empty()));
         assertThat(notesDir().resolve("01-alba").resolve(note.id()))
                 .isDirectoryContaining("glob:**/note.md")
                 .isDirectoryContaining("glob:**/note.properties");
@@ -296,6 +299,78 @@ class NoteStoreTest extends BookNotesTest {
         assertThat(moved.text()).isEqualTo("Marco lies.");
         assertThat(moved.layout()).isEqualTo(new NoteLayout(300, 420, 260, 200, 5, NoteColor.SAGE));
         assertThat(moved.attachment()).hasValueSatisfying(file -> assertThat(file).hasContent("map"));
+    }
+
+    @Test
+    void aPinIsSavedAndReadBackAndUnpinningTakesItAway() {
+        NoteStore store = store(MORNING);
+        Note note = store.create("01-alba", LAYOUT);
+
+        store.savePin("01-alba", note.id(), Optional.of(new NotePin(12, "Marco opened the letter")));
+        Note pinned = store(MORNING).notes("01-alba").getFirst();
+        store.savePin("01-alba", note.id(), Optional.empty());
+
+        assertThat(pinned.pin()).contains(new NotePin(12, "Marco opened the letter"));
+        assertThat(store.notes("01-alba").getFirst().pin()).isEmpty();
+        assertThat(notesDir().resolve("01-alba").resolve(note.id()).resolve("note.properties"))
+                .content().doesNotContain("pin");
+    }
+
+    @Test
+    void aPinWithoutItsTextOrWithAWrongNumberIsNoPin() throws IOException {
+        NoteStore store = store(MORNING);
+        Note noText = store.create("01-alba", LAYOUT);
+        Note wrongNumber = store.create("01-alba", LAYOUT);
+        Path folder = notesDir().resolve("01-alba");
+        Files.writeString(folder.resolve(noText.id()).resolve("note.properties"), "pinParagraph=3\n");
+        Files.writeString(folder.resolve(wrongNumber.id()).resolve("note.properties"), "pinParagraph=x\npinText=A\n");
+
+        assertThat(store.notes("01-alba")).extracting(Note::pin).containsOnly(Optional.empty());
+    }
+
+    @Test
+    void aPinKeepsOnlyTheOpeningOfALongParagraph() {
+        String line = "Marco opened the letter by the window, read it twice, and folded it back into its envelope.";
+
+        assertThat(NotePin.of(4, line)).isEqualTo(new NotePin(4, line.substring(0, NotePin.TEXT_LENGTH)));
+        assertThat(NotePin.of(4, "Short.")).isEqualTo(new NotePin(4, "Short."));
+    }
+
+    @Test
+    void aNoteMovedToAnotherBoardLosesItsPin() {
+        NoteStore store = store(MORNING);
+        Note note = store.create("01-alba", LAYOUT);
+        store.savePin("01-alba", note.id(), Optional.of(new NotePin(3, "Dawn.")));
+
+        store.moveNote("01-alba", note.id(), NoteStore.BOOK);
+
+        assertThat(store.notes(NoteStore.BOOK).getFirst().pin()).isEmpty();
+    }
+
+    @Test
+    void aDetachedNoteLosesItsPin() {
+        NoteStore store = store(MORNING);
+        Note note = store.create("01-alba", LAYOUT);
+        store.savePin("01-alba", note.id(), Optional.of(new NotePin(3, "Dawn.")));
+
+        store.binNote("01-alba", note.id());
+
+        assertThat(store.detached().orphans(List.of("01-alba"))).flatExtracting(OrphanGroup::notes)
+                .extracting(Note::pin).containsExactly(Optional.empty());
+    }
+
+    @Test
+    void aReplacedFilesCopyOfTheNoteIsUnpinnedWhileTheNoteKeepsItsPin() throws IOException {
+        NoteStore store = store(MORNING);
+        Note note = store.create("01-alba", LAYOUT);
+        store.savePin("01-alba", note.id(), Optional.of(new NotePin(3, "Dawn.")));
+        store.attach("01-alba", note.id(), Files.writeString(tempDir.resolve("map.png"), "map"), (bytes, total) -> {});
+
+        store.removeAttachment("01-alba", note.id());
+
+        assertThat(store.notes("01-alba").getFirst().pin()).contains(new NotePin(3, "Dawn."));
+        assertThat(store.detached().orphans(List.of("01-alba"))).flatExtracting(OrphanGroup::notes)
+                .extracting(Note::pin).containsExactly(Optional.empty());
     }
 
     @Test
