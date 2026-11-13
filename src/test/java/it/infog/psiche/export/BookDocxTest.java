@@ -80,6 +80,21 @@ class BookDocxTest {
     }
 
     @Test
+    void aChapterEndingWithATableEndsItsSectionInAParagraphAfterIt() throws Exception {
+        Path target = tempDir.resolve("table.docx");
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir, List.of(
+                new ChapterText("01-alba", "# Alba\n\n| a |\n|---|\n| 1 |\n"),
+                new ChapterText("02-sera", "# Sera\n\nUna riga.")), EmptyChapters.SKIP);
+
+        exporter.manuscriptDocx(book, target);
+
+        String document = entry(target, DOCUMENT);
+        parse(document);
+        assertThat(document).contains("</w:tbl>\n<w:p><w:pPr><w:pStyle w:val=\"FirstParagraph\"/>"
+                + "<w:spacing w:before=\"454\"/><w:sectPr>");
+    }
+
+    @Test
     void packsTheCoverOnTheTitlePage() throws IOException {
         Path cover = tempDir.resolve("cover.png");
         ImageIO.write(new BufferedImage(600, 900, BufferedImage.TYPE_INT_RGB), "png", cover.toFile());
