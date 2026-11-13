@@ -96,7 +96,7 @@ public final class NotesTransfer {
         run(() -> {
             new NotesArchive(store).export(zip.get(), manifest, progress);
             return zip.get();
-        }, written -> statusBar.info("Exported the notes to " + written), "Cannot export the notes");
+        }, written -> statusBar.info("Exported the notes to", written), "Cannot export the notes");
     }
 
     /**

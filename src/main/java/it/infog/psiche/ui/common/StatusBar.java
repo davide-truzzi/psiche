@@ -10,6 +10,7 @@ import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
@@ -17,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -42,6 +44,9 @@ public final class StatusBar extends HBox {
     private static final String LEFT_BLOCK = "▯";
 
     private final Label message = new Label();
+    // A file the message names, after it: clicking shows it in the system's file manager.
+    private final Label fileLink = new Label();
+    private final HBox messageBox = new HBox(message, fileLink);
     private final Label counts = new Label();
     private final Label pages = new Label();
     private final Label repetitions = new Label();
@@ -54,6 +59,13 @@ public final class StatusBar extends HBox {
     public StatusBar() {
 
         message.getStyleClass().add("status");
+        fileLink.getStyleClass().addAll("status", "status-link");
+        // A long path loses its start, so the file's name stays in sight.
+        fileLink.setTextOverrun(OverrunStyle.LEADING_ELLIPSIS);
+        fileLink.setTooltip(new Tooltip("Show in its folder"));
+        fileLink.setOnMouseClicked(event -> FileManager.reveal(Path.of(fileLink.getText())));
+        setShown(fileLink, false);
+        messageBox.getStyleClass().add("status-message");
         counts.getStyleClass().add("chapter-counts");
         pages.getStyleClass().addAll("chapter-counts", "page-count");
         repetitions.getStyleClass().add("chapter-counts");
@@ -67,7 +79,7 @@ public final class StatusBar extends HBox {
         showCount(null);
         showRepetitions("", 0);
 
-        getChildren().addAll(counts, pages, repetitions, hSpacer(), message, chapterState);
+        getChildren().addAll(counts, pages, repetitions, hSpacer(), messageBox, chapterState);
         getStyleClass().add("status-bar");
     }
 
@@ -81,6 +93,14 @@ public final class StatusBar extends HBox {
         showMessage(text, true);
     }
 
+    /** Shows {@code text} followed by {@code file}, which the author clicks to see it in its folder. */
+    public void info(String text, Path file) {
+
+        showMessage(text, false);
+        fileLink.setText(file.toAbsolutePath().toString());
+        setShown(fileLink, true);
+    }
+
     /**
      * Shows how far a long task has come, as "Exporting Lorem ▮▮▮▮▯▯▯▯▯▯ 42 %": {@code task} says what it does, and
      * {@code percent} is done of it. Shown at once, without the fade of a message, as it changes often.
@@ -91,6 +111,7 @@ public final class StatusBar extends HBox {
         message.setText("%s  %s%s  %d %%".formatted(task, DONE_BLOCK.repeat(done),
                 LEFT_BLOCK.repeat(PROGRESS_BLOCKS - done), percent));
         message.pseudoClassStateChanged(ERROR, false);
+        setShown(fileLink, false);
     }
 
     public void showChapter(String title, boolean dirty) {
@@ -194,8 +215,9 @@ public final class StatusBar extends HBox {
 
         message.setText(text);
         message.pseudoClassStateChanged(ERROR, isError);
+        setShown(fileLink, false);
 
-        FadeTransition fade = new FadeTransition(MESSAGE_FADE_IN, message);
+        FadeTransition fade = new FadeTransition(MESSAGE_FADE_IN, messageBox);
         fade.setFromValue(0.2);
         fade.setToValue(1);
         fade.play();

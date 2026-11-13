@@ -96,7 +96,7 @@ public final class ProjectTransfer {
             ProjectArchive.export(book.root(), target, manifest,
                     Progress.percent(percent -> statusBar.progress(task, percent)));
             return target;
-        }, written -> statusBar.info("Exported " + manifest.title() + " to " + written), "Cannot export the book");
+        }, written -> statusBar.info("Exported " + manifest.title() + " to", written), "Cannot export the book");
     }
 
     /**

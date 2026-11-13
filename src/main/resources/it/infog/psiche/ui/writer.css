@@ -1313,6 +1313,21 @@
     -fx-text-fill: -red-pencil;
 }
 
+.status-message {
+    -fx-alignment: center-left;
+    -fx-spacing: 8;
+}
+
+/* A file the message names: click to see it in its folder. */
+.status-link {
+    -fx-underline: true;
+    -fx-cursor: hand;
+}
+
+.status-link:hover {
+    -fx-text-fill: -paper-dim;
+}
+
 .chapter-state,
 .chapter-counts {
     -fx-text-fill: -graphite;

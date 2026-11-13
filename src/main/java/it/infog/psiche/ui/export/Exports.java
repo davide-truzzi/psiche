@@ -240,7 +240,7 @@ public final class Exports {
             }
         };
 
-        task.setOnSucceeded(event -> statusBar.info("Exported %s to %s".formatted(name, target)));
+        task.setOnSucceeded(event -> statusBar.info("Exported %s to".formatted(name), target));
         task.setOnFailed(event -> errors.report("Cannot export " + name, task.getException()));
         statusBar.info("Exporting %s…".formatted(name));
         thread.execute(task);
