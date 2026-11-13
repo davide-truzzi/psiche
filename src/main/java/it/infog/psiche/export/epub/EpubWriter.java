@@ -54,6 +54,7 @@ public final class EpubWriter {
 
     private final Template container = Template.load(EpubWriter.class, "container.xml");
     private final Template frontMatterStyle = Template.load(EpubWriter.class, "front-matter.css");
+    private final Template chapterStyle = Template.load(EpubWriter.class, "chapter.css");
     private final PackageDocument packageDocument = new PackageDocument();
     private final Navigation navigation = new Navigation();
     private final Clock clock;
@@ -151,6 +152,7 @@ public final class EpubWriter {
                 epub.addText("EPUB/" + page.path(), page.xhtml());
             epub.addBytes("EPUB/" + Pages.BOOK_STYLE, bookStyle(book.stylesheet()));
             epub.addText("EPUB/" + Pages.FRONT_MATTER_STYLE, frontMatterStyle.fill(Map.of()));
+            epub.addText("EPUB/" + Pages.CHAPTER_STYLE, chapterStyle.fill(Map.of()));
             for (EpubImage image : images.all())
                 epub.addBytes("EPUB/" + image.path(), EpubImages.bytes(image));
         } catch (IOException e) {

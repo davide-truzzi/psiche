@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 /** Buy Me a Coffee's logo on their yellow, as a button that opens Davide's page there, in About and Support. */
 final class CoffeeButton {
 
-    private static final String PAGE = "https://buymeacoffee.com/davide.truzzi";
+    private static final String PAGE = "https://buymeacoffee.com/davide.truzzi/e/598055";
     // Buy Me a Coffee's own logo, dark on their yellow as their buttons show it, from their brand bundle.
     private static final String LOGO = "buy-me-a-coffee.png";
     private static final double LOGO_HEIGHT = 28;

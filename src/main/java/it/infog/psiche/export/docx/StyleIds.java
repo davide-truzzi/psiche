@@ -28,6 +28,8 @@ final class StyleIds {
             case FIGURE -> "Figure";
             case CAPTION -> "Caption";
             case PREFORMATTED -> "PreformattedText";
+            case TABLE_CONTENTS -> "TableContents";
+            case TABLE_HEADING -> "TableHeading";
             case FOOTNOTE -> "FootnoteText";
             case HEADING_1 -> "Heading1";
             case HEADING_2 -> "Heading2";

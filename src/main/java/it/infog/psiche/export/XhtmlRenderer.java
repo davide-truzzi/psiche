@@ -43,8 +43,8 @@ import java.util.function.UnaryOperator;
  *     of the page ({@link PageFootnotes});</li>
  *     <li>the ebook keeps a scene break a real {@code <hr />}, which the book's stylesheet draws and screen readers
  *     announce, links each image to its copy in the ebook, through {@link ImageLinks}, a place of the book on the
- *     page of its chapter, and puts the footnotes at the chapter's end, as e-readers' pop-ups
- *     ({@link EbookFootnotes}).</li>
+ *     page of its chapter, puts the footnotes at the chapter's end, as e-readers' pop-ups ({@link EbookFootnotes}),
+ *     and names a table column's alignment as a class, for the chapter's stylesheet.</li>
  * </ul>
  */
 public final class XhtmlRenderer {
@@ -55,6 +55,7 @@ public final class XhtmlRenderer {
             place -> "#" + place.elementId());
     // An image and its caption, centred with room around them, styled here rather than in the book's stylesheet,
     // which the author may have written without them.
+    private static final String ALIGN = "align";
     private static final Map<String, String> EBOOK_FIGURE_STYLES = Map.of(
             "figure", "margin: 1.5em 0; text-align: center; text-indent: 0;",
             "figcaption", "margin-top: 0.5em; font-size: 0.9em; font-style: italic; text-align: center; text-indent: 0;");
@@ -118,7 +119,8 @@ public final class XhtmlRenderer {
                     .attributeProviderFactory(context -> (node, tagName, attributes) -> {
                         if (EBOOK_FIGURE_STYLES.containsKey(tagName))
                             attributes.put("style", EBOOK_FIGURE_STYLES.get(tagName));
-                    });
+                    })
+                    .attributeProviderFactory(context -> (node, tagName, attributes) -> alignAsClass(attributes));
 
         return builder.build().render(chapter.document());
     }
@@ -173,6 +175,18 @@ public final class XhtmlRenderer {
                     .formatted(XmlText.escape(linkTo.apply(entry.id())), XmlText.escape(entry.title())));
 
         return xhtml.append("</ol>\n</nav>\n").toString();
+    }
+
+    /**
+     * A table column's alignment, which commonmark writes as an {@code align} attribute, obsolete in EPUB 3's XHTML,
+     * as a class the chapter's stylesheet aligns it by instead: {@code align-left}, {@code align-center} or
+     * {@code align-right}.
+     */
+    private static void alignAsClass(Map<String, String> attributes) {
+
+        String align = attributes.remove(ALIGN);
+        if (align != null)
+            attributes.put("class", ALIGN + "-" + align);
     }
 
     /**

@@ -1,0 +1,45 @@
+/*
+ * Psiche Writer's own rules for the chapters, for what a book's style.css may not style yet, such as tables in a book
+ * made before Psiche Writer drew them. It comes before style.css, so a rule of the author's for the same thing wins.
+ * Sizes are relative and the lines take the text's colour, so the reader's font size and theme still apply.
+ */
+
+/* A table as printed books set it: the text's width, a rule above it, a thinner one under its header row and one at
+   its bottom, no lines between columns, its cells given room. */
+table {
+    width: 100%;
+    margin: 1.5em 0;
+    border-collapse: collapse;
+    border-top: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    line-height: 1.4;
+}
+
+th, td {
+    padding: 0.45em 0.8em;
+    vertical-align: top;
+    text-indent: 0;
+}
+
+th {
+    border-bottom: 1px solid currentColor;
+    font-weight: bold;
+    text-align: left;
+}
+
+/* Each column as its colons align it. */
+.align-left {
+    text-align: left;
+}
+
+.align-center {
+    text-align: center;
+}
+
+.align-right {
+    text-align: right;
+}
+
+table + p {
+    text-indent: 0;
+}

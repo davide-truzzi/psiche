@@ -3,13 +3,14 @@ package it.infog.psiche.export.docx;
 import it.infog.psiche.export.XmlText;
 import it.infog.psiche.export.document.DocumentBody;
 import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.export.document.model.enums.Alignment;
 import it.infog.psiche.export.document.model.enums.PageStart;
+import it.infog.psiche.export.document.model.enums.RowPlace;
 import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.export.docx.model.OpenList;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +23,8 @@ import java.util.Map;
  * in its last paragraph, so the book's front matter is closed by going back to the paragraph before the first chapter,
  * and each chapter by going back to its last one: every chapter is a section of its own, on a new page, so its
  * footnotes are numbered from 1. A footnote's note is written apart, for {@code footnotes.xml}, its reference in the
- * text.
+ * text. Tables are written by {@link DocxTables}, bookmarks named by {@link Bookmarks}; Word gives a table no margin,
+ * so the room around it is the spacing of the paragraphs before and after it.
  */
 final class DocxBody implements DocumentBody {
 
@@ -38,6 +40,10 @@ final class DocxBody implements DocumentBody {
     private static final String NOTE_INDENT = "<w:ind w:left=\"284\" w:hanging=\"0\"/>";
     private static final String NOTE_REFERENCE = "<w:rPr><w:rStyle w:val=\"%s\"/></w:rPr>"
             .formatted(StyleIds.of(Style.FOOTNOTE_ANCHOR));
+    // The room above and under a table, 0.8cm as in the PDF, given to the paragraphs before and after it.
+    private static final String SPACE_AFTER = "<w:spacing w:after=\"454\"/>";
+    private static final String SPACE_BEFORE = "<w:spacing w:before=\"454\"/>";
+    private static final String SPACE_AROUND = "<w:spacing w:before=\"454\" w:after=\"454\"/>";
     // The text runs keep their spaces, which XML would otherwise let a word processor collapse.
     private static final String TEXT_START = "<w:t xml:space=\"preserve\">";
     // What each span's character style looks like, given directly to a run inside another span, which takes one style
@@ -57,6 +63,8 @@ final class DocxBody implements DocumentBody {
     private StringBuilder xml = body;
     private final Numbering numbering = new Numbering();
     private final Relationships relationships = new Relationships();
+    private final Bookmarks bookmarks = new Bookmarks();
+    private final DocxTables tables = new DocxTables(body);
 
     // The character styles of the spans and link open around the text, the innermost first.
     private final Deque<String> spans = new ArrayDeque<>();
@@ -69,12 +77,13 @@ final class DocxBody implements DocumentBody {
     // The page the next paragraph starts, and the bookmark it carries; null when it simply follows on.
     private PageStart pageStart;
     private String bookmark;
-    // Word's names for the bookmarks, by the names they are given: Word only takes letters, digits and underscores.
-    private final Map<String, String> bookmarkNames = new HashMap<>();
     // Where the last paragraph's properties end, for a section to end in it; -1 before the first paragraph.
     private int lastPropertiesEnd = -1;
-    // How many bookmarks, drawings and notes are written, each numbered in the document from 1.
-    private int bookmarks;
+    // Where the last paragraph's spacing goes among its properties, for room above a table after it; -1 for none.
+    private int spacingAt = -1;
+    // True from a table's end until the next paragraph, which gets room above.
+    private boolean afterTable;
+    // How many drawings and notes are written, each numbered in the document from 1.
     private int drawings;
     private int notesWritten;
     // How many chapters' sections are closed: the first one numbers its pages from 1.
@@ -88,11 +97,9 @@ final class DocxBody implements DocumentBody {
     @Override
     public void startPage(PageStart start, String bookmark) {
 
-        // A page started but never written on, such as a chapter holding only comments, still gets its paragraph.
-        if (pageStart != null) {
-            openParagraph(Style.FIRST_PARAGRAPH);
-            closeParagraph();
-        }
+        // A page started but never written on, such as a chapter holding only comments, still gets its paragraph, and
+        // a section never ends in a table's cell.
+        writePageStart();
 
         // The front matter's section, without the header, ends on the page before the first chapter, and a chapter's on
         // the page before the next one.
@@ -117,17 +124,23 @@ final class DocxBody implements DocumentBody {
         xml.append("<w:p><w:pPr><w:pStyle w:val=\"%s\"/>".formatted(StyleIds.of(style)));
         if (pageStart == PageStart.CONTENTS)
             xml.append("<w:pageBreakBefore/>");
-        appendListItem();
+        appendListNumber();
+        spacingAt = tables.writing() ? -1 : xml.length();
+        if (afterTable)
+            xml.append(SPACE_BEFORE);
+        appendListIndent();
+        xml.append(tables.justification(style));
         lastPropertiesEnd = xml.length();
         xml.append("</w:pPr>");
         pageStart = null;
         endsWithSpace = false;
+        afterTable = false;
 
         //bookmark
         if (bookmark == null)
             return;
 
-        appendBookmark(bookmark);
+        xml.append(bookmarks.mark(bookmark));
         bookmark = null;
     }
 
@@ -142,7 +155,7 @@ final class DocxBody implements DocumentBody {
     public void openHeading(Style style, int outlineLevel, String bookmark) {
 
         openParagraph(style);
-        appendBookmark(bookmark);
+        xml.append(bookmarks.mark(bookmark));
     }
 
     @Override
@@ -174,7 +187,7 @@ final class DocxBody implements DocumentBody {
     @Override
     public void openInternalLink(String bookmark) {
 
-        xml.append("<w:hyperlink w:anchor=\"%s\" w:history=\"1\">".formatted(bookmarkName(bookmark)));
+        xml.append("<w:hyperlink w:anchor=\"%s\" w:history=\"1\">".formatted(bookmarks.name(bookmark)));
         spans.push(StyleIds.HYPERLINK);
     }
 
@@ -208,6 +221,49 @@ final class DocxBody implements DocumentBody {
     public void closeList() {
 
         lists.pop();
+    }
+
+    /**
+     * Opens a table, written by {@link DocxTables}, with room above it. A table cannot carry a page start, nor follow
+     * another table, which Word would join to it, so a paragraph comes first then.
+     */
+    @Override
+    public void openTable(List<Alignment> alignments) {
+
+        writePageStart();
+        spaceBeforeTable();
+        tables.open(alignments);
+    }
+
+    @Override
+    public void openRow(RowPlace place) {
+
+        tables.openRow(place);
+    }
+
+    @Override
+    public void openCell() {
+
+        tables.openCell();
+    }
+
+    @Override
+    public void closeCell() {
+
+        tables.closeCell();
+    }
+
+    @Override
+    public void closeRow() {
+
+        tables.closeRow();
+    }
+
+    @Override
+    public void closeTable() {
+
+        tables.close();
+        afterTable = true;
     }
 
     /**
@@ -283,7 +339,7 @@ final class DocxBody implements DocumentBody {
     public void contentsLine(String title, String bookmark) {
 
         openParagraph(Style.CONTENTS_1);
-        xml.append("<w:hyperlink w:anchor=\"%s\" w:history=\"1\">".formatted(bookmarkName(bookmark)));
+        xml.append("<w:hyperlink w:anchor=\"%s\" w:history=\"1\">".formatted(bookmarks.name(bookmark)));
         openSpan(Style.INDEX_LINK);
         text(title, false);
         closeSpan();
@@ -293,11 +349,12 @@ final class DocxBody implements DocumentBody {
 
     /**
      * The body written so far, ending with the last section: the manuscript's pages, with the header, from page 1
-     * unless an earlier chapter's section starts there.
+     * unless an earlier chapter's section starts there. A body ending with a table ends with an empty paragraph, as
+     * Word wants.
      */
     String xml() {
 
-        return body + section(true, chapterSections == 0);
+        return body + (afterTable ? "<w:p/>" : "") + section(true, chapterSections == 0);
     }
 
     /** The notes of the body, for {@code footnotes.xml}. */
@@ -329,19 +386,51 @@ final class DocxBody implements DocumentBody {
         endsWithSpace = true;
     }
 
-    /** The properties that start a list item's first paragraph with its bullet or number, or indent a later one. */
-    private void appendListItem() {
+    /** The properties that start a list item's first paragraph with its bullet or number. */
+    private void appendListNumber() {
 
         OpenList list = lists.peek();
-        if (list == null)
-            return;
-
-        if (itemStarting)
+        if (list != null && itemStarting)
             xml.append("<w:numPr><w:ilvl w:val=\"%d\"/><w:numId w:val=\"%d\"/></w:numPr>"
                     .formatted(list.level(), list.id()));
-        else
+    }
+
+    /**
+     * The property that indents a list item's later paragraph under the first one's text; after the spacing, as
+     * WordprocessingML orders a paragraph's properties.
+     */
+    private void appendListIndent() {
+
+        OpenList list = lists.peek();
+        if (list != null && !itemStarting)
             xml.append("<w:ind w:left=\"%d\"/>".formatted(Numbering.indent(list.level())));
         itemStarting = false;
+    }
+
+    /** The page started last, if nothing is written on it yet, or a table just closed, as an empty paragraph after. */
+    private void writePageStart() {
+
+        if (pageStart == null && !afterTable)
+            return;
+
+        openParagraph(Style.FIRST_PARAGRAPH);
+        closeParagraph();
+    }
+
+    /**
+     * Room above a table, under the paragraph before it, which may already have room above, after another table. The
+     * spacing goes where the paragraph's properties left a place for it, and moves where they end.
+     */
+    private void spaceBeforeTable() {
+
+        if (spacingAt < 0)
+            return;
+
+        int replaced = body.indexOf(SPACE_BEFORE, spacingAt) == spacingAt ? SPACE_BEFORE.length() : 0;
+        String spacing = replaced > 0 ? SPACE_AROUND : SPACE_AFTER;
+        body.replace(spacingAt, spacingAt + replaced, spacing);
+        lastPropertiesEnd += spacing.length() - replaced;
+        spacingAt = -1;
     }
 
     /**
@@ -360,20 +449,6 @@ final class DocxBody implements DocumentBody {
                 properties.append(look.getValue());
 
         return properties.append("</w:rPr>").toString();
-    }
-
-    /** Marks the place written next with the bookmark {@code name}, which links lead to. */
-    private void appendBookmark(String name) {
-
-        bookmarks++;
-        xml.append("<w:bookmarkStart w:id=\"%d\" w:name=\"%s\"/><w:bookmarkEnd w:id=\"%d\"/>"
-                .formatted(bookmarks, bookmarkName(name), bookmarks));
-    }
-
-    /** Word's name for the bookmark {@code name}, the same each time it is asked for; hidden, as Word's own are. */
-    private String bookmarkName(String name) {
-
-        return bookmarkNames.computeIfAbsent(name, given -> "_Bookmark" + (bookmarkNames.size() + 1));
     }
 
     /**

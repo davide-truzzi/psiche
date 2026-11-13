@@ -9,4 +9,4 @@ Each chapter is a Markdown file. Write on the left, and the page appears here as
 
 ## This app is made with love by **Davide Truzzi**, who is also a writer!
 
-### [Buy him a Coffee](https://buymeacoffee.com/davide.truzzi), you will get a markdown guide and an exclusive short story. More important, you'll help him support this project.
+### [Buy him a Coffee](https://buymeacoffee.com/davide.truzzi/e/598055), you will get a markdown guide for novelists. More important, you'll help him support this project.

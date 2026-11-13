@@ -1,9 +1,11 @@
 package it.infog.psiche.markdown;
 
 import it.infog.psiche.markdown.model.TextCount;
+import org.commonmark.ext.gfm.tables.TableCell;
+import org.commonmark.ext.gfm.tables.TableRow;
 import org.commonmark.node.AbstractVisitor;
-import org.commonmark.node.Block;
 import org.commonmark.node.Code;
+import org.commonmark.node.CustomNode;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HardLineBreak;
 import org.commonmark.node.Heading;
@@ -11,6 +13,7 @@ import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.HtmlInline;
 import org.commonmark.node.Image;
 import org.commonmark.node.IndentedCodeBlock;
+import org.commonmark.node.Node;
 import org.commonmark.node.Paragraph;
 import org.commonmark.node.SoftLineBreak;
 import org.commonmark.node.Text;
@@ -21,7 +24,8 @@ import java.util.regex.Pattern;
 
 /**
  * Counts a chapter's characters and words as a reader sees them: Markdown markers, link addresses, images and HTML
- * do not count, and a line break inside a paragraph counts as a space, as it would in a typeset paragraph.
+ * do not count, and a line break inside a paragraph counts as a space, as it would in a typeset paragraph. A table's
+ * cells are its text alone, a space between two cells of a row, as a reader sees them apart.
  */
 public final class TextCounter {
 
@@ -87,6 +91,17 @@ public final class TextCounter {
                 text.append(node.getLiteral()).append('\n');
             }
 
+            // A table's row is a line of its own; its cells are apart, as if a space were between them.
+            @Override
+            public void visit(CustomNode node) {
+
+                switch (node) {
+                    case TableRow row -> block(row);
+                    case TableCell cell -> cell(cell);
+                    default -> visitChildren(node);
+                }
+            }
+
             // An image's description, raw HTML and comments are not read as part of the text.
             @Override
             public void visit(Image node) {
@@ -100,9 +115,16 @@ public final class TextCounter {
             public void visit(HtmlBlock node) {
             }
 
-            private void block(Block node) {
+            private void block(Node node) {
                 visitChildren(node);
                 text.append('\n');
+            }
+
+            private void cell(TableCell cell) {
+
+                if (cell.getPrevious() != null)
+                    text.append(' ');
+                visitChildren(cell);
             }
         });
 

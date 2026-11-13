@@ -17,12 +17,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import static it.infog.psiche.export.ZipParts.entry;
 import static it.infog.psiche.export.ZipParts.parse;
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChapterExporterTest {
@@ -114,6 +116,37 @@ class ChapterExporterTest {
     }
 
     @Test
+    void manuscriptPdfPrintsATableRowByRowWithoutItsPipes() throws IOException {
+        Path target = tempDir.resolve("table.pdf");
+
+        exporter.manuscriptPdf("| Volete | Scrivete |\n|---|---:|\n| Corsivo | *parola* |", "table", BOOK, tempDir,
+                target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setSortByPosition(true);
+            assertThat(stripper.getText(pdf)).contains("Volete Scrivete", "Corsivo parola").doesNotContain("|");
+        }
+    }
+
+    @Test
+    void manuscriptPdfRepeatsATablesHeaderRowOnTheNextPage() throws IOException {
+        Path target = tempDir.resolve("long-table.pdf");
+        String rows = IntStream.rangeClosed(1, 60).mapToObj("| %d | Marta |\n"::formatted).collect(joining());
+
+        exporter.manuscriptPdf("| Capitolo | Punto di vista |\n|---|---|\n" + rows, "long-table", BOOK, tempDir,
+                target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            assertThat(pdf.getNumberOfPages()).isGreaterThan(1);
+            PDFTextStripper secondPage = new PDFTextStripper();
+            secondPage.setStartPage(2);
+            secondPage.setEndPage(2);
+            assertThat(secondPage.getText(pdf)).contains("Capitolo", "Punto di vista");
+        }
+    }
+
+    @Test
     void aMissingImageDoesNotStopTheExport() throws IOException {
         Path target = tempDir.resolve("image.pdf");
 
@@ -170,6 +203,40 @@ class ChapterExporterTest {
                         + "text:ref-name=\"ftn1\">1</text:note-ref>");
         assertThat(entry(target, "styles.xml")).contains("text:start-numbering-at=\"chapter\"",
                 "style:name=\"Footnote\"");
+    }
+
+    @Test
+    void odtDrawsATableRuledWithItsHeaderRowRepeatedAndItsColumnsAligned() throws Exception {
+        Path target = tempDir.resolve("table.odt");
+
+        exporter.manuscriptOdt("| Capitolo | Punto di vista | Parole |\n|---|:---:|---:|\n| 1 | *Marta* | 3.200 |\n"
+                + "| 2 | Elio | 2.850 |\n\nDopo.", "table", BOOK, tempDir, target);
+
+        String content = entry(target, "content.xml");
+        parse(content);
+        assertThat(content).contains(
+                "<table:table table:name=\"Table1\" table:style-name=\"Table\">\n"
+                        + "<table:table-column table:number-columns-repeated=\"3\"/>\n<table:table-header-rows>\n"
+                        + "<table:table-row table:style-name=\"Table_Row\"><table:table-cell "
+                        + "table:style-name=\"Table_Heading_Cell\" "
+                        + "office:value-type=\"string\"><text:p text:style-name=\"Table_20_Heading\">Capitolo</text:p>",
+                "<text:p text:style-name=\"Table_20_Heading_center\">Punto di vista</text:p>",
+                "</table:table-row>\n</table:table-header-rows>\n<table:table-row table:style-name=\"Table_Row\">"
+                        + "<table:table-cell "
+                        + "table:style-name=\"Table_Cell\" office:value-type=\"string\"><text:p "
+                        + "text:style-name=\"Table_20_Contents\">1</text:p>",
+                "<text:p text:style-name=\"Table_20_Contents_center\"><text:span text:style-name=\"Emphasis\">"
+                        + "Marta</text:span></text:p>",
+                "<table:table-cell table:style-name=\"Table_Last_Cell\" office:value-type=\"string\"><text:p "
+                        + "text:style-name=\"Table_20_Contents_end\">2.850</text:p>",
+                "</table:table>\n<text:p text:style-name=\"First_20_Paragraph\">Dopo.</text:p>",
+                "style:name=\"Table_20_Contents_end\" style:family=\"paragraph\" "
+                        + "style:parent-style-name=\"Table_20_Contents\"><style:paragraph-properties "
+                        + "fo:text-align=\"end\"/>",
+                "<style:table-properties style:width=\"16cm\" table:align=\"margins\"",
+                "<style:table-row-properties fo:keep-together=\"always\"/>");
+        assertThat(entry(target, "styles.xml")).contains("style:name=\"Table_20_Contents\"",
+                "style:name=\"Table_20_Heading\"");
     }
 
     @Test

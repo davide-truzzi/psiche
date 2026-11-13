@@ -2,10 +2,21 @@
 
 ## 0.7.0 Beta (2026-11-13)
 
-The first Beta: a way to support Psiche Writer, its official mark in the app and in the books it exports, the open
-book's name in the window's title, and the exported file a click away.
+The first Beta: tables, a way to support Psiche Writer, its official mark in the app and in the books it exports, the
+open book's name in the window's title, and the exported file a click away.
 
 ### What is new
+
+- **Tables**: the Markdown Guide's tables, `| Name | Words |` with a row of dashes under the header, are now drawn
+  in the preview and in every export instead of showing their pipes. A table takes the text's full width, ruled as
+  printed books set tables: above, under the header row and at the bottom, the header row in bold, its cells given
+  room; a colon in the dashes row aligns its column left, centre or right. The editor shows the table as it is typed.
+  - The PDF, ODT and DOCX set it single-spaced; a row never splits between pages, and a table running over a page
+    repeats its header row. The ODT and DOCX put its cells in *Table Contents* and *Table Heading*, to restyle.
+  - The EPUB draws it through Psiche's own `chapter.css`, under the book's `style.css`, so books made before tables
+    get them too, and a rule of the author's for tables still wins. Its lines take the text's colour, so e-readers'
+    night themes follow.
+  - The counts read a table's cells as words apart, without its pipes and dashes, and spelling checks its cells.
 
 - **Keep the lamp lit**: a yellow oil lamp on the toolbar, after **Preferences**, opens a short message asking the
   writers who use Psiche Writer to support it, with the same **Buy me a coffee** button as About.

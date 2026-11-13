@@ -17,6 +17,13 @@ class ProseWordsTest {
     }
 
     @Test
+    void checksTheWordsOfATablesCellsButNotItsPipesAndDashes() {
+
+        assertThat(words("| Volete | Scrivete |\n|:---|:---:|\n| Corsivo | `*parola*` o *parola* |\n"))
+                .containsExactly("Volete", "Scrivete", "Corsivo", "o", "parola");
+    }
+
+    @Test
     void keepsTheApostrophesAndHyphensInsideAWordAndAFinalApostrophe() {
 
         assertThat(words("Dell'anima, l’uomo e un po' di peut-être.\n"))

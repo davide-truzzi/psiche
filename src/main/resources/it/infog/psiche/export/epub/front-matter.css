@@ -1,7 +1,7 @@
 /*
  * Psiche Writer's own pages around the chapters: the cover, the title page, the contents and the copyright page. The
- * chapters use only the book's style.css, which comes first on these pages too, so these rules only add to it.
- * Sizes are relative, so the reader's font size and margins still apply.
+ * book's style.css comes first on these pages, so these rules only add to it; the chapters use chapter.css under it
+ * instead. Sizes are relative, so the reader's font size and margins still apply.
  */
 
 /* The cover fills the screen, keeping its proportions, without margins. */

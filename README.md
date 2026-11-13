@@ -14,11 +14,11 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 **0.7.0 Beta**, the first Beta, after six Alphas for testing.
 Psiche Writer does what a book needs from first draft to export: create or open a book, write its chapters in Markdown
-with a typeset preview beside them, with images, footnotes and links to the web or between chapters, keep notes on each
-chapter's board, pinned to the paragraphs they are about if you want, and on the book's own, commit with Git and, if you
-want, keep the book in step with a remote repository, browse or restore earlier versions, and export the book to PDF,
-ODT, DOCX or EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and expect things to
-change before 1.0. What each release holds is in [CHANGELOG.md](CHANGELOG.md).
+with a typeset preview beside them, with images, footnotes, tables and links to the web or between chapters, keep notes
+on each chapter's board, pinned to the paragraphs they are about if you want, and on the book's own, commit with Git
+and, if you want, keep the book in step with a remote repository, browse or restore earlier versions, and export the
+book to PDF, ODT, DOCX or EPUB. It is not finished: keep a copy of your books, read [Limitations](#limitations), and
+expect things to change before 1.0. What each release holds is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Book layout
 
@@ -187,14 +187,16 @@ my-book/              ← the folder; the book's title is set in its properties
     HTML comments (`<!-- a note -->`) are notes to yourself: the PDF, ODT and DOCX leave them out. A word longer than
     the line, such as names pasted without their spaces, is broken where the line ends. Strikethrough, subscript
     and superscript print as such. Footnotes print at the foot of their reference's page, under a short rule,
-    smaller and single-spaced, numbered from 1; a later reference to a note prints its number alone.
+    smaller and single-spaced, numbered from 1; a later reference to a note prints its number alone. Tables are
+    single-spaced; a row never splits between pages, and a table that goes on over a page repeats its header row.
   - **ODT**: the same manuscript as an OpenDocument text file, for an editor to work on in LibreOffice, Word or
     any other word processor. The text is set in named styles (*Text Body*, *First Paragraph*, *Heading 1*,
     *Quotations*, *Scene Break*…), so restyling one changes the whole chapter. It names Liberation Serif without
     embedding it, so where that font is missing the word processor's own serif takes its place. Images are packed
     into the file, centred with their captions; links behave as in the PDF. Strikethrough, subscript and
     superscript are character styles of their own, and footnotes are LibreOffice's (*Footnote*, *Footnote anchor*),
-    numbered by it from 1 in every chapter.
+    numbered by it from 1 in every chapter. A table's cells are in *Table Contents*, its header row's in *Table
+    Heading*, its columns even, which the word processor can widen.
   - **DOCX**: the same manuscript as a Word document, laid out like the ODT. Where Word has a style of its own it is
     used (*Heading 1*–*4*, *Title*, *Subtitle*, *Emphasis*, *Strong*), so Word's navigator lists the headings;
     the others keep the ODT's names (*Body Text*, *First Paragraph*, *Quotations*, *Scene Break*…). Each numbered
@@ -223,7 +225,8 @@ my-book/              ← the folder; the book's title is set in its properties
     when asked, and asks the reader first when a file wants them worked out on opening.
   - **EPUB**: an EPUB 3 ready for Apple Books, Kobo, Google Play Books and distributors. It reads: the cover, full
     screen; the title page (title, subtitle, authors); the contents, a link per chapter; the chapters, a page each, set
-    by the book's own `media/style.css`, with the Psiche mark in red, hidden from screen readers, under each title;
+    by the book's own `media/style.css` over Psiche's rules for tables (`chapter.css`, which a rule of the book's
+    own for the same thing overrides), with the Psiche mark in red, hidden from screen readers, under each title;
     and the copyright page at the back, with the copyright notice from Book properties and a small "Made with Psiche
     Writer" in the book's language, so a store's free sample opens on as much of the book as it can. It also holds the navigation stores and e-readers use (landmarks, and `toc.ncx` for EPUB 2 readers), the book's
     metadata, and the accessibility metadata of EPUB Accessibility 1.1 (how the book can be read, what helps, no
@@ -245,9 +248,9 @@ my-book/              ← the folder; the book's title is set in its properties
   Psiche Writer in its properties, as the PDF's producer, the DOCX's application and the ODT's and EPUB's generator.
 
 ### Writing in Markdown
-Each chapter is a Markdown file: CommonMark, with the strikethrough, subscript, superscript and footnotes of the
-[Markdown Guide's extended syntax](https://www.markdownguide.org/extended-syntax/). Everything can be typed by hand, or
-written from the editor's right-click menu with these shortcuts (`Cmd` for `Ctrl` on macOS):
+Each chapter is a Markdown file: CommonMark, with the strikethrough, subscript, superscript, footnotes and tables of
+the [Markdown Guide's extended syntax](https://www.markdownguide.org/extended-syntax/). Everything can be typed by
+hand, or written from the editor's right-click menu with these shortcuts (`Cmd` for `Ctrl` on macOS):
 
 | Element | Written as | Shortcut |
 |---|---|---|
@@ -265,6 +268,7 @@ written from the editor's right-click menu with these shortcuts (`Cmd` for `Ctrl
 | Link | `[text](https://…)`, `[text](02-harbour.md#the-storm)` | `Ctrl+K` |
 | Image | `![caption](../media/01-alba/map.png)` on a line of its own | Insert ▸ Image… |
 | Footnote | `text[^1]`, and anywhere in the chapter `[^1]: The note.` | `Ctrl+Alt+F` (`Cmd+Option+Shift+F`) |
+| Table | `\| Name \| Words \|`, then `\|---\|---:\|` under the header row, then a line per row | |
 | Line break | a new line inside a paragraph | |
 
 - A single tilde is always a subscript, never a strikethrough. A tilde or caret that a space follows, as in
@@ -274,6 +278,11 @@ written from the editor's right-click menu with these shortcuts (`Cmd` for `Ctrl
   1, 2, 3… in the order of their first reference, from 1 in every chapter. A note can have several paragraphs: the
   ones after the first are indented by four spaces, which in Default mode the note dialog writes for you. A reference
   to no note stays as it is written, in orange in the editor and the preview; a note nothing refers to is left out.
+- A table is typed by hand, as the editor shows it: a header row, a row of dashes, then the rows, the cells between
+  pipes. The pipes need not line up. A colon in the dashes row aligns its column: `:---` left, `:---:` centre,
+  `---:` right. A cell holds one line, with bold, italic, code, links or footnotes in it; `\|` writes a pipe inside a
+  cell. The preview and every export draw it the text's full width, ruled as printed books set tables: above, under
+  the header row and at the bottom, the header row in bold.
 
 ### Writing
 - Typewriter-style Markdown editor, with a live preview that refreshes 500 ms after you stop typing and keeps its
@@ -320,9 +329,9 @@ written from the editor's right-click menu with these shortcuts (`Cmd` for `Ctrl
 - The preview is styled as a printed novel: Libertinus Serif, indented paragraphs, the Psiche mark under the
   chapter heading, a drop cap after it and ornamental scene breaks (`---`). Courier Prime is used for the editor.
   **Preferences** offers it in a **Dark** theme too, the same page in light ink on dark paper.
-- In the preview, strikethrough, subscript and superscript show as they will print, and a footnote's reference as a
-  raised number. The notes come at the chapter's end, under a short rule, each ending with ↩; clicking a number takes
-  the editor to its note, and the ↩ back to the reference, the preview following.
+- In the preview, strikethrough, subscript, superscript and tables show as they will print, and a footnote's
+  reference as a raised number. The notes come at the chapter's end, under a short rule, each ending with ↩; clicking
+  a number takes the editor to its note, and the ↩ back to the reference, the preview following.
 - Clicking a link in the preview follows it: a web (`https://…`) or mail (`mailto:…`) address opens in your default
   browser or mail app, and a link to a chapter opens that chapter in the editor, at its heading when it names one. A
   link that leads nowhere shows as plain orange text and does nothing.
@@ -717,10 +726,10 @@ What each package holds:
 | `it.infog.psiche.common` | `EditDistance`: the edits between two words, up to a limit, for the spelling suggestions and the pins found again. `ChapterFolders`: how `notes/` and `media/` name a chapter's folder and those of what was deleted from it, and the `.md` of a chapter's file. `Template`: a resource file with `{{placeholders}}`, filled in by name: the exports' XML parts, the PDF's and the preview's pages, and the script the preview follows the editor with. `SafeFiles`: files written through a temporary file beside them, moved in one step, copied with their progress told to a `CopyProgress`, and folders deleted whole, for the notes and the Psiche projects |
 | `it.infog.psiche.export` | `ChapterExporter`: a chapter as Markdown, PDF, ODT or DOCX. `BookAssembler` puts the whole book together (`export.model.BookExport`): each chapter parsed on its own, with an id (`chapter-1`, …) and a title (its first heading, or its file name), and empty chapters skipped or kept as placeholders, a `TitlePage` and a `Contents` that decide once what every format's title page and contents show; `BookExporter` writes it. `XhtmlRenderer` renders Markdown, the title page and the contents as XHTML: for a manuscript (the PDF) or for an ebook (the EPUB, with real scene-break rules and images found through `ImageLinks`). `LinkTargets` tells where a link leads in the exported file (`model.LinkPlace`), or that it prints as text. `ZipContainer` is the zip of a document's parts, with its mimetype first for ODT and EPUB, and `XmlText` the one escaping of text for every format's XML. `ChapterNotes` numbers a chapter's footnotes for every format; `PageFootnotes` prints them at the page's foot in the PDF, `EbookFootnotes` at the chapter's end in the EPUB |
 | `it.infog.psiche.export.pdf` | `ManuscriptPdf` lays out XHTML as a manuscript PDF through OpenHTMLtoPDF with Libertinus embedded: `manuscript.css` for a chapter, plus `book.css` for the book's title page and page breaks. `BundledFontMapper` keeps PDFBox from scanning the computer's fonts |
-| `it.infog.psiche.export.epub` | The EPUB export. `EpubWriter` checks the book for what stores may object to, and writes it: `Pages` makes each XHTML page from `page.xhtml` (cover, title page, chapters, copyright), `Navigation` the contents page with its landmarks and `toc.ncx`, `PackageDocument` the `package.opf` with the metadata from `Accessibility`; `EpubImages` packs the cover and the chapters' images, shrinking the large ones |
-| `it.infog.psiche.export.document` | What a word processor's document holds, the same for ODT and DOCX. `Manuscript` writes a chapter, or the whole book in its order (title page, contents, each chapter on a new page), into a `DocumentBody`, the interface each format implements: `ChapterRenderer` the Markdown, `TitlePageRenderer` and `ContentsRenderer` the book's front matter, all as paragraphs, headings, spans and lists that only name a `Style`, and the `PageStart`s between them. `Pictures` finds the images and their sizes, packed where each format keeps them |
-| `it.infog.psiche.export.odt` | The ODT export. `OdtBody` writes a `DocumentBody` as ODF, giving the first paragraph after a `PageStart` the automatic style that starts the page; `OdtText` keeps its spaces. `OdtWriter` fills the parts from templates (`content.xml`, `styles.xml`, `meta.xml`) and has `OdtPackage` zip them with the images and the manifest |
-| `it.infog.psiche.export.docx` | The DOCX export. `DocxBody` writes a `DocumentBody` as WordprocessingML: runs styled from the spans open around them, each list an instance of `Numbering`, images through `Drawing`, links and images listed by `Relationships`, and the book's front matter closed as a section without the header. `StyleIds` names each `Style` as `styles.xml` does. `DocxWriter` fills every `Part` from its template and has `DocxPackage` zip them with the images and their content types |
+| `it.infog.psiche.export.epub` | The EPUB export. `EpubWriter` checks the book for what stores may object to, and writes it: `Pages` makes each XHTML page from `page.xhtml` (cover, title page, chapters, copyright), a chapter styled by the book's `style.css` over Psiche's `chapter.css`, `Navigation` the contents page with its landmarks and `toc.ncx`, `PackageDocument` the `package.opf` with the metadata from `Accessibility`; `EpubImages` packs the cover and the chapters' images, shrinking the large ones |
+| `it.infog.psiche.export.document` | What a word processor's document holds, the same for ODT and DOCX. `Manuscript` writes a chapter, or the whole book in its order (title page, contents, each chapter on a new page), into a `DocumentBody`, the interface each format implements: `ChapterRenderer` the Markdown, `TitlePageRenderer` and `ContentsRenderer` the book's front matter, all as paragraphs, headings, spans, lists and tables (`TableRenderer`, each row's `RowPlace` deciding its rules, each column's `Alignment`) that only name a `Style`, and the `PageStart`s between them. `Pictures` finds the images and their sizes, packed where each format keeps them |
+| `it.infog.psiche.export.odt` | The ODT export. `OdtBody` writes a `DocumentBody` as ODF, giving the first paragraph after a `PageStart` the automatic style that starts the page; `OdtText` keeps its spaces, `OdtTables` writes the tables. `OdtWriter` fills the parts from templates (`content.xml`, `styles.xml`, `meta.xml`) and has `OdtPackage` zip them with the images and the manifest |
+| `it.infog.psiche.export.docx` | The DOCX export. `DocxBody` writes a `DocumentBody` as WordprocessingML: runs styled from the spans open around them, each list an instance of `Numbering`, images through `Drawing`, links and images listed by `Relationships`, and the book's front matter closed as a section without the header; `DocxTables` writes the tables, the room around them given to the paragraphs before and after, and `Bookmarks` names the bookmarks as Word takes them. `StyleIds` names each `Style` as `styles.xml` does. `DocxWriter` fills every `Part` from its template and has `DocxPackage` zip them with the images and their content types |
 | `it.infog.psiche.ui` | The JavaFX window: `WriterApp` and `BookWorkspace`, with the components below in a sub-package per theme: `ui.book`, `ui.chapters`, `ui.preview`, `ui.git`, `ui.export` and `ui.preferences`, and `ui.common` for what they all use |
 
 Only the `ui` package depends on the others. `book`, `git`, `markdown`, `export` and `settings` don't depend on JavaFX,

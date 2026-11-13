@@ -24,7 +24,8 @@ class IconsTest {
         }
 
         assertThat(names).contains("file-image", "file-missing", "paperclip");
-        assertThat(names).allSatisfy(name -> assertThat(Icons.pathData(name)).startsWith("M"));
+        // A path starts by moving to its first point: "M", or "m", which SVG reads the same there and Inkscape writes.
+        assertThat(names).allSatisfy(name -> assertThat(Icons.pathData(name)).matches("(?s)[Mm].*"));
     }
 
     @Test

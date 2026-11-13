@@ -32,6 +32,15 @@ class MarkdownFormatterTest {
     }
 
     @Test
+    void italicOnBoldTextInATablesCellAddsToIt() {
+        String text = "| Grassetto | Risultato |\n|---|---|\n| Entrambi | **parola** |";
+        int start = text.indexOf("**parola**");
+
+        assertThat(apply(text, MarkdownFormatter.italic(text, start, start + "**parola**".length())))
+                .isEqualTo("| Grassetto | Risultato |\n|---|---|\n| Entrambi | ***parola*** |");
+    }
+
+    @Test
     void boldWrapsEachLineAndLeavesEmptyLinesAndLineMarkersOutside() {
         String text = "# Storm\n\n- north\n- south";
 

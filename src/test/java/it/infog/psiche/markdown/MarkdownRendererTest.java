@@ -75,6 +75,19 @@ class MarkdownRendererTest {
     }
 
     @Test
+    void drawsATableWithItsHeaderAndItsColumnsAlignedMarkedWithWhereItIs() {
+        String page = renderer.render("Before.\n\n| Chapter | Words |\n|:---|---:|\n| *One* | 3.200 |\n",
+                chaptersDir, 16, NONE_BROKEN);
+
+        assertThat(page)
+                .contains("<table data-start=\"9\" data-end=\"58\">")
+                .contains("<th align=\"left\">Chapter</th>")
+                .contains("<th align=\"right\">Words</th>")
+                .contains("<td align=\"left\"><em>One</em></td>")
+                .contains("<td align=\"right\">3.200</td>");
+    }
+
+    @Test
     void endsAParagraphOfSeveralLinesAtTheEndOfItsLastLine() {
         String page = renderer.render("One.\nTwo.\nThree.\n", chaptersDir, 16, NONE_BROKEN);
 

@@ -1282,16 +1282,6 @@
     -fx-text-alignment: center;
 }
 
-.support-dialog-lamp {
-    -fx-background-color: -coffee;
-    -fx-min-width: 45;
-    -fx-pref-width: 45;
-    -fx-max-width: 45;
-    -fx-min-height: 64;
-    -fx-pref-height: 64;
-    -fx-max-height: 64;
-}
-
 .form-hint {
     -fx-text-fill: -graphite;
     -fx-font-size: 11px;

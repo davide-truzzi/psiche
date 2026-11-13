@@ -78,6 +78,55 @@ class ChapterDocxTest {
     }
 
     @Test
+    void drawsATableRuledWithItsHeaderRowRepeatedAndItsColumnsAligned() throws Exception {
+        Path target = tempDir.resolve("table.docx");
+
+        exporter.manuscriptDocx("| Capitolo | Punto di vista | Parole |\n|---|:---:|---:|\n| 1 | *Marta* | 3.200 |\n"
+                + "| 2 | Elio | 2.850 |", "table", BOOK, tempDir, target);
+
+        String document = entry(target, DOCUMENT);
+        parse(document);
+        assertThat(document).containsSubsequence(
+                "<w:tbl><w:tblPr><w:tblW w:w=\"5000\" w:type=\"pct\"/>",
+                "<w:tblGrid><w:gridCol w:w=\"3023\"/><w:gridCol w:w=\"3023\"/><w:gridCol w:w=\"3023\"/></w:tblGrid>",
+                // the header row, repeated on every page, ruled above and under
+                "<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr><w:tc><w:tcPr><w:tcW w:w=\"3023\" w:type=\"dxa\"/>"
+                        + "<w:tcBorders><w:top w:val=\"single\" w:sz=\"6\" w:space=\"0\" w:color=\"000000\"/>"
+                        + "<w:bottom w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"000000\"/></w:tcBorders>"
+                        + "</w:tcPr><w:p><w:pPr><w:pStyle w:val=\"TableHeading\"/></w:pPr><w:r>"
+                        + "<w:t xml:space=\"preserve\">Capitolo</w:t>",
+                "<w:pStyle w:val=\"TableHeading\"/><w:jc w:val=\"center\"/></w:pPr>",
+                // a row of the body, without rules
+                "<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w=\"3023\" w:type=\"dxa\"/></w:tcPr>"
+                        + "<w:p><w:pPr><w:pStyle w:val=\"TableContents\"/></w:pPr>",
+                "<w:pStyle w:val=\"TableContents\"/><w:jc w:val=\"center\"/></w:pPr><w:r><w:rPr>"
+                        + "<w:rStyle w:val=\"Emphasis\"/></w:rPr><w:t xml:space=\"preserve\">Marta",
+                // the last row, ruled under
+                "<w:tcBorders><w:bottom w:val=\"single\" w:sz=\"6\"",
+                "<w:pStyle w:val=\"TableContents\"/><w:jc w:val=\"right\"/></w:pPr><w:r>"
+                        + "<w:t xml:space=\"preserve\">2.850");
+        assertThat(entry(target, "word/styles.xml")).contains("w:styleId=\"TableContents\"",
+                "w:styleId=\"TableHeading\"");
+    }
+
+    @Test
+    void givesATableRoomAndAParagraphAfterItWhereAnotherTableOrTheChapterFollows() throws Exception {
+        Path target = tempDir.resolve("tables.docx");
+
+        exporter.manuscriptDocx("Prima.\n\n| a |\n|---|\n| 1 |\n\n| b |\n|---|\n| 2 |\n", "tables", BOOK, tempDir,
+                target);
+
+        String document = entry(target, DOCUMENT);
+        parse(document);
+        assertThat(document).containsSubsequence(
+                "<w:pStyle w:val=\"FirstParagraph\"/><w:spacing w:after=\"454\"/></w:pPr><w:r>"
+                        + "<w:t xml:space=\"preserve\">Prima.",
+                "</w:tbl>\n<w:p><w:pPr><w:pStyle w:val=\"FirstParagraph\"/>"
+                        + "<w:spacing w:before=\"454\" w:after=\"454\"/></w:pPr></w:p>\n<w:tbl>",
+                "</w:tbl>\n<w:p/><w:sectPr>");
+    }
+
+    @Test
     void boldInsideItalicIsBoth() throws IOException {
         Path target = tempDir.resolve("nested.docx");
 

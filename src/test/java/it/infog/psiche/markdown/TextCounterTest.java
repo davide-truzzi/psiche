@@ -42,6 +42,8 @@ class TextCounterTest {
                 argumentSet("a comment is left out", "Before<!-- a note --> after", new TextCount(12, 2)),
                 argumentSet("scene breaks and escaped markers", "One.\n\n---\n\nTwo \\*not\\* bold.",
                         new TextCount(19, 4)),
+                argumentSet("a table's cells apart, without its pipes and dashes",
+                        "| Volete | Risultato |\n|:---|---:|\n| Corsivo | *parola* |", new TextCount(30, 4)),
                 argumentSet("an empty chapter has nothing to count", "", new TextCount(0, 0)));
     }
 }
