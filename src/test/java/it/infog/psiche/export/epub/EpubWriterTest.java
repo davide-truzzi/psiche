@@ -254,6 +254,26 @@ class EpubWriterTest {
         assertPassesEpubCheck(target);
     }
 
+    @Test
+    void drawsATableStyledByPsicheUnderTheBooksStylesheetAndPassesEpubCheck() throws IOException {
+        Path target = tempDir.resolve("table.epub");
+        Files.createDirectories(tempDir.resolve("chapters"));
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir.resolve("chapters"),
+                List.of(new ChapterText("01-alba", "# Alba\n\n| Capitolo | Punto di vista | Parole |\n"
+                        + "|:---|:---:|---:|\n| 1 | *Marta* | 3.200 |\n\nDopo.\n")),
+                EmptyChapters.SKIP);
+
+        writer.write(book, EpubVariant.STORES, target);
+
+        assertThat(entry(target, "EPUB/xhtml/chapter-1.xhtml")).contains(
+                "<link rel=\"stylesheet\" type=\"text/css\" href=\"../css/chapter.css\"/>\n"
+                        + "<link rel=\"stylesheet\" type=\"text/css\" href=\"../css/style.css\"/>",
+                "<th class=\"align-left\">Capitolo</th>", "<th class=\"align-center\">Punto di vista</th>",
+                "<td class=\"align-right\">3.200</td>");
+        assertThat(entry(target, "EPUB/css/chapter.css")).contains("table {");
+        assertPassesEpubCheck(target);
+    }
+
     /** Three chapters: one with a described image, a scene break and links; an empty one; one without a heading. */
     private BookExport book(Optional<Path> cover, EmptyChapters empty) throws IOException {
         image("map.png", 600, 400);

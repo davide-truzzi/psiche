@@ -92,6 +92,7 @@ final class PackageDocument {
 
         items.append(item("book-style", Pages.BOOK_STYLE, "text/css", ""));
         items.append(item("front-matter-style", Pages.FRONT_MATTER_STYLE, "text/css", ""));
+        items.append(item("chapter-style", Pages.CHAPTER_STYLE, "text/css", ""));
 
         for (EpubImage image : images) {
             boolean isCover = cover.filter(image::equals).isPresent();

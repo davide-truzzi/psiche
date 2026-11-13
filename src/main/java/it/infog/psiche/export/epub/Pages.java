@@ -23,11 +23,11 @@ final class Pages {
     // From a page, in xhtml/, to the stylesheets in css/.
     static final String BOOK_STYLE = "css/style.css";
     static final String FRONT_MATTER_STYLE = "css/front-matter.css";
+    static final String CHAPTER_STYLE = "css/chapter.css";
 
-    private static final String BOOK_STYLESHEET = "<link rel=\"stylesheet\" type=\"text/css\" href=\"../%s\"/>\n"
-            .formatted(BOOK_STYLE);
-    private static final String ALL_STYLESHEETS = BOOK_STYLESHEET
-            + "<link rel=\"stylesheet\" type=\"text/css\" href=\"../%s\"/>\n".formatted(FRONT_MATTER_STYLE);
+    // A chapter's own rules come before the book's, so the author's win; the front matter's after, adding to them.
+    private static final String CHAPTER_STYLESHEETS = stylesheet(CHAPTER_STYLE) + stylesheet(BOOK_STYLE);
+    private static final String ALL_STYLESHEETS = stylesheet(BOOK_STYLE) + stylesheet(FRONT_MATTER_STYLE);
 
     // The line crediting the app on the copyright page, in the languages Psiche Writer knows; English for any other.
     private static final Map<String, String> CREDITS = Map.of(
@@ -77,14 +77,17 @@ final class Pages {
         return page("title-page", titlePage.title(), " epub:type=\"frontmatter\"", ALL_STYLESHEETS, content, "");
     }
 
-    /** A chapter, styled by the book's stylesheet alone, as the author set it, its links led by {@code links}. */
+    /**
+     * A chapter, styled by the book's stylesheet as the author set it, over Psiche Writer's rules for what it may not
+     * style, such as tables; its links led by {@code links}.
+     */
     EpubPage chapter(ExportedChapter chapter, XhtmlRenderer renderer, LinkTargets links) {
 
         String content = "<section id=\"%s\" epub:type=\"chapter\" role=\"doc-chapter\">\n%s</section>\n"
                 .formatted(chapter.id(), renderer.toXhtml(chapter, links));
 
         // A chapter title ends with the mark, an SVG, which the manifest must declare.
-        return page(chapter.id(), chapter.title(), " epub:type=\"bodymatter\"", BOOK_STYLESHEET, content,
+        return page(chapter.id(), chapter.title(), " epub:type=\"bodymatter\"", CHAPTER_STYLESHEETS, content,
                 content.contains("<svg") ? "svg" : "");
     }
 
@@ -131,5 +134,11 @@ final class Pages {
     static String fileName(String id) {
 
         return id + ".xhtml";
+    }
+
+    /** The link to the stylesheet at {@code path}, from a page in {@code xhtml/}. */
+    private static String stylesheet(String path) {
+
+        return "<link rel=\"stylesheet\" type=\"text/css\" href=\"../%s\"/>\n".formatted(path);
     }
 }
