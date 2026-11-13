@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.0 Beta (2026-11-13)
+
+The first Beta: a way to support Psiche Writer, its official mark in the app and in the books it exports, the open
+book's name in the window's title, and the exported file a click away.
+
+### What is new
+
+- **Keep the lamp lit**: a yellow oil lamp on the toolbar, after **Preferences**, opens a short message asking the
+  writers who use Psiche Writer to support it, with the same **Buy me a coffee** button as About.
+- **The Psiche mark**: the toolbar and the preview's chapter titles show the official mark, with its dots and ring.
+  The PDF and the EPUB draw the same mark under each chapter's title, instead of a Ψ of the font.
+- **The window's title** names the open book, as "La strada del sale - Psiche Writer", and reads "Psiche Writer"
+  alone while no book is open; it follows the book as it is renamed in **Book properties**. The version, shown there
+  before, is in About.
+- **Show the exported file**: after exporting a chapter, the book, the notes or a Psiche project, the file's path in
+  the status bar is a link. A click opens its folder in the system's file manager, with the file selected.
+- **Credit in exports**: the EPUB's copyright page ends with a small "Made with Psiche Writer", in the book's language
+  where Psiche knows it (English, Italian, French, German, Spanish, Portuguese, Dutch) and in English otherwise; the
+  page is now there even without a copyright notice. The EPUB names Psiche Writer as its generator and the PDF as its
+  producer, as the ODT and DOCX already did. The text of the manuscripts shows nothing.
+
 ## 0.6.0 Alpha (2026-11-11)
 
 The sixth release for testing, and the last Alpha: footnotes and the rest of the Markdown Guide's extended syntax,

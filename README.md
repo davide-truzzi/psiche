@@ -12,7 +12,7 @@ other tool while Psiche Writer is closed, sync it with any Git host and read it 
 
 ## Status
 
-**0.6.0 Alpha**, the sixth release for testing and the last Alpha: the Betas that follow fix bugs only, up to 1.0.
+**0.7.0 Beta**, the first Beta, after six Alphas for testing.
 Psiche Writer does what a book needs from first draft to export: create or open a book, write its chapters in Markdown
 with a typeset preview beside them, with images, footnotes and links to the web or between chapters, keep notes on each
 chapter's board, pinned to the paragraphs they are about if you want, and on the book's own, commit with Git and, if you
@@ -130,6 +130,10 @@ my-book/              ← the folder; the book's title is set in its properties
   the version, the author, the licence (GNU GPL 3 or later, readable in the app), a yellow **Buy me a coffee** button to
   support the project, and the licences of the fonts and libraries Psiche Writer ships with. The fonts' licences open in
   the app, the others on their publishers' sites.
+- **Keep the lamp lit**, the yellow oil lamp after **Preferences** in the toolbar, opens a short message asking the
+  writers who use Psiche Writer to support it, with the same **Buy me a coffee** button as About.
+- The window's title names the open book, as `La strada del sale - Psiche Writer`, and reads `Psiche Writer` alone
+  while no book is open; it follows the book's title as it changes in **Book properties**.
 - The language, in **Preferences** and **Book properties**, can be searched: typing narrows the list to the languages
   whose name or tag contains what you typed, ignoring accents (`ital`, `bokmal`, `pt-br`); the arrow keys and Enter
   pick one, Escape keeps the one before.
@@ -219,9 +223,9 @@ my-book/              ← the folder; the book's title is set in its properties
     when asked, and asks the reader first when a file wants them worked out on opening.
   - **EPUB**: an EPUB 3 ready for Apple Books, Kobo, Google Play Books and distributors. It reads: the cover, full
     screen; the title page (title, subtitle, authors); the contents, a link per chapter; the chapters, a page each, set
-    by the book's own `media/style.css`, with the Psiche mark, a red Ψ hidden from screen readers, under each title; and
-    the copyright notice from Book properties at the back, so a store's free sample opens on as much of the book as it
-    can. It also holds the navigation stores and e-readers use (landmarks, and `toc.ncx` for EPUB 2 readers), the book's
+    by the book's own `media/style.css`, with the Psiche mark in red, hidden from screen readers, under each title;
+    and the copyright page at the back, with the copyright notice from Book properties and a small "Made with Psiche
+    Writer" in the book's language, so a store's free sample opens on as much of the book as it can. It also holds the navigation stores and e-readers use (landmarks, and `toc.ncx` for EPUB 2 readers), the book's
     metadata, and the accessibility metadata of EPUB Accessibility 1.1 (how the book can be read, what helps, no
     hazards), which the European Accessibility Act expects. Images are packed in, shrunk to stay within 4 million
     pixels; fonts are not embedded. A chapter's footnotes follow it, each linked from its raised number, so e-readers
@@ -236,6 +240,9 @@ my-book/              ← the folder; the book's title is set in its properties
   - Unsaved changes in any chapter are settled first. If some chapters are empty (nothing but blank lines), Psiche Writer
     lists them and asks whether to leave them out or export each as a page showing only its file name, to see where
     it goes in an unfinished book.
+- Once an export is written, of a chapter, the book, the notes or a Psiche project, the file's path in the status bar
+  is a link: a click opens its folder in the system's file manager, with the file selected. Every file names
+  Psiche Writer in its properties, as the PDF's producer, the DOCX's application and the ODT's and EPUB's generator.
 
 ### Writing in Markdown
 Each chapter is a Markdown file: CommonMark, with the strikethrough, subscript, superscript and footnotes of the
@@ -787,9 +794,11 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `git.RevisionDialog` | A past version compared with the saved chapter as tracked changes (written since: underlined; removed since: struck through), with a summary in words, *Close* and *Restore this version* |
 | `export.Exports` | Exports a chapter or the whole book: settles unsaved changes, asks about empty chapters, picks the file and writes it on an export thread of its own, reporting in the status bar |
 | `preferences.PreferencesDialog` | The *Preferences* form, in two fieldsets: General (reopen the last book at startup, the editor mode, the editor's font size, the preview's theme and font size, spelling, repetitions) and New book defaults (language and author). It hands the workspace what the author applies or saves, and the opening values again on Revert, closing only for Save; the workspace remembers it and changes the editor's and the preview's look |
-| `common.StatusBar` | The open chapter's characters, words and pages on the left, lined up with the editor's text (right-click the pages to choose how they are counted), and the latest message (`info` / `error`) and the chapter's saved/unsaved state on the right |
+| `common.StatusBar` | The open chapter's characters, words and pages on the left, lined up with the editor's text (right-click the pages to choose how they are counted), and the latest message (`info` / `error`), an exported file's path as a link, and the chapter's saved/unsaved state on the right |
+| `common.FileManager` | Shows a file in the system's file manager, selected: over D-Bus on Linux, falling back to opening its folder with `xdg-open`, `open -R` on macOS, `explorer /select,` on Windows |
 | `common.Dialogs` | Title prompt, choice between buttons, error alert and folder chooser, owned by and styled like the main window |
 | `preferences.AboutDialog` | *About Psiche Writer*, opened from Preferences: logo, version (read from the module, where the build writes it), author, licence, the Buy Me a Coffee button, and the licences of the fonts and libraries, shown in the app or opened in the browser |
+| `preferences.SupportDialog`, `CoffeeButton` | *Keep the lamp lit*: the lamp on the toolbar and the message it opens; the Buy Me a Coffee button it shares with About |
 | `common.AppInfo` | The app's name, as windows and dialogs are titled, and its version, read from the module, where the build writes it from `build.gradle.kts`, as people read it ("0.3.0 Alpha") |
 | `common.WorkThread`, `Progress` | A thread of its own for long work, one piece at a time with a *busy* flag, for Export and Import notes and Psiche project; and the percentage of a long copy, handed to the FX thread only when it changes |
 | `common.LanguageChoice` | The language field of *Book properties* and *Preferences*: shows the language chosen, lists them all on a click, and narrows the list as the author types, names starting with the search first |
