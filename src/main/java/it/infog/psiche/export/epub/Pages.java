@@ -8,6 +8,7 @@ import it.infog.psiche.export.epub.model.EpubPage;
 import it.infog.psiche.export.model.ExportedChapter;
 import it.infog.psiche.export.model.TitlePage;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,6 +28,16 @@ final class Pages {
             .formatted(BOOK_STYLE);
     private static final String ALL_STYLESHEETS = BOOK_STYLESHEET
             + "<link rel=\"stylesheet\" type=\"text/css\" href=\"../%s\"/>\n".formatted(FRONT_MATTER_STYLE);
+
+    // The line crediting the app on the copyright page, in the languages Psiche Writer knows; English for any other.
+    private static final Map<String, String> CREDITS = Map.of(
+            "en", "Made with Psiche Writer",
+            "it", "Realizzato con Psiche Writer",
+            "fr", "Réalisé avec Psiche Writer",
+            "de", "Erstellt mit Psiche Writer",
+            "es", "Hecho con Psiche Writer",
+            "pt", "Feito com Psiche Writer",
+            "nl", "Gemaakt met Psiche Writer");
 
     private final Template page = Template.load(Pages.class, "page.xhtml");
     // The cover's section, inside its page.
@@ -77,11 +88,18 @@ final class Pages {
                 content.contains("<svg") ? "svg" : "");
     }
 
-    /** The copyright notice, on a page of its own at the back, so the store's sample opens on the book itself. */
+    /**
+     * The copyright notice, if the book has one, then a small line saying the book was made with Psiche Writer, on a
+     * page of its own at the back, so the store's sample opens on the book itself.
+     *
+     * @param rights the book's copyright notice; blank for none
+     */
     EpubPage copyright(String rights, String bookTitle) {
 
-        String content = "<section class=\"copyright-page\" epub:type=\"copyright-page\">\n<p>%s</p>\n</section>\n"
-                .formatted(escape(rights));
+        String notice = rights.isBlank() ? "" : "<p>%s</p>\n".formatted(escape(rights));
+        String credit = CREDITS.getOrDefault(Locale.forLanguageTag(language).getLanguage(), CREDITS.get("en"));
+        String content = "<section class=\"copyright-page\" epub:type=\"copyright-page\">\n%s%s</section>\n"
+                .formatted(notice, "<p class=\"credit\">%s</p>\n".formatted(credit));
 
         return page("copyright", bookTitle, " epub:type=\"backmatter\"", ALL_STYLESHEETS, content, "");
     }

@@ -72,6 +72,9 @@ final class PackageDocument {
         meta.append(line("<meta property=\"dcterms:modified\">%s</meta>",
                 modified.truncatedTo(ChronoUnit.SECONDS).toString()));
 
+        // The program that made the file, in EPUB 2's way, which EPUB 3 keeps.
+        meta.append(line("<meta name=\"generator\" content=\"Psiche Writer\"/>"));
+
         // EPUB 2's way of naming the cover, which Kindle and older e-readers read.
         if (hasCover)
             meta.append(line("<meta name=\"cover\" content=\"cover-image\"/>"));

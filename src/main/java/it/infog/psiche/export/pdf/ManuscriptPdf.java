@@ -98,6 +98,8 @@ public final class ManuscriptPdf {
         try (OutputStream out = Files.newOutputStream(target)) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
+            // The program that made the PDF, as a PDF reader shows it in the document's properties.
+            builder.withProducer("Psiche Writer");
             builder.useObjectDrawerFactory(DRAWERS);
             useFont(builder, "LibertinusSerif-Regular.ttf", 400, FontStyle.NORMAL);
             useFont(builder, "LibertinusSerif-Italic.ttf", 400, FontStyle.ITALIC);

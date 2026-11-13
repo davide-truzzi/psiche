@@ -81,7 +81,8 @@ class EpubWriterTest {
                 "<itemref idref=\"chapter-2\"/>",
                 "<itemref idref=\"chapter-3\"/>",
                 "<itemref idref=\"copyright\"/>");
-        assertThat(entry(target, "EPUB/xhtml/copyright.xhtml")).contains("<p>© 2026 Anna Bianchi</p>");
+        assertThat(entry(target, "EPUB/xhtml/copyright.xhtml")).containsSubsequence("<p>© 2026 Anna Bianchi</p>",
+                "<p class=\"credit\">Realizzato con Psiche Writer</p>");
         assertThat(entry(target, "EPUB/xhtml/title-page.xhtml")).contains(
                 "<p class=\"book-title\">La strada del sale</p>", "<p class=\"book-subtitle\">Romanzo</p>",
                 "<p class=\"book-authors\">Anna Bianchi, Marco Rossi</p>").doesNotContain("<img");
@@ -90,16 +91,20 @@ class EpubWriterTest {
     }
 
     @Test
-    void aBookWithoutRightsHasNoCopyrightPage() throws IOException {
+    void aBookWithoutRightsStillCreditsPsicheWriterAtTheBack() throws IOException {
         Path target = tempDir.resolve("no-rights.epub");
-        BookProperties properties = new BookProperties("Titolo", "", List.of("Anna Bianchi"), "it-IT", "", "id");
+        BookProperties properties = new BookProperties("Titolo", "", List.of("Anna Bianchi"), "sv-SE", "", "id");
         BookExport book = BookAssembler.assemble(properties, Optional.empty(), Optional.empty(), tempDir,
                 List.of(new ChapterText("01-alba", "# Alba\n\nText.")), EmptyChapters.SKIP);
 
         writer.write(book, EpubVariant.STORES, target);
 
         assertPassesEpubCheck(target);
-        assertThat(entry(target, "EPUB/package.opf")).doesNotContain("copyright", "dc:rights", "subtitle");
+        assertThat(entry(target, "EPUB/package.opf")).contains("<itemref idref=\"copyright\"/>")
+                .doesNotContain("dc:rights", "subtitle");
+        // Swedish is not among the languages the credit knows, so it is in English.
+        assertThat(entry(target, "EPUB/xhtml/copyright.xhtml"))
+                .contains("<p class=\"credit\">Made with Psiche Writer</p>").doesNotContain("<p>©");
     }
 
     @Test
@@ -118,6 +123,7 @@ class EpubWriterTest {
                 "<dc:language>it-IT</dc:language>",
                 "<meta property=\"dcterms:modified\">2026-10-31T10:15:30Z</meta>",
                 "<meta name=\"cover\" content=\"cover-image\"/>",
+                "<meta name=\"generator\" content=\"Psiche Writer\"/>",
                 "properties=\"cover-image\"",
                 "<meta property=\"schema:accessMode\">visual</meta>",
                 "<meta property=\"schema:accessibilityFeature\">tableOfContents</meta>",

@@ -80,3 +80,9 @@ nav.landmarks {
     text-indent: 0;
     text-align: center;
 }
+
+/* The line crediting Psiche Writer, smaller still, under the notice. */
+.copyright-page p.credit {
+    margin-top: 2em;
+    font-size: 0.75em;
+}

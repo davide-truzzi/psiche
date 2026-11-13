@@ -69,6 +69,7 @@ class BookExporterTest {
 
             assertThat(pdf.getDocumentInformation().getTitle()).isEqualTo("La strada del sale");
             assertThat(pdf.getDocumentInformation().getAuthor()).isEqualTo("Anna Bianchi, Marco Rossi");
+            assertThat(pdf.getDocumentInformation().getProducer()).isEqualTo("Psiche Writer");
         }
     }
 

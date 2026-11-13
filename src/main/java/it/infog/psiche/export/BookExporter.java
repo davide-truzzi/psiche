@@ -79,7 +79,7 @@ public final class BookExporter {
 
     /**
      * Writes the book as an EPUB 3 for the stores: the cover (for every store but Kindle, which adds its own), the
-     * title page, the contents, the chapters and the copyright notice.
+     * title page, the contents, the chapters, and the copyright notice with a line crediting Psiche Writer.
      */
     public void epub(BookExport book, EpubVariant variant, Path target) {
 

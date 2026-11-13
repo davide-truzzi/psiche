@@ -38,7 +38,8 @@ import java.util.UUID;
  *     <li>the title page;</li>
  *     <li>the contents, a link per chapter;</li>
  *     <li>the chapters, a page each, set by the book's own stylesheet;</li>
- *     <li>the copyright notice, at the back, so a store's sample of the book shows as much of the text as it can.</li>
+ *     <li>the copyright notice and a line crediting Psiche Writer, at the back, so a store's sample of the book shows
+ *     as much of the text as it can.</li>
  * </ol>
  * The package also holds {@code toc.ncx} for EPUB 2 e-readers, and the accessibility metadata EPUB Accessibility 1.1
  * asks for. Fonts are not embedded: e-readers use their own, and every megabyte costs on Kindle.
@@ -135,8 +136,7 @@ public final class EpubWriter {
         spine.add(titlePage);
         spine.add(contents);
         spine.addAll(chapters);
-        if (!properties.rights().isBlank())
-            spine.add(pages.copyright(properties.rights(), properties.title()));
+        spine.add(pages.copyright(properties.rights(), properties.title()));
 
         //package
         String opf = packageDocument.write(properties, identifier, language, clock.instant(), spine, cover,
