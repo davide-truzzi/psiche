@@ -84,7 +84,7 @@ p {
     -webkit-hyphens: auto;
 }
 
-h1 + p, h2 + p, h3 + p, h4 + p, hr + p, blockquote + p, img + p {
+h1 + p, h2 + p, h3 + p, h4 + p, hr + p, blockquote + p, img + p, table + p {
     text-indent: 0;
 }
 
@@ -221,6 +221,31 @@ pre {
 
 ul, ol {
     padding-left: 1.6em;
+}
+
+/* A table as printed books set it: the page's width, a rule above it, a thinner one under its header row and one
+   at its bottom, no lines between columns, its cells given room. Each column keeps the alignment its colons ask. */
+table {
+    width: 100%;
+    margin: 2em 0;
+    border-collapse: collapse;
+    border-top: 1.5px solid var(--ink);
+    border-bottom: 1.5px solid var(--ink);
+    line-height: 1.5;
+}
+
+th, td {
+    padding: 0.55em 0.9em;
+    vertical-align: top;
+}
+
+th {
+    border-bottom: 1px solid var(--ink);
+    font-weight: bold;
+}
+
+th:not([align]) {
+    text-align: left;
 }
 
 ::selection {
