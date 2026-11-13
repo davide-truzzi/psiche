@@ -1207,15 +1207,15 @@
     -fx-fill: -paper;
 }
 
-/* Buy Me a Coffee's button, in their yellow, so their logo shows as they draw it. */
-.about .coffee-button {
+/* Buy Me a Coffee's button, in About and Support, in their yellow, so their logo shows as they draw it. */
+.coffee-button {
     -fx-background-color: -coffee;
     -fx-background-radius: 8;
     -fx-border-width: 0;
     -fx-padding: 9 18;
 }
 
-.about .coffee-button:hover {
+.coffee-button:hover {
     -fx-background-color: derive(-coffee, 25%);
 }
 
@@ -1240,6 +1240,52 @@
 .licence-text,
 .licence-text .content {
     -fx-background-color: -desk;
+}
+
+/* Support: the lamp of icons/lamp.svg, in Buy Me a Coffee's yellow, on the toolbar and in the dialog it opens. Each
+   region keeps the lamp's own proportions, 65.5 wide by 93 tall, as a region stretches its shape to its size. */
+
+/* Bare, as the mark at the toolbar's start: no border, even under the pointer, which only lights the lamp. */
+.support-button,
+.support-button:hover {
+    -fx-border-color: transparent;
+    -fx-padding: 0 4;
+}
+
+.support-lamp {
+    -fx-background-color: -coffee;
+    -fx-min-width: 18.3;
+    -fx-pref-width: 18.3;
+    -fx-max-width: 18.3;
+    -fx-min-height: 26;
+    -fx-pref-height: 26;
+    -fx-max-height: 26;
+}
+
+.support-button:hover .support-lamp {
+    -fx-background-color: derive(-coffee, 25%);
+}
+
+.support-content {
+    -fx-alignment: center;
+    -fx-padding: 16 20 4 20;
+    -fx-spacing: 18;
+    -fx-pref-width: 460;
+}
+
+.support-content > .label {
+    -fx-text-fill: -paper;
+    -fx-text-alignment: center;
+}
+
+.support-dialog-lamp {
+    -fx-background-color: -coffee;
+    -fx-min-width: 45;
+    -fx-pref-width: 45;
+    -fx-max-width: 45;
+    -fx-min-height: 64;
+    -fx-pref-height: 64;
+    -fx-max-height: 64;
 }
 
 .form-hint {

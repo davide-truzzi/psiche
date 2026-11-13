@@ -13,9 +13,6 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
@@ -36,12 +33,8 @@ import java.util.stream.Collectors;
  */
 final class AboutDialog {
 
-    private static final String COFFEE = "https://buymeacoffee.com/davide.truzzi";
     private static final String GPL = "/it/infog/psiche/ui/preferences/LICENSE";
     private static final double LOGO_HEIGHT = 120;
-    // Buy Me a Coffee's own logo, dark on their yellow as their buttons show it, from their brand bundle.
-    private static final String COFFEE_LOGO = "buy-me-a-coffee.png";
-    private static final double COFFEE_LOGO_HEIGHT = 28;
     private static final double NAME_WIDTH = 230;
 
     /**
@@ -106,7 +99,7 @@ final class AboutDialog {
         Label licence = new Label("Free software under the GNU General Public License, version 3 or later");
         Hyperlink gpl = link("Read the licence",
                 () -> showText(dialog, "GNU General Public License, version 3", read(GPL)));
-        Button coffee = coffeeButton(() -> browser.accept(COFFEE));
+        Button coffee = CoffeeButton.create(browser);
         Label support = new Label("Help Davide support this project");
 
         VBox app = new VBox(logo, version, copyright, licence, gpl, coffee, support);
@@ -128,25 +121,6 @@ final class AboutDialog {
         content.getStyleClass().add("about-content");
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();
-    }
-
-    /** Buy Me a Coffee's logo on their yellow, as a button. */
-    private static Button coffeeButton(Runnable action) {
-
-        // Read at twice the height shown, so it stays sharp on screens that scale the window up.
-        Image image = new Image(AboutDialog.class.getResource(COFFEE_LOGO).toExternalForm(), 0,
-                COFFEE_LOGO_HEIGHT * 2, true, true);
-        ImageView logo = new ImageView(image);
-        logo.setFitHeight(COFFEE_LOGO_HEIGHT);
-        logo.setPreserveRatio(true);
-        logo.setSmooth(true);
-
-        Button button = new Button(null, logo);
-        button.getStyleClass().add("coffee-button");
-        button.setAccessibleText("Buy me a coffee");
-        button.setTooltip(new Tooltip(COFFEE));
-        button.setOnAction(event -> action.run());
-        return button;
     }
 
     private static Hyperlink link(String text, Runnable action) {

@@ -28,6 +28,7 @@ import it.infog.psiche.ui.media.MediaPane;
 import it.infog.psiche.ui.notes.NotesPane;
 import it.infog.psiche.ui.notes.NotesTransfer;
 import it.infog.psiche.ui.preferences.PreferencesDialog;
+import it.infog.psiche.ui.preferences.SupportDialog;
 import it.infog.psiche.ui.preview.PreviewPane;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -206,7 +207,10 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
 
     // Layout
 
-    /** The app's mark, the open book's title, the Book menu, Preferences, and on the right the Git controls. */
+    /**
+     * The app's mark, the open book's title, the Book menu, Preferences, the lamp asking for support, and on the right
+     * the Git controls.
+     */
     private Node toolbar() {
 
         Node mark = Logo.mark(24);
@@ -214,7 +218,9 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
 
         Button preferences = button("Preferences", this::editPreferences);
 
-        HBox bar = new HBox(mark, books.title(), bookMenuButton(), preferences, hSpacer(), gitControls);
+        Button support = SupportDialog.lampButton(() -> SupportDialog.show(window(), browser));
+
+        HBox bar = new HBox(mark, books.title(), bookMenuButton(), preferences, support, hSpacer(), gitControls);
         bar.getStyleClass().add("toolbar");
         return bar;
     }
