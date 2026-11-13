@@ -30,6 +30,16 @@ class TextLinksTest {
     }
 
     @Test
+    void findsALinkInATablesCell() {
+
+        String text = "| Chapter | Where |\n|---|---|\n| 2 | " + STORM + " |\n";
+
+        int start = text.indexOf(STORM);
+        assertThat(TextLinks.of(text)).containsExactly(new TextLink(new TextRange(start, start + STORM.length()),
+                new TextRange(start + 1, start + "[the storm".length()), "the storm", "02-harbour.md#the-storm", ""));
+    }
+
+    @Test
     void theLabelKeepsTheTextAsWrittenAndTheTextIsAsTheReaderSeesIt() {
 
         String text = "See [the *old* \\[harbour\\]](https://example.com \"The port\").";

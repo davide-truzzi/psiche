@@ -7,6 +7,7 @@ module it.infog.psiche {
     requires org.commonmark;
     requires org.commonmark.ext.footnotes;
     requires org.commonmark.ext.gfm.strikethrough;
+    requires org.commonmark.ext.gfm.tables;
     requires openhtmltopdf.core;
     requires openhtmltopdf.pdfbox;
     requires org.apache.fontbox;

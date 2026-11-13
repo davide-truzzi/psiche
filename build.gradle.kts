@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.commonmark)
     implementation(libs.commonmark.strikethrough)
     implementation(libs.commonmark.footnotes)
+    implementation(libs.commonmark.tables)
     implementation(libs.openhtmltopdf.pdfbox)
     implementation(libs.slf4j.api)
     // The editor's text, which, unlike JavaFX's TextArea, can show parts of it in another colour, such as comments.
