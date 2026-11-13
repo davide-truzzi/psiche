@@ -3,24 +3,29 @@ package it.infog.psiche.export.odt;
 import it.infog.psiche.export.XmlText;
 import it.infog.psiche.export.document.DocumentBody;
 import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.export.document.model.enums.Alignment;
 import it.infog.psiche.export.document.model.enums.PageStart;
+import it.infog.psiche.export.document.model.enums.RowPlace;
 import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.export.odt.model.PageStyle;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 /**
  * The body of {@code content.xml} as it is written, with the automatic styles it needs. The first paragraph or heading
  * after {@link #startPage} carries the new page: its page break or page style, and a bookmark that links can lead to.
+ * Tables are written by {@link OdtTables}.
  */
 final class OdtBody implements DocumentBody {
 
     private final StringBuilder xml = new StringBuilder();
     // Each automatic style's name and definition, written once however many paragraphs use it.
     private final Map<String, String> automaticStyles = new LinkedHashMap<>();
+    private final OdtTables tables = new OdtTables(xml);
 
     // The page the next paragraph or heading starts, and the bookmark it carries; null when it simply follows on.
     private PageStart pageStart;
@@ -35,10 +40,7 @@ final class OdtBody implements DocumentBody {
     public void startPage(PageStart start, String bookmark) {
 
         // A page started but never written on, such as a chapter holding only comments, still gets its paragraph.
-        if (pageStart != null) {
-            openParagraph(Style.FIRST_PARAGRAPH);
-            closeParagraph();
-        }
+        writePageStart();
 
         this.pageStart = start;
         this.bookmark = bookmark;
@@ -131,6 +133,44 @@ final class OdtBody implements DocumentBody {
         xml.append("</text:list>\n");
     }
 
+    /** A table cannot carry a page start, so a page starting with a table starts with an empty paragraph. */
+    @Override
+    public void openTable(List<Alignment> alignments) {
+
+        writePageStart();
+        tables.open(alignments);
+    }
+
+    @Override
+    public void openRow(RowPlace place) {
+
+        tables.openRow(place);
+    }
+
+    @Override
+    public void openCell() {
+
+        tables.openCell();
+    }
+
+    @Override
+    public void closeCell() {
+
+        tables.closeCell();
+    }
+
+    @Override
+    public void closeRow() {
+
+        tables.closeRow();
+    }
+
+    @Override
+    public void closeTable() {
+
+        tables.close();
+    }
+
     /** Writes {@code text} escaped and with its spaces kept, as {@link OdtText#append} does. */
     @Override
     public void text(String text, boolean lineStart) {
@@ -208,17 +248,20 @@ final class OdtBody implements DocumentBody {
         return xml.toString();
     }
 
-    /** The automatic styles the page starts need, for {@code <office:automatic-styles>}. */
+    /** The automatic styles the page starts and the tables need, for {@code <office:automatic-styles>}. */
     String automaticStyles() {
 
-        return String.join("", automaticStyles.values());
+        return String.join("", automaticStyles.values()) + tables.automaticStyles();
     }
 
-    /** {@code style}'s name, or that of its automatic style if this paragraph starts a page. */
+    /**
+     * {@code style}'s name, or that of its automatic style if this paragraph starts a page or is in a table's column
+     * set centre or right.
+     */
     private String styleName(Style style) {
 
         if (pageStart == null)
-            return style.odtName();
+            return tables.styleName(style);
 
         PageStyle page = pageStyle(pageStart);
         String name = page.prefix() + "_" + style.odtName();
@@ -252,6 +295,16 @@ final class OdtBody implements DocumentBody {
         return """
                 <style:style style:name="%s" style:family="paragraph" style:parent-style-name="%s"%s>%s</style:style>
                 """.formatted(name, style.odtName(), master, properties);
+    }
+
+    /** The page started last, if nothing is written on it yet, as an empty paragraph carrying it. */
+    private void writePageStart() {
+
+        if (pageStart == null)
+            return;
+
+        openParagraph(Style.FIRST_PARAGRAPH);
+        closeParagraph();
     }
 
     /** Marks the paragraph or heading starting the page started last with its bookmark, if it has one. */

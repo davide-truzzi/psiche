@@ -1,14 +1,19 @@
 package it.infog.psiche.export.document;
 
 import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.export.document.model.enums.Alignment;
 import it.infog.psiche.export.document.model.enums.PageStart;
+import it.infog.psiche.export.document.model.enums.RowPlace;
 import it.infog.psiche.export.document.model.enums.Style;
+
+import java.util.List;
 
 /**
  * The text of a word processor's document as it is written, in a format of its own, ODT or DOCX: what
  * {@link ChapterRenderer}, {@link TitlePageRenderer} and {@link ContentsRenderer} write a manuscript with. Everything
  * is named by its {@link Style}, so the look stays in the format's stylesheet; each format only decides how to write
- * it. A paragraph, heading, span, link, list or list item is opened, filled and closed, as in the XML of both formats.
+ * it. A paragraph, heading, span, link, list, list item, table, row or cell is opened, filled and closed, as in the
+ * XML of both formats.
  */
 public interface DocumentBody {
 
@@ -57,6 +62,24 @@ public interface DocumentBody {
     void closeListItem();
 
     void closeList();
+
+    /**
+     * Opens a table as wide as the text, of a column per alignment, each column's cells set as its alignment says;
+     * its rows follow, each holding a cell per column.
+     */
+    void openTable(List<Alignment> alignments);
+
+    /** Opens a row; its {@code place} in the table decides its rules, and the header row is repeated over pages. */
+    void openRow(RowPlace place);
+
+    /** Opens the row's next cell, whose paragraphs are set as its column's alignment says. */
+    void openCell();
+
+    void closeCell();
+
+    void closeRow();
+
+    void closeTable();
 
     /**
      * Writes {@code text} as it is, every space kept.

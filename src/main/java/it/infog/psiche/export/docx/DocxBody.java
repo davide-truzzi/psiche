@@ -3,7 +3,9 @@ package it.infog.psiche.export.docx;
 import it.infog.psiche.export.XmlText;
 import it.infog.psiche.export.document.DocumentBody;
 import it.infog.psiche.export.document.model.Picture;
+import it.infog.psiche.export.document.model.enums.Alignment;
 import it.infog.psiche.export.document.model.enums.PageStart;
+import it.infog.psiche.export.document.model.enums.RowPlace;
 import it.infog.psiche.export.document.model.enums.Style;
 import it.infog.psiche.export.docx.model.OpenList;
 
@@ -208,6 +210,32 @@ final class DocxBody implements DocumentBody {
     public void closeList() {
 
         lists.pop();
+    }
+
+    // Until a DOCX draws tables, a table's cells are written as the paragraphs they hold, one after the other.
+
+    @Override
+    public void openTable(List<Alignment> alignments) {
+    }
+
+    @Override
+    public void openRow(RowPlace place) {
+    }
+
+    @Override
+    public void openCell() {
+    }
+
+    @Override
+    public void closeCell() {
+    }
+
+    @Override
+    public void closeRow() {
+    }
+
+    @Override
+    public void closeTable() {
     }
 
     /**

@@ -206,6 +206,37 @@ class ChapterExporterTest {
     }
 
     @Test
+    void odtDrawsATableRuledWithItsHeaderRowRepeatedAndItsColumnsAligned() throws Exception {
+        Path target = tempDir.resolve("table.odt");
+
+        exporter.manuscriptOdt("| Capitolo | Punto di vista | Parole |\n|---|:---:|---:|\n| 1 | *Marta* | 3.200 |\n"
+                + "| 2 | Elio | 2.850 |\n\nDopo.", "table", BOOK, tempDir, target);
+
+        String content = entry(target, "content.xml");
+        parse(content);
+        assertThat(content).contains(
+                "<table:table table:name=\"Table1\" table:style-name=\"Table\">\n"
+                        + "<table:table-column table:number-columns-repeated=\"3\"/>\n<table:table-header-rows>\n"
+                        + "<table:table-row><table:table-cell table:style-name=\"Table_Heading_Cell\" "
+                        + "office:value-type=\"string\"><text:p text:style-name=\"Table_20_Heading\">Capitolo</text:p>",
+                "<text:p text:style-name=\"Table_20_Heading_center\">Punto di vista</text:p>",
+                "</table:table-row>\n</table:table-header-rows>\n<table:table-row><table:table-cell "
+                        + "table:style-name=\"Table_Cell\" office:value-type=\"string\"><text:p "
+                        + "text:style-name=\"Table_20_Contents\">1</text:p>",
+                "<text:p text:style-name=\"Table_20_Contents_center\"><text:span text:style-name=\"Emphasis\">"
+                        + "Marta</text:span></text:p>",
+                "<table:table-cell table:style-name=\"Table_Last_Cell\" office:value-type=\"string\"><text:p "
+                        + "text:style-name=\"Table_20_Contents_end\">2.850</text:p>",
+                "</table:table>\n<text:p text:style-name=\"First_20_Paragraph\">Dopo.</text:p>",
+                "style:name=\"Table_20_Contents_end\" style:family=\"paragraph\" "
+                        + "style:parent-style-name=\"Table_20_Contents\"><style:paragraph-properties "
+                        + "fo:text-align=\"end\"/>",
+                "<style:table-properties style:width=\"16cm\" table:align=\"margins\"");
+        assertThat(entry(target, "styles.xml")).contains("style:name=\"Table_20_Contents\"",
+                "style:name=\"Table_20_Heading\"");
+    }
+
+    @Test
     void odtKeepsTheChapterInNamedStyles() throws IOException {
         Path target = tempDir.resolve("styles.odt");
         String chapter = "# Alba\n\nÈ così — *piano*, **forte**.\n\nSecond.\n\n---\n\nAfter <b>this</b> & that.\n\n"

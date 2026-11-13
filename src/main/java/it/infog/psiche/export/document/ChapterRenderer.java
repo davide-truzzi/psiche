@@ -16,6 +16,7 @@ import it.infog.psiche.markdown.model.Superscript;
 import org.commonmark.ext.footnotes.FootnoteDefinition;
 import org.commonmark.ext.footnotes.FootnoteReference;
 import org.commonmark.ext.gfm.strikethrough.Strikethrough;
+import org.commonmark.ext.gfm.tables.TableBlock;
 import org.commonmark.node.AbstractVisitor;
 import org.commonmark.node.BlockQuote;
 import org.commonmark.node.BulletList;
@@ -44,11 +45,12 @@ import java.util.function.Function;
 import java.util.Optional;
 
 /**
- * Writes a chapter's Markdown into a {@link DocumentBody}, in any format: headings, paragraphs, lists and spans that
- * only name their {@link Style}, so the look stays in the format's stylesheet. It follows the manuscript PDF: scene
- * breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, a line break inside a
- * paragraph is kept, and an image on a paragraph of its own is a centred figure with its caption under it. Each
- * heading carries a bookmark named {@link LinkTargets#headingId}, which links to it lead to.
+ * Writes a chapter's Markdown into a {@link DocumentBody}, in any format: headings, paragraphs, lists, tables and
+ * spans that only name their {@link Style}, so the look stays in the format's stylesheet. It follows the manuscript
+ * PDF: scene breaks are {@code * * *}, raw HTML is kept as text but HTML comments are left out, a line break inside a
+ * paragraph is kept, an image on a paragraph of its own is a centred figure with its caption under it, and a table is
+ * ruled above, under its header row and at its bottom. Each heading carries a bookmark named
+ * {@link LinkTargets#headingId}, which links to it lead to.
  */
 final class ChapterRenderer extends AbstractVisitor {
 
@@ -303,12 +305,23 @@ final class ChapterRenderer extends AbstractVisitor {
         }
     }
 
-    /** A note prints at its first reference, not where it is written. */
+    /** A table; a note prints at its first reference, not where it is written. */
     @Override
     public void visit(CustomBlock block) {
 
-        if (!(block instanceof FootnoteDefinition))
-            visitChildren(block);
+        switch (block) {
+            case TableBlock table -> table(table);
+            case FootnoteDefinition _ -> {
+            }
+            default -> visitChildren(block);
+        }
+    }
+
+    /** A table, its cells' text written as the chapter's text; the paragraph after it is not indented. */
+    private void table(TableBlock table) {
+
+        TableRenderer.render(table, body, this::visitChildren);
+        indentNext = false;
     }
 
     /**

@@ -31,6 +31,12 @@ public enum Style {
     /** Headings below level 4 use this one too. */
     HEADING_4("Heading_20_4"),
 
+    // Tables, named as LibreOffice names its own
+    /** A paragraph in a table's cell, single-spaced, not indented. */
+    TABLE_CONTENTS("Table_20_Contents"),
+    /** A paragraph in a cell of the table's header row: as {@link #TABLE_CONTENTS}, in bold. */
+    TABLE_HEADING("Table_20_Heading"),
+
     // The book's title page
     /** The cover image, centred above the title. */
     COVER("Cover"),
