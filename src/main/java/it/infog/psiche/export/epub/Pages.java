@@ -72,7 +72,9 @@ final class Pages {
         String content = "<section id=\"%s\" epub:type=\"chapter\" role=\"doc-chapter\">\n%s</section>\n"
                 .formatted(chapter.id(), renderer.toXhtml(chapter, links));
 
-        return page(chapter.id(), chapter.title(), " epub:type=\"bodymatter\"", BOOK_STYLESHEET, content, "");
+        // A chapter title ends with the mark, an SVG, which the manifest must declare.
+        return page(chapter.id(), chapter.title(), " epub:type=\"bodymatter\"", BOOK_STYLESHEET, content,
+                content.contains("<svg") ? "svg" : "");
     }
 
     /** The copyright notice, on a page of its own at the back, so the store's sample opens on the book itself. */

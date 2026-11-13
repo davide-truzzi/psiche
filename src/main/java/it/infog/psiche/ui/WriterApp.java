@@ -28,6 +28,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -54,6 +55,8 @@ public final class WriterApp extends Application {
 
     // The app's icon in the sizes window managers and taskbars ask for; the small ones are drawn by hand, not scaled.
     private static final List<Integer> ICON_SIZES = List.of(16, 32, 48, 64, 128, 256);
+    // The mark under the preview's titles, the logo's own file.
+    private static final String PREVIEW_MARK = "common/logo/psiche-mark.svg";
 
     // Registered with JavaFX at startup so both the controls and the WebView preview can use them by family name.
     // Each style is a static font of its own, as JavaFX only draws a variable font at its default weight.
@@ -92,7 +95,7 @@ public final class WriterApp extends Application {
         keychain = new Keychain(settingsFolder);
 
         //load preview CSS: the dark theme only recolors the default one, so it comes after it
-        String previewStyle = readResource("preview.css");
+        String previewStyle = readResource("preview.css").replace("{{mark}}", dataAddress(PREVIEW_MARK));
         String darkStyle = readResource("preview-dark.css");
         Function<PreviewTheme, MarkdownRenderer> renderers = theme -> new MarkdownRenderer(switch (theme) {
             case DEFAULT -> previewStyle;
@@ -190,6 +193,13 @@ public final class WriterApp extends Application {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /** The SVG file {@code name}, beside this class, as a {@code data:} address a page can show from anywhere. */
+    private static String dataAddress(String name) {
+
+        return "data:image/svg+xml;base64,"
+                + Base64.getEncoder().encodeToString(readResource(name).getBytes(StandardCharsets.UTF_8));
     }
 
     private static String readResource(String name) {

@@ -87,7 +87,7 @@ class BookAssemblerTest {
         assertThat(placeholder.id()).isEqualTo("chapter-2");
         assertThat(placeholder.title()).isEqualTo("07-ritorno");
         assertThat(XhtmlRenderer.render(placeholder, LinkTargets.of(book.chapters())))
-                .startsWith("<h1 id=\"chapter-2--07-ritorno\">07-ritorno<span ").endsWith("</h1>\n");
+                .startsWith("<h1 id=\"chapter-2--07-ritorno\">07-ritorno<object ").endsWith("</h1>\n");
     }
 
     @Test
@@ -98,7 +98,7 @@ class BookAssemblerTest {
 
         assertThat(book.chapters().get(1).title()).isEqualTo("Due");
         assertThat(XhtmlRenderer.render(book.chapters().get(1), LinkTargets.of(book.chapters())))
-                .startsWith("<h1 id=\"chapter-2--due\">Due<span ");
+                .startsWith("<h1 id=\"chapter-2--due\">Due<object ");
     }
 
     @Test

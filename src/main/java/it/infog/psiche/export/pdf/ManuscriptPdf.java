@@ -2,9 +2,11 @@ package it.infog.psiche.export.pdf;
 
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.common.Template;
+import it.infog.psiche.export.TitleMark;
 import it.infog.psiche.export.model.Contents;
 import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.openhtmltopdf.render.DefaultObjectDrawerFactory;
 import com.openhtmltopdf.util.XRLog;
 import org.apache.pdfbox.pdmodel.font.FontMappers;
 
@@ -28,6 +30,8 @@ import static it.infog.psiche.export.XmlText.escape;
 public final class ManuscriptPdf {
 
     private static final String FONTS = "/it/infog/psiche/export/pdf/fonts/";
+    // Draws the Psiche mark under each chapter title in lines, where the XHTML has its object.
+    private static final DefaultObjectDrawerFactory DRAWERS = new DefaultObjectDrawerFactory();
 
     private final Template page = Template.load(ManuscriptPdf.class, "page.xhtml");
     private final String chapterStyle;
@@ -38,6 +42,7 @@ public final class ManuscriptPdf {
         FontMappers.set(new BundledFontMapper());
         // The renderer logs its progress at info level on every export; keep its warnings, such as a missing image.
         XRLog.listRegisteredLoggers().forEach(logger -> XRLog.setLevel(logger, Level.WARNING));
+        DRAWERS.registerDrawer(TitleMark.OBJECT_TYPE, new TitleMarkDrawer());
     }
 
     public ManuscriptPdf() {
@@ -93,6 +98,7 @@ public final class ManuscriptPdf {
         try (OutputStream out = Files.newOutputStream(target)) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
+            builder.useObjectDrawerFactory(DRAWERS);
             useFont(builder, "LibertinusSerif-Regular.ttf", 400, FontStyle.NORMAL);
             useFont(builder, "LibertinusSerif-Italic.ttf", 400, FontStyle.ITALIC);
             useFont(builder, "LibertinusSerif-Bold.ttf", 700, FontStyle.NORMAL);

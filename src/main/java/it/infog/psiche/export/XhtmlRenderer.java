@@ -35,8 +35,8 @@ import java.util.function.UnaryOperator;
  * paragraph is kept, and an image on a paragraph of its own is a figure with its caption under it
  * ({@link FigureRenderer}). Each heading has its id from {@link LinkTargets#headingId}; web and mail links stay links,
  * a link to a chapter or a heading of the export leads there, and any other link is its text alone. Both close each
- * chapter title, a level-1 heading, with the Psiche mark, a Ψ hidden from screen readers, inside the heading so that
- * the stylesheets' rules for the paragraph after a heading still apply. They differ in two things:
+ * chapter title, a level-1 heading, with the Psiche mark ({@link TitleMark}), hidden from screen readers, inside the
+ * heading so that the stylesheets' rules for the paragraph after a heading still apply. They differ in two things:
  * <ul>
  *     <li>the manuscript, for the PDF, prints a scene break as a centred {@code * * *}, shows images where the
  *     chapter links them, links a place of the book within its one document, and prints the footnotes at the foot
@@ -50,13 +50,11 @@ import java.util.function.UnaryOperator;
 public final class XhtmlRenderer {
 
     private static final String SCENE_BREAK = "* * *";
-    // The manuscript's stylesheet styles the mark.
-    private static final XhtmlRenderer MANUSCRIPT = new XhtmlRenderer(null,
-            "<span class=\"title-mark\" aria-hidden=\"true\">Ψ</span>", place -> "#" + place.elementId());
-    // Styled here rather than in the book's stylesheet, which the author may have written before the mark existed.
-    private static final String EBOOK_TITLE_MARK = "<span class=\"title-mark\" aria-hidden=\"true\" "
-            + "style=\"display: block; margin-top: 0.3em; font-size: 0.9em; line-height: 1; color: #b8361f;\">Ψ</span>";
-    // An image and its caption, centred with room around them, styled here for the same reason.
+    // The manuscript's stylesheet sizes the mark.
+    private static final XhtmlRenderer MANUSCRIPT = new XhtmlRenderer(null, TitleMark.manuscript(),
+            place -> "#" + place.elementId());
+    // An image and its caption, centred with room around them, styled here rather than in the book's stylesheet,
+    // which the author may have written without them.
     private static final Map<String, String> EBOOK_FIGURE_STYLES = Map.of(
             "figure", "margin: 1.5em 0; text-align: center; text-indent: 0;",
             "figcaption", "margin-top: 0.5em; font-size: 0.9em; font-style: italic; text-align: center; text-indent: 0;");
@@ -89,7 +87,7 @@ public final class XhtmlRenderer {
      */
     public static XhtmlRenderer ebook(ImageLinks images, Function<LinkPlace, String> hrefs) {
 
-        return new XhtmlRenderer(images, EBOOK_TITLE_MARK, hrefs);
+        return new XhtmlRenderer(images, TitleMark.ebook(), hrefs);
     }
 
     /** {@code chapter} as an XHTML fragment, for the body of a page, its links led by {@code links}. */

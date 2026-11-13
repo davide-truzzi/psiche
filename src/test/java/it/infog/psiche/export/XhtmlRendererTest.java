@@ -113,8 +113,8 @@ class XhtmlRendererTest {
     @Test
     void theManuscriptEndsEachChapterTitleWithTheMark() {
         assertThat(render("# Alba\n\nIt began at dawn.\n\n## Morning\n"))
-                .isEqualTo("<h1 id=\"chapter--alba\">Alba<span class=\"title-mark\" aria-hidden=\"true\">Ψ</span>"
-                        + "</h1>\n"
+                .isEqualTo("<h1 id=\"chapter--alba\">Alba<object type=\"application/x-psiche-mark\" "
+                        + "class=\"title-mark\" aria-hidden=\"true\"></object></h1>\n"
                         + "<p>It began at dawn.</p>\n<h2 id=\"chapter--morning\">Morning</h2>\n");
     }
 
@@ -124,9 +124,10 @@ class XhtmlRendererTest {
 
         String xhtml = ebook(ebook, "# *Alba*\n\n## Morning\n");
 
-        assertThat(xhtml).startsWith("<h1 id=\"chapter--alba\"><em>Alba</em><span class=\"title-mark\" "
+        assertThat(xhtml).startsWith("<h1 id=\"chapter--alba\"><em>Alba</em><svg class=\"title-mark\" "
                         + "aria-hidden=\"true\" style=\"")
-                .contains("color: #b8361f;").endsWith("\">Ψ</span></h1>\n<h2 id=\"chapter--morning\">Morning</h2>\n");
+                .contains("stroke=\"#b8361f\"", "fill=\"#b8361f\"").doesNotContain("currentColor")
+                .endsWith("</svg></h1>\n<h2 id=\"chapter--morning\">Morning</h2>\n");
     }
 
     @Test

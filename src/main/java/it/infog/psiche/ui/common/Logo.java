@@ -31,15 +31,15 @@ import java.util.regex.Pattern;
  */
 public final class Logo {
 
-    // Below 32 pixels the brand kit draws the mark without its dots and ring.
-    private static final String MARK = "logo/psiche-mark-small.svg";
+    // The whole mark, with its dots and ring, as the app's icon draws it, even below the 32 pixels the brand kit asks.
+    private static final String MARK = "logo/psiche-mark.svg";
     private static final String LOCKUP = "logo/psiche-lockup-stacked.svg";
     private static final Pattern TRANSFORM = Pattern.compile("(translate|scale)\\(([^)]*)\\)");
 
     private Logo() {
     }
 
-    /** The small mark, {@code height} pixels tall. */
+    /** The mark, {@code height} pixels tall. */
     public static Node mark(double height) {
 
         Group shapes = load(MARK);

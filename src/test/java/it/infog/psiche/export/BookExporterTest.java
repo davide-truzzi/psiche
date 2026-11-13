@@ -84,7 +84,7 @@ class BookExporterTest {
 
         try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
             assertThat(pdf.getNumberOfPages()).isEqualTo(5);
-            assertThat(page(pdf, 4).replace(HEADER + " 2", "").strip()).isEqualToNormalizingNewlines("02-vuoto\nΨ");
+            assertThat(page(pdf, 4).replace(HEADER + " 2", "").strip()).isEqualTo("02-vuoto");
             assertThat(page(pdf, 5)).contains("Sera");
         }
     }

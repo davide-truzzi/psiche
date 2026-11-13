@@ -80,6 +80,10 @@
     -fx-stroke: -red-pencil;
 }
 
+.toolbar-mark .logo-fill {
+    -fx-fill: -red-pencil;
+}
+
 .book-title {
     -fx-font-family: "Libertinus Serif";
     -fx-font-style: italic;

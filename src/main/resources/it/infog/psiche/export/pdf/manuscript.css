@@ -55,12 +55,12 @@ h1 {
     line-height: 1.4;
 }
 
-/* The Psiche mark under the title. */
+/* The Psiche mark under the title, drawn in lines by the PDF's renderer (export/psiche-mark.svg) in this box. */
 .title-mark {
     display: block;
-    margin-top: 0.3em;
-    font-size: 0.9em;
-    line-height: 1;
+    width: 0.63em;
+    height: 0.9em;
+    margin: 0.3em auto 0;
 }
 
 h2, h3, h4 {
