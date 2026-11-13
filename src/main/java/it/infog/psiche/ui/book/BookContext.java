@@ -12,12 +12,15 @@ import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.Settings;
 import it.infog.psiche.ui.chapters.ChapterContext;
 import it.infog.psiche.ui.chapters.UnsavedChanges;
+import it.infog.psiche.ui.common.AppInfo;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.notes.NotesTransfer;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.StringExpression;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.scene.control.ButtonBar.ButtonData;
@@ -109,6 +112,13 @@ public final class BookContext implements AutoCloseable {
     public Label title() {
 
         return bookTitle;
+    }
+
+    /** The window's title: the open book's, then the app's name; the app's name alone while no book is open. */
+    public StringExpression windowTitle() {
+
+        return Bindings.when(bookOpen).then(bookTitle.textProperty().concat(" - " + AppInfo.NAME))
+                .otherwise(AppInfo.NAME);
     }
 
     /** True while a book is open. */
@@ -273,8 +283,9 @@ public final class BookContext implements AutoCloseable {
         closeBook();
 
         book = opened;
-        bookOpen.set(true);
+        // The title first, so the window's never shows the one of no book.
         bookTitle.setText(displayTitle());
+        bookOpen.set(true);
         statusBar.setPageMeasure(pageMeasure());
         state = BookState.of(book);
         try {

@@ -114,8 +114,7 @@ public final class WriterApp extends Application {
                 KeyCombination.SHIFT_DOWN), workspace::saveAll);
 
         //complete and show stage
-        // TODO: remove the version when production ready, at the first stable release: About keeps it.
-        stage.setTitle(AppInfo.version().map(version -> AppInfo.NAME + " " + version).orElse(AppInfo.NAME));
+        stage.titleProperty().bind(workspace.windowTitle());
         ICON_SIZES.forEach(size -> stage.getIcons().add(
                 new Image(WriterApp.class.getResource("icons/psiche-%d.png".formatted(size)).toExternalForm())));
         stage.setScene(scene);

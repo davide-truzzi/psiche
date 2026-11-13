@@ -32,6 +32,7 @@ import it.infog.psiche.ui.preferences.SupportDialog;
 import it.infog.psiche.ui.preview.PreviewPane;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
+import javafx.beans.binding.StringExpression;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.geometry.Side;
 import javafx.scene.Node;
@@ -162,6 +163,12 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     void openBook(Path directory) {
 
         books.openBook(directory);
+    }
+
+    /** The window's title, which names the open book. */
+    StringExpression windowTitle() {
+
+        return books.windowTitle();
     }
 
     /** Saves the open chapter. @return false if it could not be written; the author has already been told why */
