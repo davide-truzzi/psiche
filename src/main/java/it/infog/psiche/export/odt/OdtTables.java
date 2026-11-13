@@ -12,8 +12,9 @@ import java.util.Map;
  * The tables of {@code content.xml} as they are written into {@link OdtBody}'s text. Each is as wide as the text, its
  * columns evenly wide, and ruled as printed books set tables, by its cells' borders: above and under its header row,
  * and under its last row. The header row is kept in {@code table:table-header-rows}, which the word processor repeats
- * on every page the table runs over. A cell's paragraphs take its column's alignment through an automatic style over
- * Table Contents or Table Heading, which {@code styles.xml} defines.
+ * on every page the table runs over, and no row splits between pages, as in the PDF and the DOCX. A cell's paragraphs
+ * take its column's alignment through an automatic style over Table Contents or Table Heading, which
+ * {@code styles.xml} defines.
  */
 final class OdtTables {
 
@@ -26,6 +27,8 @@ final class OdtTables {
             <style:style style:name="Table" style:family="table">
             <style:table-properties style:width="16cm" table:align="margins" fo:margin-top="0.8cm" \
             fo:margin-bottom="0.8cm"/></style:style>
+            <style:style style:name="Table_Row" style:family="table-row">
+            <style:table-row-properties fo:keep-together="always"/></style:style>
             <style:style style:name="Table_Heading_Cell" style:family="table-cell">
             <style:table-cell-properties %s fo:border-top="0.75pt solid #000000" \
             fo:border-bottom="0.5pt solid #000000"/></style:style>
@@ -77,7 +80,7 @@ final class OdtTables {
             case LAST -> "Table_Last_Cell";
         };
         column = -1;
-        xml.append("<table:table-row>");
+        xml.append("<table:table-row table:style-name=\"Table_Row\">");
     }
 
     void openCell() {

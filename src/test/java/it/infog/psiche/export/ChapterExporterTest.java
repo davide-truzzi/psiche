@@ -217,10 +217,12 @@ class ChapterExporterTest {
         assertThat(content).contains(
                 "<table:table table:name=\"Table1\" table:style-name=\"Table\">\n"
                         + "<table:table-column table:number-columns-repeated=\"3\"/>\n<table:table-header-rows>\n"
-                        + "<table:table-row><table:table-cell table:style-name=\"Table_Heading_Cell\" "
+                        + "<table:table-row table:style-name=\"Table_Row\"><table:table-cell "
+                        + "table:style-name=\"Table_Heading_Cell\" "
                         + "office:value-type=\"string\"><text:p text:style-name=\"Table_20_Heading\">Capitolo</text:p>",
                 "<text:p text:style-name=\"Table_20_Heading_center\">Punto di vista</text:p>",
-                "</table:table-row>\n</table:table-header-rows>\n<table:table-row><table:table-cell "
+                "</table:table-row>\n</table:table-header-rows>\n<table:table-row table:style-name=\"Table_Row\">"
+                        + "<table:table-cell "
                         + "table:style-name=\"Table_Cell\" office:value-type=\"string\"><text:p "
                         + "text:style-name=\"Table_20_Contents\">1</text:p>",
                 "<text:p text:style-name=\"Table_20_Contents_center\"><text:span text:style-name=\"Emphasis\">"
@@ -231,7 +233,8 @@ class ChapterExporterTest {
                 "style:name=\"Table_20_Contents_end\" style:family=\"paragraph\" "
                         + "style:parent-style-name=\"Table_20_Contents\"><style:paragraph-properties "
                         + "fo:text-align=\"end\"/>",
-                "<style:table-properties style:width=\"16cm\" table:align=\"margins\"");
+                "<style:table-properties style:width=\"16cm\" table:align=\"margins\"",
+                "<style:table-row-properties fo:keep-together=\"always\"/>");
         assertThat(entry(target, "styles.xml")).contains("style:name=\"Table_20_Contents\"",
                 "style:name=\"Table_20_Heading\"");
     }
