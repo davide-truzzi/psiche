@@ -17,12 +17,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 import static it.infog.psiche.export.ZipParts.entry;
 import static it.infog.psiche.export.ZipParts.parse;
+import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class ChapterExporterTest {
@@ -110,6 +112,37 @@ class ChapterExporterTest {
 
         try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
             assertThat(new PDFTextStripper().getText(pdf)).contains("Moon", "and stars.", "1. A note.");
+        }
+    }
+
+    @Test
+    void manuscriptPdfPrintsATableRowByRowWithoutItsPipes() throws IOException {
+        Path target = tempDir.resolve("table.pdf");
+
+        exporter.manuscriptPdf("| Volete | Scrivete |\n|---|---:|\n| Corsivo | *parola* |", "table", BOOK, tempDir,
+                target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setSortByPosition(true);
+            assertThat(stripper.getText(pdf)).contains("Volete Scrivete", "Corsivo parola").doesNotContain("|");
+        }
+    }
+
+    @Test
+    void manuscriptPdfRepeatsATablesHeaderRowOnTheNextPage() throws IOException {
+        Path target = tempDir.resolve("long-table.pdf");
+        String rows = IntStream.rangeClosed(1, 60).mapToObj("| %d | Marta |\n"::formatted).collect(joining());
+
+        exporter.manuscriptPdf("| Capitolo | Punto di vista |\n|---|---|\n" + rows, "long-table", BOOK, tempDir,
+                target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            assertThat(pdf.getNumberOfPages()).isGreaterThan(1);
+            PDFTextStripper secondPage = new PDFTextStripper();
+            secondPage.setStartPage(2);
+            secondPage.setEndPage(2);
+            assertThat(secondPage.getText(pdf)).contains("Capitolo", "Punto di vista");
         }
     }
 
