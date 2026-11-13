@@ -1282,26 +1282,6 @@
     -fx-text-alignment: center;
 }
 
-.support-dialog-lamp {
-    -fx-background-color: -coffee;
-    -fx-min-width: 45;
-    -fx-pref-width: 45;
-    -fx-max-width: 45;
-    -fx-min-height: 64;
-    -fx-pref-height: 64;
-    -fx-max-height: 64;
-}
-
-/* The patron's lamp, while the pointer is over Buy Me a Coffee: as tall, wider by its rays, its outline 68.8 wide
-   to the lamp's 65.5, both 93 high. The left rays reach 3.3 further than the lamp, which centring the wider outline
-   would move 1.14 px to the right: moved back, the lamp stays where it was. */
-.support-dialog-lamp:patron {
-    -fx-min-width: 47.3;
-    -fx-pref-width: 47.3;
-    -fx-max-width: 47.3;
-    -fx-translate-x: -1.14;
-}
-
 .form-hint {
     -fx-text-fill: -graphite;
     -fx-font-size: 11px;
