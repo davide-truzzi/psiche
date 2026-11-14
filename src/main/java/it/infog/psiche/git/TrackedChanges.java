@@ -26,6 +26,8 @@ public final class TrackedChanges {
 
     // A change adds or removes whole words, runs of spaces or single punctuation marks.
     private static final Pattern TOKEN = Pattern.compile("\\s+|[\\p{L}\\p{N}\\p{M}'’]+|.");
+    // A word as a writer counts it; punctuation does not count.
+    private static final Pattern WORD = Pattern.compile("[\\p{L}\\p{N}\\p{M}'’]+");
     // Below this share of words in common, two lines read better as one removed and another written than as an edit.
     private static final double SIMILAR = 0.5;
 
@@ -52,7 +54,13 @@ public final class TrackedChanges {
 
         thenLines.items.subList(next, thenLines.size()).forEach(line -> paragraphs.add(whole(line, Change.UNCHANGED)));
         return new Comparison(paragraphs, count(paragraphs, null), count(paragraphs, Change.ADDED),
-                count(paragraphs, Change.REMOVED));
+                count(paragraphs, Change.REMOVED), words(paragraphs, Change.ADDED), words(paragraphs, Change.REMOVED));
+    }
+
+    /** The words in {@code text}, as a writer counts them: runs of letters and digits, apostrophes included. */
+    public static int countWords(String text) {
+
+        return (int) WORD.matcher(text).results().count();
     }
 
     /** Lines without their line breaks; a final line break does not start another, empty line. */
@@ -231,6 +239,16 @@ public final class TrackedChanges {
                         ? paragraph.segments().size() > 1 && paragraph.changed()
                         : paragraph.segments().stream().allMatch(segment -> segment.change() == change))
                 .count();
+    }
+
+    /** The words in the runs of text with {@code change}, as {@link #countWords} counts them. */
+    private static int words(List<Paragraph> paragraphs, Change change) {
+
+        return paragraphs.stream()
+                .flatMap(paragraph -> paragraph.segments().stream())
+                .filter(segment -> segment.change() == change)
+                .mapToInt(segment -> countWords(segment.text()))
+                .sum();
     }
 
     /** A list of lines or words that JGit's diff algorithms can compare. */

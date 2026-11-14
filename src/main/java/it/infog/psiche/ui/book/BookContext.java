@@ -17,6 +17,8 @@ import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.export.Exports;
+import it.infog.psiche.ui.export.HistoryExport;
+import it.infog.psiche.ui.export.RevisionExport;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.notes.NotesTransfer;
 import javafx.beans.binding.Bindings;
@@ -70,6 +72,8 @@ public final class BookContext implements AutoCloseable {
     private final ChapterFolderWatch chapterWatch;
     private final BookLocations locations;
     private final BookCreation creation;
+    private final HistoryExport historyExport;
+    private final RevisionExport revisionExport;
 
     private BookFolder book;
     private BookRepository repository;
@@ -101,6 +105,8 @@ public final class BookContext implements AutoCloseable {
         chapterWatch = new ChapterFolderWatch(chapters, statusBar);
         locations = new BookLocations(settings);
         creation = new BookCreation(unsavedChanges, gitControls, locations, settings, errors, window, this::openBook);
+        historyExport = new HistoryExport(gitControls, exports, unsavedChanges::any, statusBar, errors, window);
+        revisionExport = new RevisionExport(gitControls, exports, statusBar, errors, window);
 
         bookTitle.getStyleClass().add("book-title");
         statusBar.setOnPageMeasureChosen(this::choosePageMeasure);
@@ -223,6 +229,20 @@ public final class BookContext implements AutoCloseable {
     public void exportBook(ExportFormat format) {
 
         exports.exportBook(book, format);
+    }
+
+    /** Exports the open book's writing history, every committed revision of its chapters, to a PDF. */
+    public void exportWritingHistory() {
+
+        if (hasRevisions())
+            historyExport.export(book);
+    }
+
+    /** Exports the open book as a revision the author chooses left it. */
+    public void exportRevision() {
+
+        if (hasRevisions())
+            revisionExport.export(book);
     }
 
     /** Writes the open book's notes to a zip, to move them to another computer or keep a copy. */
@@ -453,5 +473,16 @@ public final class BookContext implements AutoCloseable {
         Dialogs.choose(window.get(), NOT_A_BOOK_HEADER, NOT_A_BOOK, CHOOSE_AGAIN, ButtonType.CANCEL)
                 .filter(CHOOSE_AGAIN::equals)
                 .ifPresent(choice -> chooseBookFrom(folder));
+    }
+
+    /** True if the open book has a Git repository to read revisions from; otherwise tells the author it has none. */
+    private boolean hasRevisions() {
+
+        if (repository != null)
+            return true;
+
+        Dialogs.inform(window.get(), "No revisions to export",
+                "This book has no Git repository, so Psiche has kept no revisions of it.");
+        return false;
     }
 }

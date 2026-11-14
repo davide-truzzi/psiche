@@ -732,6 +732,22 @@
     -fx-pref-height: 280;
 }
 
+/* Book at a revision: every commit, the format under the list. The list is named on its own, as a selector through
+   the dialog would also size the format box's list, which shows in a popup of the box's. */
+
+.revision-list {
+    -fx-pref-width: 480;
+    -fx-pref-height: 320;
+}
+
+.revision-format {
+    -fx-padding: 12 18 0 18;
+}
+
+.revision-choice .history-hint {
+    -fx-max-width: 480;
+}
+
 /* Detached notes and images: a group under each line, the notes as small cards in their colours, with the darker
    layer a note on the board has, the images as small pictures. */
 .detached .scroll-pane,

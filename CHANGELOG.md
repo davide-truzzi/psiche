@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.0 Beta (not released yet)
+
+### What is new
+
+- **Writing history**: Book → Export → **Writing history (PDF)** writes every committed revision of the chapters, from
+  the first, to one PDF, for a competition or a publisher that asks how the book was written. A cover says what the
+  document is and how to read it; a summary lists each revision with its date, message, chapters and the words it
+  wrote and removed; then each revision shows the passages it changed as tracked changes, written text underlined and
+  removed text struck through. Small revisions made one after another on the same day share a section showing their
+  largest passages. Every revision is named by its commit id, to check against the book's history. If the latest
+  changes are not committed, Psiche offers to commit them first.
+- **Book at a revision**: Book → Export → **Book at a revision…** exports the book as one commit left it, in any of
+  the book's formats: pick the revision from every commit of the book. The file is named after the revision's day and
+  the first words of its message.
+
 ## 0.7.0 Beta (2026-11-13)
 
 The first Beta: tables, a way to support Psiche Writer, its official mark in the app and in the books it exports, the

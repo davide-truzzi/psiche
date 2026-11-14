@@ -1,0 +1,224 @@
+/*
+ * The writing history: A4, single-spaced, the book's title at the top of every page and "Page n of m" at the bottom.
+ * {{header}} is replaced by the book's title when the PDF is made. Changes are marked by underlining and striking
+ * through, not by colour alone, so a black-and-white print reads the same.
+ */
+
+@page {
+    size: A4;
+    margin: 2.2cm 2cm;
+
+    @top-left {
+        content: "{{header}}";
+        font-family: "Libertinus Serif", serif;
+        font-size: 9pt;
+        color: #555555;
+        vertical-align: bottom;
+        padding-bottom: 0.4cm;
+    }
+
+    @bottom-right {
+        content: "Page " counter(page) " of " counter(pages);
+        font-family: "Libertinus Serif", serif;
+        font-size: 9pt;
+        color: #555555;
+        vertical-align: top;
+        padding-top: 0.4cm;
+    }
+}
+
+/* The cover has no header and no page number. */
+@page :first {
+    @top-left {
+        content: none;
+    }
+
+    @bottom-right {
+        content: none;
+    }
+}
+
+html, body {
+    font-family: "Libertinus Serif", serif;
+    font-size: 11pt;
+    line-height: 1.35;
+    color: #000000;
+    word-wrap: break-word;
+}
+
+p {
+    margin: 0 0 0.3em;
+}
+
+code, .short-id {
+    font-family: monospace;
+    font-size: 8.5pt;
+}
+
+ins {
+    text-decoration: underline;
+    color: #1d5c2a;
+}
+
+del {
+    text-decoration: line-through;
+    color: #9a2a1d;
+}
+
+/* The cover: the book, the facts of the history, and how to read it. */
+.cover {
+    page-break-after: always;
+    padding-top: 2.5cm;
+}
+
+.cover .kind, .book-title, .book-subtitle, .book-authors {
+    text-align: center;
+}
+
+.cover .kind {
+    font-size: 12pt;
+    text-transform: uppercase;
+    margin-bottom: 0.8cm;
+}
+
+.book-title {
+    font-size: 24pt;
+    margin-bottom: 0.3cm;
+}
+
+.book-subtitle {
+    font-size: 14pt;
+    font-style: italic;
+}
+
+.book-authors {
+    font-size: 13pt;
+    margin-top: 0.6cm;
+}
+
+.facts {
+    margin: 1.5cm auto 1cm;
+    border-collapse: collapse;
+}
+
+.facts th, .facts td {
+    padding: 0.08cm 0.25cm;
+    text-align: left;
+    vertical-align: top;
+}
+
+.facts th {
+    font-weight: normal;
+    color: #555555;
+}
+
+.statement p {
+    text-align: justify;
+}
+
+.legend-title {
+    font-weight: bold;
+    margin-top: 0.6cm;
+}
+
+/* The summary: a row per revision, its header row repeated on every page. */
+.summary {
+    page-break-after: always;
+}
+
+h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin: 0 0 0.3cm;
+    page-break-after: avoid;
+}
+
+.revisions {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+    line-height: 1.25;
+    -fs-table-paginate: paginate;
+}
+
+.revisions th {
+    text-align: left;
+    border-bottom: 0.5pt solid #000000;
+    white-space: nowrap;
+}
+
+.revisions .date {
+    white-space: nowrap;
+}
+
+.revisions th, .revisions td {
+    padding: 0.06cm 0.15cm;
+    vertical-align: top;
+}
+
+.revisions tr {
+    page-break-inside: avoid;
+}
+
+.revisions .number, .revisions .words {
+    text-align: right;
+}
+
+.revisions a {
+    color: #000000;
+    text-decoration: none;
+}
+
+/* A revision, or a run of small ones: its heading kept with what follows, a rule above it. */
+.revision {
+    border-top: 0.5pt solid #999999;
+    padding-top: 0.3cm;
+    margin-top: 0.6cm;
+}
+
+.when {
+    color: #555555;
+    font-size: 9.5pt;
+}
+
+.message {
+    font-style: italic;
+    margin: 0.2cm 0;
+}
+
+.counts {
+    margin-bottom: 0.2cm;
+    page-break-after: avoid;
+}
+
+h3 {
+    font-size: 11pt;
+    font-weight: bold;
+    margin: 0.35cm 0 0.15cm;
+    page-break-after: avoid;
+}
+
+h3 .note {
+    font-weight: normal;
+    font-style: italic;
+}
+
+.note, .more {
+    font-style: italic;
+    color: #555555;
+}
+
+/* A chapter's lines as the author typed them, spaces kept, set in from the left. */
+.passages {
+    margin-left: 0.6cm;
+}
+
+.line {
+    white-space: pre-wrap;
+}
+
+/* Kept with the line after it, so a page never ends on text left out. */
+.gap {
+    color: #555555;
+    page-break-after: avoid;
+}

@@ -29,6 +29,20 @@ class TrackedChangesTest {
     }
 
     @Test
+    void countsTheWordsWrittenAndRemovedButNotPunctuationOrSpaces() {
+        Comparison comparison = TrackedChanges.compare("It began at dawn.\nNobody spoke.\n",
+                "It began, slowly, at dusk.\nNobody spoke.\nThe carts were loaded.\n");
+
+        assertThat(comparison.wordsAdded()).isEqualTo(6);
+        assertThat(comparison.wordsRemoved()).isEqualTo(1);
+    }
+
+    @Test
+    void countsWordsAsAWriterDoes() {
+        assertThat(TrackedChanges.countWords("L'alba, 3 carri — e nessuno parlava...")).isEqualTo(6);
+    }
+
+    @Test
     void marksOnlyTheWordsWrittenSinceTheVersion() {
         Comparison comparison = TrackedChanges.compare("bu!\n", "bu!dd\n");
 
