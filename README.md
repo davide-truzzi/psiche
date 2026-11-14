@@ -52,6 +52,12 @@ Ready-made packages bring their own Java runtime, so there is nothing else to in
 The packages are not signed yet, so Windows may ask you to confirm the first start. If Smart App Control blocks it,
 use `psiche\psiche.cmd` in the same folder.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org). Who builds, reviews and approves the signed releases, and what Psiche
+sends over the network: [CODE_SIGNING_POLICY.md](CODE_SIGNING_POLICY.md).
+
 ## A book on disk
 
 ```
