@@ -1,24 +1,9 @@
 package it.infog.psiche.export.pdf;
 
 import it.infog.psiche.book.model.BookProperties;
-import it.infog.psiche.common.Template;
-import it.infog.psiche.export.TitleMark;
 import it.infog.psiche.export.model.Contents;
-import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder.FontStyle;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.openhtmltopdf.render.DefaultObjectDrawerFactory;
-import com.openhtmltopdf.util.XRLog;
-import org.apache.pdfbox.pdmodel.font.FontMappers;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.logging.Level;
 
 import static it.infog.psiche.export.XmlText.escape;
 
@@ -29,26 +14,13 @@ import static it.infog.psiche.export.XmlText.escape;
  */
 public final class ManuscriptPdf {
 
-    private static final String FONTS = "/it/infog/psiche/export/pdf/fonts/";
-    // Draws the Psiche mark under each chapter title in lines, where the XHTML has its object.
-    private static final DefaultObjectDrawerFactory DRAWERS = new DefaultObjectDrawerFactory();
-
-    private final Template page = Template.load(ManuscriptPdf.class, "page.xhtml");
     private final String chapterStyle;
     private final String bookStyle;
 
-    static {
-        // Keeps PDFBox from reading and caching every installed font; exports only draw with fonts they embed.
-        FontMappers.set(new BundledFontMapper());
-        // The renderer logs its progress at info level on every export; keep its warnings, such as a missing image.
-        XRLog.listRegisteredLoggers().forEach(logger -> XRLog.setLevel(logger, Level.WARNING));
-        DRAWERS.registerDrawer(TitleMark.OBJECT_TYPE, new TitleMarkDrawer());
-    }
-
     public ManuscriptPdf() {
 
-        this.chapterStyle = readResource("manuscript.css");
-        this.bookStyle = chapterStyle + readResource("book.css");
+        this.chapterStyle = PdfLayout.readResource(ManuscriptPdf.class, "manuscript.css");
+        this.bookStyle = chapterStyle + PdfLayout.readResource(ManuscriptPdf.class, "book.css");
     }
 
     /**
@@ -87,30 +59,8 @@ public final class ManuscriptPdf {
     private void write(String stylesheet, String title, String header, BookProperties book, String head, String body,
                        Path baseDirectory, Path target) {
 
-        String html = page.fill(Map.of(
-                "language", escape(book.language()),
-                "title", escape(title),
-                "authors", escape(String.join(", ", book.authors())),
-                "style", stylesheet.replace("{{header}}", cssString(header)),
-                "head", head,
-                "body", body));
-
-        try (OutputStream out = Files.newOutputStream(target)) {
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFastMode();
-            // The program that made the PDF, as a PDF reader shows it in the document's properties.
-            builder.withProducer("Psiche Writer");
-            builder.useObjectDrawerFactory(DRAWERS);
-            useFont(builder, "LibertinusSerif-Regular.ttf", 400, FontStyle.NORMAL);
-            useFont(builder, "LibertinusSerif-Italic.ttf", 400, FontStyle.ITALIC);
-            useFont(builder, "LibertinusSerif-Bold.ttf", 700, FontStyle.NORMAL);
-            useFont(builder, "LibertinusSerif-BoldItalic.ttf", 700, FontStyle.ITALIC);
-            builder.withHtmlContent(html, baseDirectory.toUri().toString());
-            builder.toStream(out);
-            builder.run();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot write " + target, e);
-        }
+        String style = stylesheet.replace("{{header}}", PdfLayout.cssString(header));
+        PdfLayout.write(title, book, style, head, body, baseDirectory, target);
     }
 
     /** The PDF's bookmarks, as OpenHTMLtoPDF reads them from the head: the contents, then a bookmark per chapter. */
@@ -123,27 +73,5 @@ public final class ManuscriptPdf {
                     .formatted(escape(entry.title()), escape(entry.id())));
 
         return bookmarks.append("</bookmarks>\n").toString();
-    }
-
-    /** Embeds one style of Libertinus Serif, read only if the PDF uses it. */
-    private static void useFont(PdfRendererBuilder builder, String file, int weight, FontStyle style) {
-
-        builder.useFont(() -> ManuscriptPdf.class.getResourceAsStream(FONTS + file), "Libertinus Serif", weight,
-                style, true);
-    }
-
-    /** {@code text} as the content of a CSS string in double quotes. */
-    private static String cssString(String text) {
-
-        return text.replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n]+", " ");
-    }
-
-    private static String readResource(String name) {
-
-        try (InputStream in = ManuscriptPdf.class.getResourceAsStream(name)) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read " + name, e);
-        }
     }
 }
