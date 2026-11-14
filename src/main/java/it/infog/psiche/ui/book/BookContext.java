@@ -17,6 +17,7 @@ import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.export.Exports;
+import it.infog.psiche.ui.export.HistoryExport;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.notes.NotesTransfer;
 import javafx.beans.binding.Bindings;
@@ -70,6 +71,7 @@ public final class BookContext implements AutoCloseable {
     private final ChapterFolderWatch chapterWatch;
     private final BookLocations locations;
     private final BookCreation creation;
+    private final HistoryExport historyExport;
 
     private BookFolder book;
     private BookRepository repository;
@@ -101,6 +103,7 @@ public final class BookContext implements AutoCloseable {
         chapterWatch = new ChapterFolderWatch(chapters, statusBar);
         locations = new BookLocations(settings);
         creation = new BookCreation(unsavedChanges, gitControls, locations, settings, errors, window, this::openBook);
+        historyExport = new HistoryExport(gitControls, exports, unsavedChanges::any, statusBar, errors, window);
 
         bookTitle.getStyleClass().add("book-title");
         statusBar.setOnPageMeasureChosen(this::choosePageMeasure);
@@ -223,6 +226,18 @@ public final class BookContext implements AutoCloseable {
     public void exportBook(ExportFormat format) {
 
         exports.exportBook(book, format);
+    }
+
+    /** Exports the open book's writing history, every committed revision of its chapters, to a PDF. */
+    public void exportWritingHistory() {
+
+        if (repository == null) {
+            Dialogs.inform(window.get(), "No history to export",
+                    "This book has no Git repository, so Psiche has kept no revisions of it.");
+            return;
+        }
+
+        historyExport.export(book);
     }
 
     /** Writes the open book's notes to a zip, to move them to another computer or keep a copy. */

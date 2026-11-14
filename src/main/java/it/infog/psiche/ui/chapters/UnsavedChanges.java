@@ -27,6 +27,12 @@ public final class UnsavedChanges {
         this.window = window;
     }
 
+    /** True if any chapter has changes that are not saved. */
+    public boolean any() {
+
+        return chapterEditor.hasUnsavedChanges();
+    }
+
     /**
      * Lists the unsaved chapters under {@code question} and saves or discards them as the author chooses.
      *

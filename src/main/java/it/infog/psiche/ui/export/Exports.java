@@ -230,7 +230,7 @@ public final class Exports {
     }
 
     /** Runs {@code export} on the export thread, telling the author in the status bar when it starts and ends. */
-    private void run(String name, Path target, Runnable export) {
+    void run(String name, Path target, Runnable export) {
 
         Task<Void> task = new Task<>() {
             @Override

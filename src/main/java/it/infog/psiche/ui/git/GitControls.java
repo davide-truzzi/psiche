@@ -308,6 +308,12 @@ public final class GitControls extends HBox {
         submit(repository, question, answer, failure);
     }
 
+    /** Puts the cursor in the field beside Commit, for the author to describe a revision and commit it. */
+    public void focusCommitMessage() {
+
+        commitMessage.requestFocus();
+    }
+
     /** What is typed beside Commit. */
     String commitMessage() {
 
