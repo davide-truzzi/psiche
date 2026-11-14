@@ -16,6 +16,9 @@ public final class DateFormats {
             .withZone(ZoneId.systemDefault());
     public static final DateTimeFormatter DAY_AND_TIME = DateTimeFormatter.ofPattern("dd/MM/yyyy, HH:mm")
             .withZone(ZoneId.systemDefault());
+    /** A day in a file's name, as 2026-10-27, so files named after days sort in their order. */
+    public static final DateTimeFormatter FILE_DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            .withZone(ZoneId.systemDefault());
 
     private DateFormats() {
     }

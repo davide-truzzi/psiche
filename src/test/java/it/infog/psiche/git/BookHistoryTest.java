@@ -6,6 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.git.model.BookCommit;
 import it.infog.psiche.git.model.DeletedChapter;
 import it.infog.psiche.git.model.FileRevision;
 
@@ -311,6 +312,27 @@ class BookHistoryTest extends GitBookTest {
         assertThatThrownBy(() -> repository.history().revisions(outside))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageStartingWith(outside + " is not a file in ");
+    }
+
+    @Test
+    void commitsListsEveryCommitNewestFirstWhateverItChanged() throws Exception {
+        write("chapters/01-dawn.md", "It began at dawn.\n");
+        RevCommit first = commitAll("First draft\n\nWritten on the train.");
+        write("media/book.properties", "title=Salt\n");
+        RevCommit second = commitAll("Name the book");
+
+        assertThat(repository.history().commits())
+                .extracting(BookCommit::commitId, BookCommit::shortId, BookCommit::message, BookCommit::time)
+                .containsExactly(
+                        tuple(second.getName(), second.abbreviate(7).name(), "Name the book",
+                                Instant.ofEpochSecond(second.getCommitTime())),
+                        tuple(first.getName(), first.abbreviate(7).name(), "First draft",
+                                Instant.ofEpochSecond(first.getCommitTime())));
+    }
+
+    @Test
+    void aRepositoryWithoutCommitsHasNone() {
+        assertThat(repository.history().commits()).isEmpty();
     }
 
     /** A revision of the file at {@code path} in {@code commitId}, as history() would list it. */

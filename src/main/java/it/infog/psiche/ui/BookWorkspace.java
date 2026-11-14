@@ -267,7 +267,9 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         // Read on the Git thread, after the commands clicked before.
         MenuItem writingHistory = menuItem("Writing history (PDF)", books::exportWritingHistory);
         writingHistory.disableProperty().bind(gitControls.busyProperty());
-        export.getItems().addAll(new SeparatorMenuItem(), writingHistory);
+        MenuItem revision = menuItem("Book at a revision…", books::exportRevision);
+        revision.disableProperty().bind(gitControls.busyProperty());
+        export.getItems().addAll(new SeparatorMenuItem(), writingHistory, revision);
         export.disableProperty().bind(books.bookOpenProperty().not());
 
         // Notes are not in Git: these move them to another computer, or keep a copy.

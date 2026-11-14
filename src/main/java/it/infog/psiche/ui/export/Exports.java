@@ -130,7 +130,7 @@ public final class Exports {
      * left it, the way {@link #exportBook} writes the book as it is now. The file goes next to {@code book}, by
      * default.
      *
-     * @param revision the revision's short id, added to the file's name
+     * @param revision the revision as the author reads it, such as its day and first words, added to the file's name
      * @param format   one of {@link #BOOK_FORMATS}
      * @param cleanUp  runs on the export thread once the file is written or the export failed or was cancelled, to
      *                 delete the copy
@@ -159,7 +159,7 @@ public final class Exports {
      * object to, then writes it where the author chooses.
      *
      * @param saveIn  the folder the save dialog opens in
-     * @param suffix  added to the file's name and to what the status bar says, such as the revision's id
+     * @param suffix  added to the file's name and to what the status bar says, such as the revision's day
      * @param cleanUp runs on the export thread once the file is written or the export failed
      * @return false if the export did not start: nothing to export, an error, or the author cancelled
      */
@@ -203,8 +203,8 @@ public final class Exports {
             return false;
 
         //where
-        String name = Dialogs.fileName(properties.title()) + (format == ExportFormat.EPUB_KINDLE ? " (Kindle)" : "")
-                + suffix;
+        String name = Dialogs.fileName(properties.title() + (format == ExportFormat.EPUB_KINDLE ? " (Kindle)" : "")
+                + suffix);
         Optional<Path> target = Dialogs.chooseSaveFile(window.get(), "Export " + properties.title() + suffix,
                 saveIn, name, format.label(), format.extension());
         if (target.isEmpty())

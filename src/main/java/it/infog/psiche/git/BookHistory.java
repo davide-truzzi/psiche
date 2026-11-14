@@ -1,6 +1,7 @@
 package it.infog.psiche.git;
 
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.git.model.BookCommit;
 import it.infog.psiche.git.model.BookRevision;
 import it.infog.psiche.git.model.DeletedChapter;
 import it.infog.psiche.git.model.FileRevision;
@@ -190,6 +191,30 @@ public final class BookHistory {
     public List<BookRevision> bookRevisions(Path chaptersDir) {
 
         return BookRevisions.read(repo, BookRepository.repositoryPath(repo, chaptersDir));
+    }
+
+    /**
+     * Every commit of the book, newest first, whatever it changed: to choose one and export the book as it was then.
+     *
+     * @return empty if the repository has no commits yet
+     */
+    public List<BookCommit> commits() {
+
+        try (RevWalk walk = new RevWalk(repo)) {
+            ObjectId head = repo.resolve(Constants.HEAD);
+            if (head == null)
+                return List.of();
+
+            walk.markStart(walk.parseCommit(head));
+            List<BookCommit> commits = new ArrayList<>();
+            for (RevCommit commit : walk)
+                commits.add(new BookCommit(commit.getName(), BookRepository.shortId(commit), commit.getShortMessage(),
+                        Instant.ofEpochSecond(commit.getCommitTime())));
+
+            return commits;
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read the book's commits", e);
+        }
     }
 
     /**
