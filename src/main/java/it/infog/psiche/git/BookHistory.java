@@ -1,6 +1,7 @@
 package it.infog.psiche.git;
 
 import it.infog.psiche.git.exceptions.GitCommandException;
+import it.infog.psiche.git.model.BookRevision;
 import it.infog.psiche.git.model.DeletedChapter;
 import it.infog.psiche.git.model.FileRevision;
 import org.eclipse.jgit.diff.DiffConfig;
@@ -38,7 +39,8 @@ import java.util.Set;
 
 /**
  * What a book's commits recorded, read without changing anything: the history of a chapter, whether a name was ever
- * used, the chapters that were deleted, and a file as a commit left it. Get it from {@link BookRepository#history()}.
+ * used, the chapters that were deleted, a file as a commit left it, and the whole book's history. Get it from
+ * {@link BookRepository#history()}.
  */
 public final class BookHistory {
 
@@ -176,6 +178,21 @@ public final class BookHistory {
     }
 
     /**
+     * Every commit that changed the chapters in {@code chaptersDir}, oldest first, each with the chapters it changed
+     * and their text before and after it: the book's writing history. Commits that changed only other files, such as
+     * the book's properties or images, are left out. Commits made on other computers come once each, in their own
+     * place; a merge brings only what the author changed by hand while merging, not the commits it brought in.
+     *
+     * @param chaptersDir the book's chapter folder
+     * @return empty if the repository has no commits yet
+     * @throws IllegalArgumentException if {@code chaptersDir} is outside the book folder
+     */
+    public List<BookRevision> bookRevisions(Path chaptersDir) {
+
+        return BookRevisions.read(repo, BookRepository.repositoryPath(repo, chaptersDir));
+    }
+
+    /**
      * The file of {@code revision} as its commit recorded it, under the name it had then, read as UTF-8 like the
      * chapters on disk.
      *
@@ -216,7 +233,7 @@ public final class BookHistory {
         }
     }
 
-    private static DiffFormatter diffFormatter(Repository repo) {
+    static DiffFormatter diffFormatter(Repository repo) {
 
         DiffFormatter diff = new DiffFormatter(DisabledOutputStream.INSTANCE);
         diff.setRepository(repo);
@@ -253,7 +270,7 @@ public final class BookHistory {
     }
 
     /** A Markdown file directly in {@code directory}, as chapters are. */
-    private static boolean isChapter(String path, String directory) {
+    static boolean isChapter(String path, String directory) {
 
         if (!path.startsWith(directory + "/"))
             return false;
