@@ -39,8 +39,8 @@ import java.util.Set;
 
 /**
  * What a book's commits recorded, read without changing anything: the history of a chapter, whether a name was ever
- * used, the chapters that were deleted, a file as a commit left it, and the whole book's history. Get it from
- * {@link BookRepository#history()}.
+ * used, the chapters that were deleted, a file or a folder as a commit left it, and the whole book's history. Get it
+ * from {@link BookRepository#history()}.
  */
 public final class BookHistory {
 
@@ -190,6 +190,22 @@ public final class BookHistory {
     public List<BookRevision> bookRevisions(Path chaptersDir) {
 
         return BookRevisions.read(repo, BookRepository.repositoryPath(repo, chaptersDir));
+    }
+
+    /**
+     * Writes {@code folders} of the book as commit {@code commitId} left them into {@code target}, each under its path
+     * in the book, to export the book as it was then. Every folder is made, even one the commit had no file in. Only
+     * files are written: no links, and nothing outside {@code target}. The book's own files are left as they are.
+     *
+     * @param folders folders inside the book folder, such as its chapters and media
+     * @param target  an empty or missing folder, outside the book
+     * @throws GitCommandException      if {@code commitId} is not a commit of this book
+     * @throws IllegalArgumentException if a folder is outside the book folder, or {@code target} is not empty
+     */
+    public void writeFolders(String commitId, List<Path> folders, Path target) {
+
+        List<String> paths = folders.stream().map(folder -> BookRepository.repositoryPath(repo, folder)).toList();
+        RevisionFiles.write(repo, commitId, paths, target);
     }
 
     /**

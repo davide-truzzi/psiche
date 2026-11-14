@@ -122,6 +122,49 @@ public final class Exports {
         if (!settleUnsaved.test("Save them before exporting the book?"))
             return;
 
+        exportFolder(book, book.root().getParent(), format, "", () -> {});
+    }
+
+    /**
+     * Writes {@code book} as a past revision left it, from {@code copy}, a copy of the book's folder as that revision
+     * left it, the way {@link #exportBook} writes the book as it is now. The file goes next to {@code book}, by
+     * default.
+     *
+     * @param revision the revision's short id, added to the file's name
+     * @param format   one of {@link #BOOK_FORMATS}
+     * @param cleanUp  runs on the export thread once the file is written or the export failed or was cancelled, to
+     *                 delete the copy
+     */
+    public void exportRevision(BookFolder book, Path copy, String revision, ExportFormat format, Runnable cleanUp) {
+
+        String suffix = " (%s)".formatted(revision);
+        try {
+            if (exportFolder(BookFolder.open(copy), book.root().getParent(), format, suffix, cleanUp))
+                return;
+        } catch (IllegalArgumentException e) {
+            errors.report("Cannot export the book at " + revision, e);
+        }
+
+        thread.execute(cleanUp);
+    }
+
+    /** Stops the export thread, interrupting a running export. */
+    public void shutdown() {
+
+        thread.shutdownNow();
+    }
+
+    /**
+     * Reads the book from {@code book}'s folder, asks about its empty chapters and, for an EPUB, what stores would
+     * object to, then writes it where the author chooses.
+     *
+     * @param saveIn  the folder the save dialog opens in
+     * @param suffix  added to the file's name and to what the status bar says, such as the revision's id
+     * @param cleanUp runs on the export thread once the file is written or the export failed
+     * @return false if the export did not start: nothing to export, an error, or the author cancelled
+     */
+    private boolean exportFolder(BookFolder book, Path saveIn, ExportFormat format, String suffix, Runnable cleanUp) {
+
         //read the book
         BookProperties properties;
         List<ChapterText> chapters;
@@ -132,23 +175,23 @@ public final class Exports {
                     .toList();
         } catch (UncheckedIOException e) {
             errors.report("Cannot export the book", e);
-            return;
+            return false;
         }
 
         if (chapters.isEmpty()) {
             Dialogs.inform(window.get(), "Nothing to export", "The book has no chapters yet.");
-            return;
+            return false;
         }
 
         Optional<EmptyChapters> empty = askAboutEmptyChapters(chapters);
         if (empty.isEmpty())
-            return;
+            return false;
 
         BookExport assembled = BookAssembler.assemble(properties, book.cover(), book.stylesheet(), book.chaptersDir(),
                 chapters, empty.get());
         if (assembled.chapters().isEmpty()) {
             Dialogs.inform(window.get(), "Nothing to export", "Every chapter of the book is empty.");
-            return;
+            return false;
         }
 
         Optional<EpubVariant> epub = switch (format) {
@@ -157,17 +200,18 @@ public final class Exports {
             default -> Optional.empty();
         };
         if (epub.isPresent() && !acceptProblems(bookExporter.epubProblems(assembled, epub.get())))
-            return;
+            return false;
 
         //where
-        String name = Dialogs.fileName(properties.title()) + (format == ExportFormat.EPUB_KINDLE ? " (Kindle)" : "");
-        Optional<Path> target = Dialogs.chooseSaveFile(window.get(), "Export " + properties.title(),
-                book.root().getParent(), name, format.label(), format.extension());
+        String name = Dialogs.fileName(properties.title()) + (format == ExportFormat.EPUB_KINDLE ? " (Kindle)" : "")
+                + suffix;
+        Optional<Path> target = Dialogs.chooseSaveFile(window.get(), "Export " + properties.title() + suffix,
+                saveIn, name, format.label(), format.extension());
         if (target.isEmpty())
-            return;
+            return false;
 
         //write
-        run(properties.title(), target.get(), () -> {
+        run(properties.title() + suffix, target.get(), () -> {
             switch (format) {
                 case PDF -> bookExporter.manuscriptPdf(assembled, target.get());
                 case ODT -> bookExporter.manuscriptOdt(assembled, target.get());
@@ -175,13 +219,8 @@ public final class Exports {
                 case EPUB, EPUB_KINDLE -> bookExporter.epub(assembled, epub.get(), target.get());
                 case MARKDOWN -> throw new IllegalArgumentException("The book cannot be exported to Markdown");
             }
-        });
-    }
-
-    /** Stops the export thread, interrupting a running export. */
-    public void shutdown() {
-
-        thread.shutdownNow();
+        }, cleanUp);
+        return true;
     }
 
     /**
@@ -232,10 +271,20 @@ public final class Exports {
     /** Runs {@code export} on the export thread, telling the author in the status bar when it starts and ends. */
     void run(String name, Path target, Runnable export) {
 
+        run(name, target, export, () -> {});
+    }
+
+    /** As {@link #run(String, Path, Runnable)}, then {@code cleanUp} on the export thread, whether it failed or not. */
+    private void run(String name, Path target, Runnable export, Runnable cleanUp) {
+
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
-                export.run();
+                try {
+                    export.run();
+                } finally {
+                    cleanUp.run();
+                }
                 return null;
             }
         };
