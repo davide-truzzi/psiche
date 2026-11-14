@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.8.0 Beta (not released yet)
+## 0.8.0 Beta (2026-11-14)
+
+The second Beta: the writing history, every revision of the book's chapters in one PDF, as evidence of how it was
+written, and the book exported as any of its revisions left it.
 
 ### What is new
 
