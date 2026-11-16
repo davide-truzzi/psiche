@@ -2,8 +2,6 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.markdown.MarkedLines;
 import it.infog.psiche.markdown.model.TextRange;
-import javafx.application.Platform;
-import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
@@ -18,8 +16,8 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * The numbers of the manuscript's lines, the lines of the text as written, in its left margin while the author asks
@@ -41,6 +39,7 @@ final class LineNumbers {
     // Room kept free on each side of the widest number in the margin, in pixels.
     private static final double SIDE_ROOM = 2;
     private static final String FONT_SIZE_STYLE = "-fx-font-size: %.1fpx;";
+    private static final String LAYER = "line-numbers";
     private static final String NUMBER = "line-number";
     private static final String COMMENT = "line-number-comment";
     private static final String MISTAKE = "line-number-mistake";
@@ -53,26 +52,19 @@ final class LineNumbers {
     private final Text widest = new Text();
     // One line of the text, never shown: it measures where the text's baseline is.
     private final Text textLine = new Text("0");
-    // Places the numbers after each layout of the window that needs it, once the text's lines are where they show.
-    private final Runnable afterLayout = this::placeIfNeeded;
+    private final AfterLayout layout;
     private List<TextRange> comments = List.of();
     private List<TextRange> mistakes = List.of();
     private BitSet commentLines = new BitSet();
     private BitSet mistakeLines = new BitSet();
     private boolean shown;
-    // True from a change in what is in view until the numbers are placed again.
-    private boolean outdated;
     // True from a change in the comments or the mistakes until their lines are found again.
     private boolean marksOutdated;
-    // Where the first paragraph in view was when the numbers were last placed: the text can move without telling.
-    private Bounds shownFrom;
-    // True from placing the numbers after a change until they are placed once more, on the next pulse.
-    private boolean settling;
 
     LineNumbers(StyleClassedTextArea area) {
 
         this.area = area;
-        layer.getStyleClass().add("line-numbers");
+        layer.getStyleClass().add(LAYER);
         layer.setMouseTransparent(true);
         layer.setVisible(false);
         widest.getStyleClass().addAll(NUMBER, BOTH);
@@ -81,17 +73,7 @@ final class LineNumbers {
             measure.setManaged(false);
         }
         layer.getChildren().addAll(widest, textLine);
-
-        layer.sceneProperty().addListener((obs, old, scene) -> {
-            if (old != null)
-                old.removePostLayoutPulseListener(afterLayout);
-            if (scene != null)
-                scene.addPostLayoutPulseListener(afterLayout);
-        });
-
-        // Scrolling, typing, resizing and a new font size all change what is in view.
-        area.viewportDirtyEvents().subscribe(event -> place());
-        layer.layoutBoundsProperty().addListener((obs, old, bounds) -> place());
+        layout = new AfterLayout(area, layer, () -> shown, this::place);
     }
 
     /** The layer, to stack over the text, the same size as it. */
@@ -108,7 +90,7 @@ final class LineNumbers {
 
         this.shown = shown;
         layer.setVisible(shown);
-        place();
+        layout.place();
     }
 
     /** Colours the numbers of the lines {@code comments} and {@code mistakes} are on, both as the text has them now. */
@@ -120,34 +102,11 @@ final class LineNumbers {
         this.comments = comments;
         this.mistakes = mistakes;
         marksOutdated = true;
-        place();
+        layout.place();
     }
 
-    /** Places the numbers after the next layout, while they show: the text's lines are where they show only then. */
+    /** Places the numbers where the text's lines are now, after a layout. */
     private void place() {
-
-        if (!shown)
-            return;
-
-        outdated = true;
-        Platform.requestNextPulse();
-    }
-
-    private void placeIfNeeded() {
-
-        if (!shown)
-            return;
-
-        Bounds firstParagraph = firstParagraph();
-        if (!outdated && !settling && Objects.equals(firstParagraph, shownFrom))
-            return;
-
-        // RichTextFX may still move a paragraph in this pulse, after the numbers are placed: they are placed once more.
-        settling = !settling;
-        if (settling)
-            Platform.requestNextPulse();
-        outdated = false;
-        shownFrom = firstParagraph;
 
         //the lines the comments and the mistakes are on, found again only once they change
         if (marksOutdated) {
@@ -157,15 +116,15 @@ final class LineNumbers {
             marksOutdated = false;
         }
 
-        //where a paragraph's first baseline is, below its top, from a paragraph in view; none while nothing is laid out
-        Optional<TextFlow> paragraph = paragraphText();
-        if (paragraph.isEmpty()) {
+        //where a paragraph's first baseline is, below its top, from the text in view; none while nothing is laid out
+        Optional<Text> text = firstText();
+        if (text.isEmpty() || !(text.get().getParent() instanceof TextFlow paragraph)) {
             showLines(List.of(), 0);
             return;
         }
-        Font font = textFont(paragraph.get()).orElseThrow();
+        Font font = text.get().getFont();
         textLine.setFont(font);
-        double firstBaseline = paragraph.get().getLineSpacing() / 2 + textLine.getBaselineOffset();
+        double firstBaseline = paragraph.getLineSpacing() / 2 + textLine.getBaselineOffset();
 
         //each paragraph whose first line is in view
         Insets padding = area.getPadding();
@@ -204,7 +163,7 @@ final class LineNumbers {
             if (!number.getStyleClass().equals(classes))
                 number.getStyleClass().setAll(classes);
             number.setWrappingWidth(width);
-            number.relocate(left, 0);
+            number.setLayoutX(left);
             number.setLayoutY(line.baseline());
         }
     }
@@ -239,35 +198,17 @@ final class LineNumbers {
     }
 
     /**
-     * The text of a paragraph in view that has some, which gives the text's font and line spacing; none while nothing
-     * is laid out. Besides its text, a paragraph holds the shapes of its backgrounds, underlines and caret, often
-     * first.
+     * The first text of the paragraphs in view, whose font and paragraph give the text's size, baseline and line
+     * spacing; none while nothing is laid out. Besides its text, a paragraph holds the shapes of its backgrounds,
+     * underlines and caret, often first.
      */
-    private Optional<TextFlow> paragraphText() {
+    private Optional<Text> firstText() {
 
         return area.lookupAll(".paragraph-text").stream()
-                .filter(TextFlow.class::isInstance)
-                .map(TextFlow.class::cast)
-                .filter(paragraph -> textFont(paragraph).isPresent())
-                .findFirst();
-    }
-
-    /** The font of {@code paragraph}'s first text; none if it has no text. */
-    private static Optional<Font> textFont(TextFlow paragraph) {
-
-        return paragraph.getChildren().stream()
+                .flatMap(paragraph -> paragraph instanceof TextFlow flow ? flow.getChildren().stream() : Stream.empty())
                 .filter(Text.class::isInstance)
-                .map(node -> ((Text) node).getFont())
+                .map(Text.class::cast)
                 .findFirst();
-    }
-
-    /** Where the first paragraph in view is on the screen, by its own box; null while nothing is laid out. */
-    private Bounds firstParagraph() {
-
-        if (area.getLength() == 0 || area.getVisibleParagraphs().isEmpty())
-            return null;
-
-        return area.getVisibleParagraphBoundsOnScreen(0);
     }
 
     private Text number() {

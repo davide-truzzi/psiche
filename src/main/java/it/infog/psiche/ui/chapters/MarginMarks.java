@@ -2,7 +2,6 @@ package it.infog.psiche.ui.chapters;
 
 import it.infog.psiche.markdown.model.TextRange;
 import it.infog.psiche.ui.common.Icons;
-import javafx.application.Platform;
 import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -14,7 +13,6 @@ import org.fxmisc.richtext.StyleClassedTextArea;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 import static it.infog.psiche.ui.preview.PreviewPane.FOLLOW_POINT;
@@ -71,21 +69,14 @@ final class MarginMarks {
     private final StackPane down;
     private final Tooltip upTip = new Tooltip();
     private final Tooltip downTip = new Tooltip();
-    // Places the dots after each layout of the window that needs it, once the text's lines are where they show.
-    private final Runnable afterLayout = this::placeIfNeeded;
+    private final AfterLayout layout;
     private List<TextRange> parts = List.of();
     // None while the marks on the lines are dots the mouse goes through.
     private LineActions actions;
     // False while the line numbers take the place of the marks on the lines; the edge dots show still.
     private boolean linesShown = true;
-    // True from a change in what is in view until the dots are placed again.
-    private boolean outdated;
     // True from a click on an edge dot until the part it went to is a third of the way down.
     private boolean lowering;
-    // Where the first paragraph in view was when the dots were last placed: the text can move without telling.
-    private Bounds shownFrom;
-    // True from placing the dots after a change until they are placed once more, on the next pulse.
-    private boolean settling;
 
     /** Dots in the left margin; see the other constructor. */
     MarginMarks(StyleClassedTextArea area, String markStyle, double offset, String one, String many) {
@@ -119,17 +110,8 @@ final class MarginMarks {
         Tooltip.install(up, upTip);
         Tooltip.install(down, downTip);
 
-        layer.sceneProperty().addListener((obs, old, scene) -> {
-            if (old != null)
-                old.removePostLayoutPulseListener(afterLayout);
-            if (scene != null)
-                scene.addPostLayoutPulseListener(afterLayout);
-        });
-
-        // Scrolling, typing, resizing and a new font size all change what is in view.
-        area.viewportDirtyEvents().subscribe(event -> place());
-        layer.layoutBoundsProperty().addListener((obs, old, bounds) -> place());
-        place();
+        layout = new AfterLayout(area, layer, () -> true, this::place);
+        layout.place();
     }
 
     /** The layer, to stack over the text, the same size as it. */
@@ -148,24 +130,18 @@ final class MarginMarks {
     void setLinesShown(boolean shown) {
 
         linesShown = shown;
-        place();
+        layout.place();
     }
 
     /** Shows {@code parts}, where the text has them now, in order. */
     void setParts(List<TextRange> parts) {
 
         this.parts = parts;
-        place();
+        layout.place();
     }
 
-    /** Places the dots after the next layout: the text's lines are where they show only then. */
+    /** Places the dots where the text's lines are now, after a layout. */
     private void place() {
-
-        outdated = true;
-        Platform.requestNextPulse();
-    }
-
-    private void placeIfNeeded() {
 
         //the part an edge dot went to, now that the caret is on it, a third of the way down
         if (lowering) {
@@ -173,20 +149,9 @@ final class MarginMarks {
             area.getCaretBounds()
                     .map(area::screenToLocal)
                     .ifPresent(caret -> area.scrollYBy(caret.getMinY() - area.getHeight() * FOLLOW_POINT));
-            place();
+            layout.place();
             return;
         }
-
-        Bounds firstParagraph = firstParagraph();
-        if (!outdated && !settling && Objects.equals(firstParagraph, shownFrom))
-            return;
-
-        // RichTextFX may still move a paragraph in this pulse, after the dots are placed: they are placed once more.
-        settling = !settling;
-        if (settling)
-            Platform.requestNextPulse();
-        outdated = false;
-        shownFrom = firstParagraph;
 
         Insets padding = area.getPadding();
         double top = padding.getTop();
@@ -234,19 +199,6 @@ final class MarginMarks {
         int last = area.hit(area.getWidth() - padding.getRight(), area.getHeight() - padding.getBottom())
                 .getInsertionIndex();
         return new TextRange(first, last);
-    }
-
-    /**
-     * Where the first paragraph in view is on the screen, by its own box; null while nothing is laid out. Asked after
-     * every pulse, it must not ask where a character is: RichTextFX finds that by adding a shape to the paragraph and
-     * taking it away, which changes the scene and so asks for another pulse, and then another, without end.
-     */
-    private Bounds firstParagraph() {
-
-        if (area.getLength() == 0 || area.getVisibleParagraphs().isEmpty())
-            return null;
-
-        return area.getVisibleParagraphBoundsOnScreen(0);
     }
 
     /** Where character {@code index} is on the screen, which gives its line's height; empty if not laid out. */
@@ -339,7 +291,7 @@ final class MarginMarks {
             area.requestFocus();
             // Following the caret brings it just inside the edge; once it is there, it goes a third of the way down.
             lowering = true;
-            Platform.requestNextPulse();
+            layout.place();
         });
     }
 

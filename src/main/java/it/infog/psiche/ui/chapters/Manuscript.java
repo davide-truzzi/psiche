@@ -72,14 +72,14 @@ final class Manuscript {
     private final Welcome welcome;
     private final ReadOnlyDoubleWrapper textMargin = new ReadOnlyDoubleWrapper();
     private final ReadOnlyIntegerWrapper currentPosition = new ReadOnlyIntegerWrapper();
+    // Alt held alone, which shows the line numbers while a chapter is open.
+    private final AltHold altHold = new AltHold(area);
     // Where the right-click menu was last asked for, in the text: under the pointer, or at the caret from the keyboard.
     private int menuIndex;
     // What it was asked for on, for Default mode: the character under the pointer, or the selection from the keyboard.
     private IndexRange menuSpot = new IndexRange(0, 0);
     // True once the author scrolls the manuscript, until the caret next moves.
     private boolean reading;
-    // Alt held alone, which shows the line numbers while a chapter is open.
-    private final AltHold altHold = new AltHold(area);
     // True if Preferences shows the line numbers all the time, not only while Alt is held.
     private boolean lineNumbersAlways;
     private boolean chapterOpen;
