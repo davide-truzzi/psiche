@@ -174,7 +174,7 @@ class SettingsTest {
     void anAuthorWhoChoseNothingHasTheDefaultPreferences() {
         assertThat(settings().preferences())
                 .isEqualTo(new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, 16, 16, true, false, true,
-                        EditorMode.DEFAULT))
+                        EditorMode.DEFAULT, false))
                 .isEqualTo(Preferences.defaults());
     }
 
@@ -185,7 +185,7 @@ class SettingsTest {
         settings.bookOpened(alba);
 
         Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false, true,
-                false, EditorMode.ADVANCED);
+                false, EditorMode.ADVANCED, true);
         settings.savePreferences(chosen);
 
         assertThat(settings().preferences()).isEqualTo(chosen);
@@ -194,7 +194,7 @@ class SettingsTest {
                 .contains("book.language=it-IT", "book.author=Anna Bianchi", "preview.theme=dark",
                         "startup.reopen-last-book=true", "editor.font-size=20", "preview.font-size=14",
                         "spelling.enabled=false", "spelling.strict=true", "editor.highlight-repetitions=false",
-                        "editor.mode=advanced");
+                        "editor.mode=advanced", "editor.line-numbers=true");
     }
 
     @Test
@@ -211,7 +211,7 @@ class SettingsTest {
     @Test
     void aFileThatCannotBeReadIsNotOverwrittenByTheNextChange() throws IOException {
         Preferences chosen = new Preferences(true, "it-IT", "Anna Bianchi", PreviewTheme.DARK, 20, 14, false, true,
-                false, EditorMode.ADVANCED);
+                false, EditorMode.ADVANCED, true);
         settings().savePreferences(chosen);
         Path file = folder().path().resolve(Settings.FILE);
         Files.setPosixFilePermissions(file, PosixFilePermissions.fromString("-w-------"));
@@ -229,7 +229,7 @@ class SettingsTest {
         Files.writeString(folder().path().resolve(Settings.FILE),
                 "book.language=\npreview.theme=sepia\nstartup.reopen-last-book=sometimes\neditor.font-size=big\n"
                         + "preview.font-size=19\nspelling.enabled=no\nspelling.strict=yes\n"
-                        + "editor.highlight-repetitions=maybe\neditor.mode=expert\n");
+                        + "editor.highlight-repetitions=maybe\neditor.mode=expert\neditor.line-numbers=often\n");
 
         assertThat(settings().preferences()).isEqualTo(Preferences.defaults());
     }

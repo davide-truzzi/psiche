@@ -78,6 +78,11 @@ final class Manuscript {
     private IndexRange menuSpot = new IndexRange(0, 0);
     // True once the author scrolls the manuscript, until the caret next moves.
     private boolean reading;
+    // Alt held alone, which shows the line numbers while a chapter is open.
+    private final AltHold altHold = new AltHold(area);
+    // True if Preferences shows the line numbers all the time, not only while Alt is held.
+    private boolean lineNumbersAlways;
+    private boolean chapterOpen;
 
     /**
      * @param welcome            shown on the empty page while no book is open; see {@link Welcome}
@@ -112,6 +117,7 @@ final class Manuscript {
         area.addEventFilter(ContextMenuEvent.CONTEXT_MENU_REQUESTED, this::menuRequested);
         this.welcome = new Welcome(area, page, welcome);
         showWelcome();
+        altHold.heldProperty().addListener((obs, old, held) -> showLineNumbers());
 
         //where the text starts: the text's left edge, inside its padding
         Runnable measure = () -> textMargin.set(area.localToScene(0, 0).getX() + area.getPadding().getLeft());
@@ -258,6 +264,13 @@ final class Manuscript {
         area.setStyle(FONT_SIZE_STYLE.formatted(fontSize));
     }
 
+    /** Shows the line numbers all the time, as Preferences asks, or only while Alt is held alone. */
+    void setLineNumbersAlways(boolean always) {
+
+        lineNumbersAlways = always;
+        showLineNumbers();
+    }
+
     /** Lets the Markdown recede, in {@link EditorMode#DEFAULT}, or shows it as written, as Preferences asks. */
     void setMode(EditorMode mode) {
 
@@ -314,6 +327,8 @@ final class Manuscript {
     void setChapter(Chapter chapter) {
 
         marks.setChapter(chapter);
+        chapterOpen = chapter != null;
+        showLineNumbers();
     }
 
     /** Opens with {@code open} a link the author Ctrl-clicks, if {@code opens} says it leads somewhere. */
@@ -430,5 +445,11 @@ final class Manuscript {
             if (node instanceof ScrollBar)
                 return true;
         return false;
+    }
+
+    /** Shows the line numbers while a chapter is open, if Preferences always shows them or Alt is held alone. */
+    private void showLineNumbers() {
+
+        marks.showLineNumbers(chapterOpen && (lineNumbersAlways || altHold.isHeld()));
     }
 }

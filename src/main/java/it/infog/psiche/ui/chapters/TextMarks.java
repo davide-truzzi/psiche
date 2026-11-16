@@ -34,7 +34,8 @@ import java.util.stream.Stream;
  * has one, its images in green, its links in teal, its images whose file is missing and its links that lead nowhere
  * in orange, its footnotes' marks in amber and the wrong ones in orange, the Markdown's markers around them all, and
  * its spelling mistakes, found by {@link Mistakes}, with a dotted
- * red line under them and a red dot beside. They follow the text as it changes. Only the paragraphs whose marks
+ * red line under them and a red dot beside. While the author asks for them, the line numbers, in the colours of
+ * the dots on their lines, take those dots' place. They follow the text as it changes. Only the paragraphs whose marks
  * change are restyled: a restyled paragraph is measured again, which can move the view.
  */
 final class TextMarks {
@@ -45,6 +46,7 @@ final class TextMarks {
     private final StyleClassedTextArea area;
     private final MarginMarks commentMarks;
     private final Mistakes mistakes;
+    private final LineNumbers lineNumbers;
     private List<TextRange> comments = List.of();
     private List<TextRange> images = List.of();
     private List<TextRange> missingImages = List.of();
@@ -80,12 +82,21 @@ final class TextMarks {
         this.area = area;
         commentMarks = new MarginMarks(area, "comment-mark", COMMENT_MARK_OFFSET, "comment", "comments");
         mistakes = new Mistakes(area, this::restyle);
+        lineNumbers = new LineNumbers(area);
     }
 
-    /** The layers of the comments' and the mistakes' dots, to stack over the text in this order. */
+    /** The layers of the comments' and the mistakes' dots and of the line numbers, to stack over the text in order. */
     List<Node> layers() {
 
-        return List.of(commentMarks.node(), mistakes.node());
+        return List.of(commentMarks.node(), mistakes.node(), lineNumbers.node());
+    }
+
+    /** Shows the line numbers in place of the dots on the lines, or the dots again. */
+    void showLineNumbers(boolean shown) {
+
+        lineNumbers.setShown(shown);
+        commentMarks.setLinesShown(!shown);
+        mistakes.setLinesShown(!shown);
     }
 
     /**
@@ -255,6 +266,7 @@ final class TextMarks {
         parts.put(TextStyles.WRONG_NOTE, wrongNotes);
         parts.put(TextStyles.MARKER, inOrder(Stream.of(commentMarkers, imageAndLinkMarkers, footnoteMarkers)
                 .flatMap(List::stream)));
+        lineNumbers.setMarks(comments, mistakes.ranges());
         StyleSpans<Collection<String>> styles = TextStyles.of(area.getLength(), parts);
         int start = 0;
         for (int paragraph = 0; paragraph < area.getParagraphs().size(); paragraph++) {

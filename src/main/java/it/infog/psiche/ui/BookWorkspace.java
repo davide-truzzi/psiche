@@ -110,6 +110,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         chapterEditor = new ChapterEditor(statusBar, this::reportError, welcome, settings::ownWords,
                 settings::addOwnWord);
         chapterEditor.setFontSize(preferences.editorFontSize());
+        chapterEditor.setLineNumbersAlways(preferences.alwaysShowLineNumbers());
         chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         chapterEditor.setHighlightRepetitions(preferences.highlightRepetitions());
         chapterEditor.setEditorMode(preferences.editorMode());
@@ -375,6 +376,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         preview.setTheme(preferences.previewTheme());
         preview.setFontSize(preferences.previewFontSize());
         chapterEditor.setFontSize(preferences.editorFontSize());
+        chapterEditor.setLineNumbersAlways(preferences.alwaysShowLineNumbers());
         chapterEditor.setSpelling(preferences.checkSpelling(), preferences.strictSpelling());
         chapterEditor.setHighlightRepetitions(preferences.highlightRepetitions());
         chapterEditor.setEditorMode(preferences.editorMode());

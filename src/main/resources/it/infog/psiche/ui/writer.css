@@ -485,6 +485,32 @@
     -fx-opacity: 1;
 }
 
+/* The line numbers, in the left margin in place of the dots on the lines while the author asks for them: grey, or
+   bold in the colour of the dots their line has, a comment's brass, a mistake's red, or half and half for both.
+   Their size, 70% of the text's, is set as they are placed. */
+.line-number {
+    -fx-font-family: "Courier Prime";
+    -fx-fill: -graphite;
+}
+
+.line-number-comment,
+.line-number-mistake,
+.line-number-both {
+    -fx-font-weight: bold;
+}
+
+.line-number-comment {
+    -fx-fill: -brass;
+}
+
+.line-number-mistake {
+    -fx-fill: -red-pencil;
+}
+
+.line-number-both {
+    -fx-fill: linear-gradient(to right, -brass 50%, -red-pencil 50%);
+}
+
 /* 7px at the default 16px, growing and shrinking with the editor's font size from Preferences. */
 .manuscript.styled-text-area .paragraph-text {
     -fx-line-spacing: 0.4375em;

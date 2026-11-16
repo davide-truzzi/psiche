@@ -80,6 +80,7 @@ public final class PreferencesDialog {
         CheckBox strictSpelling = new CheckBox("Strict spell check");
         strictSpelling.disableProperty().bind(checkSpelling.selectedProperty().not());
         CheckBox highlightRepetitions = new CheckBox("Highlight repetitions");
+        CheckBox lineNumbers = new CheckBox("Always show line numbers");
         LanguageChoice language = new LanguageChoice(preferences.newBookLanguage());
         TextField author = new TextField();
         author.setPromptText("Your name, as it goes on the cover");
@@ -99,6 +100,7 @@ public final class PreferencesDialog {
             strictSpelling.setSelected(shown.strictSpelling());
             highlightRepetitions.setSelected(shown.highlightRepetitions());
             editorMode.setValue(shown.editorMode());
+            lineNumbers.setSelected(shown.alwaysShowLineNumbers());
         };
         fill.accept(preferences);
 
@@ -106,6 +108,7 @@ public final class PreferencesDialog {
                 + "shows it as written.");
         Label spellingHint = Controls.hint("In the languages Psiche has a dictionary for.");
         Label strictHint = Controls.hint("Also checks the words with a capital, as names have.");
+        Label lineNumbersHint = Controls.hint("Otherwise, hold Alt to see them (Option on macOS).");
         Label repetitionsHint = Controls.hint("Shows where the selected word, or the one being written, comes back.");
         Label newBooksHint = Controls.hint("A book's own language and authors are in Book properties.");
 
@@ -115,14 +118,16 @@ public final class PreferencesDialog {
         general.addRow(1, new Label("Editor mode"), editorMode);
         general.add(editorModeHint, 1, 2);
         general.addRow(3, new Label("Editor font size"), editorFontSize);
-        general.addRow(4, new Label("Preview theme"), theme);
-        general.addRow(5, new Label("Preview font size"), previewFontSize);
-        general.addRow(6, new Label("Spelling"), checkSpelling);
-        general.add(spellingHint, 1, 7);
-        general.add(strictSpelling, 1, 8);
-        general.add(strictHint, 1, 9);
-        general.addRow(10, new Label("Repetitions"), highlightRepetitions);
-        general.add(repetitionsHint, 1, 11);
+        general.addRow(4, new Label("Line numbers"), lineNumbers);
+        general.add(lineNumbersHint, 1, 5);
+        general.addRow(6, new Label("Preview theme"), theme);
+        general.addRow(7, new Label("Preview font size"), previewFontSize);
+        general.addRow(8, new Label("Spelling"), checkSpelling);
+        general.add(spellingHint, 1, 9);
+        general.add(strictSpelling, 1, 10);
+        general.add(strictHint, 1, 11);
+        general.addRow(12, new Label("Repetitions"), highlightRepetitions);
+        general.add(repetitionsHint, 1, 13);
 
         GridPane newBooks = new GridPane();
         newBooks.addRow(0, new Label("Language"), DictionaryMark.after(language));
@@ -137,7 +142,8 @@ public final class PreferencesDialog {
         Supplier<Preferences> chosen = () -> new Preferences(reopen.isSelected(),
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
                 editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected(),
-                strictSpelling.isSelected(), highlightRepetitions.isSelected(), editorMode.getValue());
+                strictSpelling.isSelected(), highlightRepetitions.isSelected(), editorMode.getValue(),
+                lineNumbers.isSelected());
 
         // Apply and Revert, unlike the dialog's other buttons, leave it open.
         AtomicReference<Preferences> applied = new AtomicReference<>(preferences);

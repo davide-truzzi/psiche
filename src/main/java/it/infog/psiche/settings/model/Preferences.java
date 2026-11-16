@@ -21,6 +21,8 @@ import java.util.List;
  * @param highlightRepetitions true to show the other places of the word the author is at, selected or at the
  *                             caret, and how many there are
  * @param editorMode      how the editor shows the Markdown: receding, with links and images as blocks, or as written
+ * @param alwaysShowLineNumbers true to show the line numbers in the editor's margin all the time, not only while Alt
+ *                              is held
  */
 public record Preferences(boolean reopenLastBook,
                           String newBookLanguage,
@@ -31,7 +33,8 @@ public record Preferences(boolean reopenLastBook,
                           boolean checkSpelling,
                           boolean strictSpelling,
                           boolean highlightRepetitions,
-                          EditorMode editorMode) {
+                          EditorMode editorMode,
+                          boolean alwaysShowLineNumbers) {
 
     /** The sizes the editor's and the preview's text can take, in pixels. */
     public static final List<Integer> FONT_SIZES = List.of(12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32);
@@ -42,6 +45,6 @@ public record Preferences(boolean reopenLastBook,
     public static Preferences defaults() {
 
         return new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE, true,
-                false, true, EditorMode.DEFAULT);
+                false, true, EditorMode.DEFAULT, false);
     }
 }

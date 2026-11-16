@@ -61,6 +61,7 @@ public final class Settings {
     private static final String STRICT_SPELLING = "spelling.strict";
     private static final String HIGHLIGHT_REPETITIONS = "editor.highlight-repetitions";
     private static final String EDITOR_MODE = "editor.mode";
+    private static final String LINE_NUMBERS = "editor.line-numbers";
     private static final String WINDOW = "window.";
     private static final String BOOK_COUNTS_SHOWN = "sidebar.book-counts";
     private static final String OPENING_TAB = "tabs.opening";
@@ -160,7 +161,8 @@ public final class Settings {
                 flag(settings.getProperty(CHECK_SPELLING), defaults.checkSpelling()),
                 flag(settings.getProperty(STRICT_SPELLING), defaults.strictSpelling()),
                 flag(settings.getProperty(HIGHLIGHT_REPETITIONS), defaults.highlightRepetitions()),
-                named(EditorMode.class, settings.getProperty(EDITOR_MODE)).orElse(defaults.editorMode()));
+                named(EditorMode.class, settings.getProperty(EDITOR_MODE)).orElse(defaults.editorMode()),
+                flag(settings.getProperty(LINE_NUMBERS), defaults.alwaysShowLineNumbers()));
     }
 
     /**
@@ -181,6 +183,7 @@ public final class Settings {
             settings.setProperty(STRICT_SPELLING, String.valueOf(preferences.strictSpelling()));
             settings.setProperty(HIGHLIGHT_REPETITIONS, String.valueOf(preferences.highlightRepetitions()));
             settings.setProperty(EDITOR_MODE, written(preferences.editorMode()));
+            settings.setProperty(LINE_NUMBERS, String.valueOf(preferences.alwaysShowLineNumbers()));
         });
     }
 

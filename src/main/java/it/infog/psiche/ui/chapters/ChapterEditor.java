@@ -114,6 +114,8 @@ public final class ChapterEditor {
 
     /** Shows the manuscript's text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
     public void setFontSize(int fontSize) { manuscript.setFontSize(fontSize); }
+    /** Shows the line numbers in the margin all the time, as Preferences asks, or only while Alt is held. */
+    public void setLineNumbersAlways(boolean always) { manuscript.setLineNumbersAlways(always); }
     /**
      * Turns spell checking on or off, as Preferences asks, and with it on, checks the words with a capital letter too,
      * which names have, if {@code strict}.

@@ -52,6 +52,12 @@ final class Mistakes {
         return marks.node();
     }
 
+    /** Shows the dots on the lines, or hides them, as while the line numbers take their place. */
+    void setLinesShown(boolean shown) {
+
+        marks.setLinesShown(shown);
+    }
+
     /** Where the mistakes are in the text now, in order. */
     List<TextRange> ranges() {
 

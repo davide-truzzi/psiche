@@ -76,6 +76,8 @@ final class MarginMarks {
     private List<TextRange> parts = List.of();
     // None while the marks on the lines are dots the mouse goes through.
     private LineActions actions;
+    // False while the line numbers take the place of the marks on the lines; the edge dots show still.
+    private boolean linesShown = true;
     // True from a change in what is in view until the dots are placed again.
     private boolean outdated;
     // True from a click on an edge dot until the part it went to is a third of the way down.
@@ -140,6 +142,13 @@ final class MarginMarks {
     void setLineActions(LineActions actions) {
 
         this.actions = actions;
+    }
+
+    /** Shows the marks on the lines, or hides them, as while the line numbers take their place. */
+    void setLinesShown(boolean shown) {
+
+        linesShown = shown;
+        place();
     }
 
     /** Shows {@code parts}, where the text has them now, in order. */
@@ -213,7 +222,7 @@ final class MarginMarks {
             }
         }
 
-        showLines(lines);
+        showLines(linesShown ? lines : List.of());
         showEdges(above, below);
     }
 
