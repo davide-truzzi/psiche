@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### What is new
+
+- **The book opens where you left it**: opening a book shows the chapter you had open last, at the place you left it,
+  instead of its first chapter. A chapter renamed keeps this; if it was deleted, the book opens on its first chapter.
+
 ## 0.8.0 Beta (2026-11-14)
 
 The second Beta: the writing history, every revision of the book's chapters in one PDF, as evidence of how it was
