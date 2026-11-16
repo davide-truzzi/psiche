@@ -9,7 +9,8 @@ import java.util.function.Supplier;
 
 /**
  * Where the author left each chapter of the open book, kept in its {@value BookState#FILE}, so a chapter opens again
- * there: the open chapter's place is remembered as another opens, as the book closes, and before it is renamed.
+ * there: the open chapter's place is remembered as another opens, as the book closes, and before it is renamed. The
+ * chapter opened last is kept there too, so the book opens on it again.
  */
 final class ChapterPlaces {
 
@@ -38,6 +39,13 @@ final class ChapterPlaces {
         Chapter chapter = open.get();
         if (chapter != null && state != null)
             state.savePlace(chapter, manuscript.place());
+    }
+
+    /** Remembers {@code chapter}, just opened, as the one the book opens on next time. */
+    void opened(Chapter chapter) {
+
+        if (state != null)
+            state.saveLastChapter(chapter);
     }
 
     /** Moves where {@code from} was left to {@code to}, the name it was just renamed to. */

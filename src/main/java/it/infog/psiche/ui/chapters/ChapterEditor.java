@@ -192,6 +192,7 @@ public final class ChapterEditor {
         // setText does not fire a change when the new text equals the old, so recompute the state explicitly.
         trackDraft();
         manuscript.startEditing(places.of(chapter));
+        places.opened(chapter);
 
         return true;
     }

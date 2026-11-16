@@ -144,7 +144,8 @@ public final class ChapterContext {
     }
 
     /**
-     * Lists the chapters of {@code book} and opens the first; from now on an empty chapter shows as a blank page.
+     * Lists the chapters of {@code book} and opens the one the author had open last, or the first; from now on an
+     * empty chapter shows as a blank page.
      *
      * @param state the book's state, one for the book, shared, as the editor and the notes keep theirs in it too
      */
@@ -166,7 +167,8 @@ public final class ChapterContext {
         revisions.show(repository);
 
         refresh();
-        chapterList.getSelectionModel().selectFirst();
+        lastChapter(state).ifPresentOrElse(chapterList.getSelectionModel()::select,
+                chapterList.getSelectionModel()::selectFirst);
     }
 
     /**
@@ -243,6 +245,14 @@ public final class ChapterContext {
     public void showRevision(Chapter chapter, FileRevision revision, Optional<String> text) {
 
         view.showRevision(chapter, revision, text);
+    }
+
+    /** The listed chapter the author had open last; none if it was never kept, or it is no longer in the book. */
+    private Optional<Chapter> lastChapter(BookState state) {
+
+        return state.lastChapter().flatMap(title -> chapterList.getItems().stream()
+                .filter(chapter -> chapter.title().equals(title))
+                .findFirst());
     }
 
     /** The book's properties; none, and the author told, if they cannot be read: its spelling is then not checked. */

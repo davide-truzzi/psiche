@@ -67,6 +67,52 @@ class BookStateTest {
     }
 
     @Test
+    void theChapterOpenLastIsRememberedEvenAfterARestart() throws IOException {
+        BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
+        Chapter alba = book.createChapter("01 alba");
+        Chapter notte = book.createChapter("02 notte");
+        assertThat(BookState.of(book).lastChapter()).isEmpty();
+
+        BookState state = BookState.of(book);
+        state.saveLastChapter(alba);
+        state.saveLastChapter(notte);
+
+        assertThat(BookState.of(book).lastChapter()).contains("02 notte");
+        assertThat(Files.readString(book.root().resolve("psiche.properties"))).contains("last.chapter=02 notte");
+    }
+
+    @Test
+    void theChapterOpenLastFollowsARenameAndIsForgottenOnceDeleted() throws IOException {
+        BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
+        Chapter alba = book.createChapter("01 alba");
+        Chapter notte = book.createChapter("02 notte");
+        BookState state = BookState.of(book);
+        state.saveLastChapter(alba);
+
+        Chapter dawn = new Chapter(Files.move(alba.file(), book.chaptersDir().resolve("01 dawn.md")));
+        state.rename(alba, dawn);
+        assertThat(BookState.of(book).lastChapter()).contains("01 dawn");
+
+        Files.delete(dawn.file());
+        state.savePlace(notte, new ChapterPlace(20, 2));
+        assertThat(BookState.of(book).lastChapter()).isEmpty();
+    }
+
+    @Test
+    void renamingAChapterNotOpenLastLeavesTheLastOneAsItIs() throws IOException {
+        BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
+        Chapter alba = book.createChapter("01 alba");
+        Chapter notte = book.createChapter("02 notte");
+        BookState state = BookState.of(book);
+        state.saveLastChapter(notte);
+
+        Chapter dawn = new Chapter(Files.move(alba.file(), book.chaptersDir().resolve("01 dawn.md")));
+        state.rename(alba, dawn);
+
+        assertThat(BookState.of(book).lastChapter()).contains("02 notte");
+    }
+
+    @Test
     void theNotesBoardLookedAtLastIsRememberedTheChaptersAtFirst() throws IOException {
         BookFolder book = BookFolder.create(tempDir, "Lorem", "en-US", "");
         assertThat(BookState.of(book).notesBoard()).isEqualTo(NotesBoard.CHAPTER);

@@ -18,8 +18,8 @@ import java.util.Properties;
 /**
  * What Psiche remembers about one book, in {@value #FILE} at the book's root, which every book gets as it is created
  * or first opened, so a folder shows at a glance that it is a Psiche book: where the author left each chapter, which
- * notes board, the chapter's or the book's, they looked at last, and whether the book synchronizes with its remote by
- * itself on this device.
+ * chapter they had open last, which notes board, the chapter's or the book's, they looked at last, and whether the
+ * book synchronizes with its remote by itself on this device.
  * It is the author's own state, not the book's, so it stays out of Git; a Psiche project takes it along.
  */
 public final class BookState {
@@ -33,6 +33,7 @@ public final class BookState {
     private static final String CHAPTER_PREFIX = "chapter.";
     private static final String CARET = ".caret";
     private static final String TOP = ".top";
+    private static final String LAST_CHAPTER = "last.chapter";
     private static final String NOTES_BOARD = "notes.board";
     private static final String AUTO_SYNC = "remote.autosync";
 
@@ -79,6 +80,22 @@ public final class BookState {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    /** The title of the chapter the author had open last; empty if none was opened yet. */
+    public Optional<String> lastChapter() {
+
+        return Optional.ofNullable(properties.getProperty(LAST_CHAPTER));
+    }
+
+    /** Remembers {@code chapter} as the one the author had open last, so the book opens on it again. */
+    public void saveLastChapter(Chapter chapter) {
+
+        if (isLast(chapter))
+            return;
+
+        properties.setProperty(LAST_CHAPTER, chapter.title());
+        write();
     }
 
     /** The notes board the author looked at last, the chapter's or the book's; the chapter's at first. */
@@ -132,8 +149,11 @@ public final class BookState {
         write();
     }
 
-    /** Moves the place kept for {@code from} to {@code to}, a chapter just renamed. */
+    /** Moves what is kept for {@code from} to {@code to}, a chapter just renamed: its place, and if it was last. */
     public void rename(Chapter from, Chapter to) {
+
+        if (isLast(from))
+            properties.setProperty(LAST_CHAPTER, to.title());
 
         Optional<ChapterPlace> place = place(from);
         properties.remove(CHAPTER_PREFIX + from.title() + CARET);
@@ -145,11 +165,21 @@ public final class BookState {
 
         properties.stringPropertyNames().stream()
                 .filter(key -> key.startsWith(CHAPTER_PREFIX) && (key.endsWith(CARET) || key.endsWith(TOP)))
-                .filter(key -> {
-                    String title = key.substring(CHAPTER_PREFIX.length(), key.lastIndexOf('.'));
-                    return !Files.exists(chaptersDir.resolve(title + BookFolder.CHAPTER_EXTENSION));
-                })
+                .filter(key -> isGone(key.substring(CHAPTER_PREFIX.length(), key.lastIndexOf('.'))))
                 .forEach(properties::remove);
+        lastChapter().filter(this::isGone).ifPresent(title -> properties.remove(LAST_CHAPTER));
+    }
+
+    /** True if {@code chapter} is the one the author had open last. */
+    private boolean isLast(Chapter chapter) {
+
+        return lastChapter().filter(chapter.title()::equals).isPresent();
+    }
+
+    /** True if the book no longer has a chapter titled {@code title}. */
+    private boolean isGone(String title) {
+
+        return !Files.exists(chaptersDir.resolve(title + BookFolder.CHAPTER_EXTENSION));
     }
 
     /** The properties in {@code file}; empty, and logged, if they cannot be read: nothing depends on them. */
