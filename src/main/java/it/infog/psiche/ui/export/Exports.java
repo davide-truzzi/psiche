@@ -5,6 +5,7 @@ import it.infog.psiche.book.Chapter;
 import it.infog.psiche.book.model.BookProperties;
 import it.infog.psiche.export.BookAssembler;
 import it.infog.psiche.export.BookExporter;
+import it.infog.psiche.export.BrokenReferences;
 import it.infog.psiche.export.ChapterExporter;
 import it.infog.psiche.export.model.BookExport;
 import it.infog.psiche.export.model.ChapterText;
@@ -80,6 +81,9 @@ public final class Exports {
         if (unsaved.test(chapter) && !settleUnsaved.test("Save them before exporting?"))
             return;
 
+        if (format != ExportFormat.MARKDOWN && !acceptReferences(book, chapter, format))
+            return;
+
         Optional<Path> target = Dialogs.chooseSaveFile(window.get(), "Export " + chapter.title(),
                 book.root().getParent(), chapter.title(), format.label(), format.extension());
         if (target.isEmpty())
@@ -122,7 +126,7 @@ public final class Exports {
         if (!settleUnsaved.test("Save them before exporting the book?"))
             return;
 
-        exportFolder(book, book.root().getParent(), format, "", () -> {});
+        exportFolder(book, book.root().getParent(), format, "", true, () -> {});
     }
 
     /**
@@ -139,7 +143,7 @@ public final class Exports {
 
         String suffix = " (%s)".formatted(revision);
         try {
-            if (exportFolder(BookFolder.open(copy), book.root().getParent(), format, suffix, cleanUp))
+            if (exportFolder(BookFolder.open(copy), book.root().getParent(), format, suffix, false, cleanUp))
                 return;
         } catch (IllegalArgumentException e) {
             errors.report("Cannot export the book at " + revision, e);
@@ -155,15 +159,18 @@ public final class Exports {
     }
 
     /**
-     * Reads the book from {@code book}'s folder, asks about its empty chapters and, for an EPUB, what stores would
-     * object to, then writes it where the author chooses.
+     * Reads the book from {@code book}'s folder, asks about its empty chapters, the images and links it would leave
+     * out and, for an EPUB, what stores would object to, then writes it where the author chooses.
      *
-     * @param saveIn  the folder the save dialog opens in
-     * @param suffix  added to the file's name and to what the status bar says, such as the revision's day
-     * @param cleanUp runs on the export thread once the file is written or the export failed
+     * @param saveIn          the folder the save dialog opens in
+     * @param suffix          added to the file's name and to what the status bar says, such as the revision's day
+     * @param checkReferences true to tell the author of the images and links left out; a past revision, which
+     *                        cannot be fixed, is exported as it was
+     * @param cleanUp         runs on the export thread once the file is written or the export failed
      * @return false if the export did not start: nothing to export, an error, or the author cancelled
      */
-    private boolean exportFolder(BookFolder book, Path saveIn, ExportFormat format, String suffix, Runnable cleanUp) {
+    private boolean exportFolder(BookFolder book, Path saveIn, ExportFormat format, String suffix,
+                                 boolean checkReferences, Runnable cleanUp) {
 
         //read the book
         BookProperties properties;
@@ -194,6 +201,10 @@ public final class Exports {
             return false;
         }
 
+        if (checkReferences && !ReferenceWarning.accept(window.get(),
+                BrokenReferences.in(chapters, chapters, book.chaptersDir(), format)))
+            return false;
+
         Optional<EpubVariant> epub = switch (format) {
             case EPUB -> Optional.of(EpubVariant.STORES);
             case EPUB_KINDLE -> Optional.of(EpubVariant.KINDLE);
@@ -221,6 +232,32 @@ public final class Exports {
             }
         }, cleanUp);
         return true;
+    }
+
+    /**
+     * Tells the author of the images and links {@code chapter} would leave out, its links checked against the whole
+     * book, as saved.
+     *
+     * @return true if there are none, or the author chose to export anyway; false if they cancelled, or the book could
+     *         not be read
+     */
+    private boolean acceptReferences(BookFolder book, Chapter chapter, ExportFormat format) {
+
+        List<ChapterText> chapters;
+        try {
+            chapters = book.chapters().stream()
+                    .map(each -> new ChapterText(each.title(), book.read(each)))
+                    .toList();
+        } catch (UncheckedIOException e) {
+            errors.report("Cannot export " + chapter.title(), e);
+            return false;
+        }
+
+        List<ChapterText> exported = chapters.stream()
+                .filter(each -> each.fileTitle().equals(chapter.title()))
+                .toList();
+        return ReferenceWarning.accept(window.get(), BrokenReferences.in(exported, chapters, book.chaptersDir(),
+                format));
     }
 
     /**

@@ -13,6 +13,10 @@
 - **Go to line**: **Alt+L** (Option+L on macOS), or Go to line… in the text's right-click menu, opens a bar under the
   text, as Find does: type a line number and press Enter to take the caret there. The line numbers show while it is
   open.
+- **Export warns about broken images and links**: before exporting the book or a chapter, Psiche lists the images
+  that are missing or of a type the format cannot show, and the links that lead nowhere, chapter by chapter with
+  their line numbers, and asks whether to export anyway or cancel to fix them first. Exporting the book at a past
+  revision does not ask.
 
 ### What is fixed
 

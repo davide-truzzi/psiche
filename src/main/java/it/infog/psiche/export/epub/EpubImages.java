@@ -1,5 +1,6 @@
 package it.infog.psiche.export.epub;
 
+import it.infog.psiche.export.ImageFormats;
 import it.infog.psiche.export.ImageLinks;
 import it.infog.psiche.export.epub.model.EpubImage;
 import it.infog.psiche.markdown.ImageLines;
@@ -41,9 +42,6 @@ final class EpubImages implements ImageLinks {
     static final int MAX_PIXELS = 4_000_000;
 
     private static final Logger log = LoggerFactory.getLogger(EpubImages.class);
-
-    // Types Java cannot read, packed by their extension without being measured.
-    private static final Map<String, String> UNMEASURED = Map.of("webp", "image/webp", "svg", "image/svg+xml");
 
     private final Path baseDirectory;
     private final Map<Path, EpubImage> packed = new LinkedHashMap<>();
@@ -137,9 +135,10 @@ final class EpubImages implements ImageLinks {
         if (!Files.isRegularFile(file))
             return Optional.empty();
 
-        String extension = extension(file);
-        if (UNMEASURED.containsKey(extension))
-            return Optional.of(new EpubImage(file, name + "." + extension, UNMEASURED.get(extension), 0, 0, false));
+        String extension = ImageFormats.extension(file);
+        String unread = ImageFormats.EPUB_UNREAD.get(extension);
+        if (unread != null)
+            return Optional.of(new EpubImage(file, name + "." + extension, unread, 0, 0, false));
 
         try (ImageInputStream in = ImageIO.createImageInputStream(file.toFile())) {
 
@@ -151,7 +150,7 @@ final class EpubImages implements ImageLinks {
             try {
                 reader.setInput(in);
                 String format = reader.getFormatName().toLowerCase(Locale.ROOT);
-                if (!List.of("jpeg", "png", "gif").contains(format))
+                if (!ImageFormats.EPUB_READ.contains(format))
                     return Optional.empty();
 
                 return Optional.of(packedSize(file, name, format, reader.getWidth(0), reader.getHeight(0)));
@@ -175,13 +174,6 @@ final class EpubImages implements ImageLinks {
 
         double scale = Math.sqrt((double) MAX_PIXELS / ((long) width * height));
         return new EpubImage(file, path, mediaType, (int) (width * scale), (int) (height * scale), true);
-    }
-
-    private static String extension(Path file) {
-
-        String name = file.getFileName().toString();
-        int dot = name.lastIndexOf('.');
-        return dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
     private static byte[] jpeg(BufferedImage image) throws IOException {
