@@ -20,6 +20,8 @@
 
 ### What is fixed
 
+- **Preferences on small screens**: the dialog was taller than some screens, its buttons out of reach. Its settings
+  are now in three tabs: General, for how Psiche starts and what new books start with; Editor; and Preview.
 - **Power while idle**: with nothing happening, Psiche could still keep a processor busy. Some long chapters made the
   preview's web engine fire a timer over and over, taking one and a half processors; it now fires at most as often as
   the screen redraws. And while the status bar said it "Cannot watch the chapters folder", Psiche redrew the window

@@ -9,6 +9,7 @@ import it.infog.psiche.ui.common.DictionaryMark;
 import it.infog.psiche.ui.common.LanguageChoice;
 
 import javafx.event.ActionEvent;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonBar.ButtonData;
@@ -17,6 +18,8 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -29,8 +32,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A form for what the author chooses for the app as a whole, rather than for one book, in two groups: General, for
- * the app itself, and New book defaults, for what each new book starts with. Apply puts the choices into effect and
+ * A form for what the author chooses for the app as a whole, rather than for one book, in three tabs, so it fits a
+ * small screen: General, for how the app starts and what each new book starts with; Editor, for how the text is shown
+ * and checked; and Preview, for how the page looks. Apply puts the choices into effect and
  * keeps the form open, so the author can try a size or a theme and see it at once; Save does the same and closes it.
  * Revert puts every field back as it was when the form opened, and undoes what was applied since; Cancel does the
  * same and closes it. About Psiche opens the About dialog above it.
@@ -42,8 +46,8 @@ public final class PreferencesDialog {
     // Placed before Apply, which it undoes.
     private static final ButtonType REVERT = new ButtonType("Revert", ButtonData.OTHER);
     private static final ButtonType ABOUT = new ButtonType("About Psiche", ButtonData.LEFT);
-    // The same in both groups, so their fields line up.
-    private static final double LABEL_WIDTH = 130;
+    // The same in every group and tab, so their fields line up.
+    private static final double LABEL_WIDTH = 140;
     private static final String FONT_SIZE = "%d px";
 
     private PreferencesDialog() {
@@ -112,32 +116,42 @@ public final class PreferencesDialog {
         Label repetitionsHint = Controls.hint("Shows where the selected word, or the one being written, comes back.");
         Label newBooksHint = Controls.hint("A book's own language and authors are in Book properties.");
 
-        //groups
-        GridPane general = new GridPane();
-        general.addRow(0, new Label("Startup"), reopen);
-        general.addRow(1, new Label("Editor mode"), editorMode);
-        general.add(editorModeHint, 1, 2);
-        general.addRow(3, new Label("Editor font size"), editorFontSize);
-        general.addRow(4, new Label("Line numbers"), lineNumbers);
-        general.add(lineNumbersHint, 1, 5);
-        general.addRow(6, new Label("Preview theme"), theme);
-        general.addRow(7, new Label("Preview font size"), previewFontSize);
-        general.addRow(8, new Label("Spelling"), checkSpelling);
-        general.add(spellingHint, 1, 9);
-        general.add(strictSpelling, 1, 10);
-        general.add(strictHint, 1, 11);
-        general.addRow(12, new Label("Repetitions"), highlightRepetitions);
-        general.add(repetitionsHint, 1, 13);
+        //general
+        GridPane startup = new GridPane();
+        startup.addRow(0, new Label("Last book"), reopen);
 
         GridPane newBooks = new GridPane();
         newBooks.addRow(0, new Label("Language"), DictionaryMark.after(language));
         newBooks.addRow(1, new Label("Author"), author);
         newBooks.add(newBooksHint, 1, 2);
 
-        VBox form = new VBox(Controls.fieldset("General", general, LABEL_WIDTH),
-                Controls.fieldset("New book defaults", newBooks, LABEL_WIDTH));
-        form.getStyleClass().add("preferences-form");
-        dialog.getDialogPane().setContent(form);
+        //editor
+        GridPane editor = new GridPane();
+        editor.addRow(0, new Label("Editor mode"), editorMode);
+        editor.add(editorModeHint, 1, 1);
+        editor.addRow(2, new Label("Editor font size"), editorFontSize);
+        editor.addRow(3, new Label("Line numbers"), lineNumbers);
+        editor.add(lineNumbersHint, 1, 4);
+        editor.addRow(5, new Label("Spelling"), checkSpelling);
+        editor.add(spellingHint, 1, 6);
+        editor.add(strictSpelling, 1, 7);
+        editor.add(strictHint, 1, 8);
+        editor.addRow(9, new Label("Repetitions"), highlightRepetitions);
+        editor.add(repetitionsHint, 1, 10);
+
+        //preview
+        GridPane preview = new GridPane();
+        preview.addRow(0, new Label("Preview theme"), theme);
+        preview.addRow(1, new Label("Preview font size"), previewFontSize);
+
+        TabPane tabs = new TabPane(
+                tab("General", Controls.fieldset("Startup", startup, LABEL_WIDTH),
+                        Controls.fieldset("New book defaults", newBooks, LABEL_WIDTH)),
+                tab("Editor", Controls.fieldset("Editor", editor, LABEL_WIDTH)),
+                tab("Preview", Controls.fieldset("Preview", preview, LABEL_WIDTH)));
+        tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+        tabs.getStyleClass().add("preferences-tabs");
+        dialog.getDialogPane().setContent(tabs);
 
         Supplier<Preferences> chosen = () -> new Preferences(reopen.isSelected(),
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
@@ -167,5 +181,13 @@ public final class PreferencesDialog {
             apply.accept(chosen.get());
         else
             undoApplied.run();
+    }
+
+    /** A tab of the form, its groups one under the other, at the top however tall the tallest tab makes it. */
+    private static Tab tab(String name, Node... groups) {
+
+        VBox form = new VBox(groups);
+        form.getStyleClass().add("preferences-form");
+        return new Tab(name, form);
     }
 }
