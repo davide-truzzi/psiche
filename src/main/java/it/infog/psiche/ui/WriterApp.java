@@ -46,7 +46,8 @@ public final class WriterApp extends Application {
 
     // Before the preview's web engine is made. By default the engine drives its timers from the screen's pulses, and
     // to have them it keeps JavaFX pulsing 60 times a second for as long as the app runs, even when nothing moves:
-    // power taken from a laptop's battery. Its timers then wait on a thread of their own, and the app rests when idle.
+    // power taken from a laptop's battery. Its timers then wait on a thread of their own, and the app rests when idle;
+    // PacedWebTimer keeps them from firing more often than frames would.
     static {
         System.setProperty("com.sun.webkit.platformticks", "false");
     }

@@ -67,6 +67,11 @@ public final class PreviewPane extends StackPane {
     // Lets the frame around the page, seen while it loads, follow the theme.
     private static final PseudoClass DARK = PseudoClass.getPseudoClass("dark");
 
+    // Before the first web engine, which picks the engine's timer: on the JavaFX thread, as the engine's class needs.
+    static {
+        PacedWebTimer.install();
+    }
+
     private final Function<PreviewTheme, MarkdownRenderer> renderers;
     // Held here because the page alone may not keep a listener added from Java alive.
     private final EventListener linkClicks = this::openLink;

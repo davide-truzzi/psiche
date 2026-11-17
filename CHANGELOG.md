@@ -15,6 +15,8 @@
 
 - Psiche no longer keeps a few per cent of a processor busy when the system has no watch left for the chapters
   folder: while it waited to try again, it redrew the window sixty times a second.
+- Some long chapters no longer keep one and a half processors busy while nothing happens: their preview made the web
+  engine fire a timer over and over, as fast as it could. It now fires at most as often as the screen redraws.
 
 ## 0.8.0 Beta (2026-11-14)
 

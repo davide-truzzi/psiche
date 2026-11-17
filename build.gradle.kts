@@ -84,12 +84,15 @@ application {
         // JavaFX loads its native libraries itself, which JDK 24+ warns about unless native access is granted; the
         // preview's WebView brings javafx.media along, for the audio and video a page may hold.
         "--enable-native-access=javafx.graphics,javafx.web,javafx.media",
+        // The preview paces the web engine's timer through the engine's go-between, an internal class of JavaFX.
+        "--add-exports=javafx.web/com.sun.webkit=it.infog.psiche",
     )
 }
 
 // The app's version goes into its module, where the About dialog reads it, so it is written down only above.
 tasks.compileJava {
     options.javaModuleVersion = provider { version.toString() }
+    options.compilerArgs.add("--add-exports=javafx.web/com.sun.webkit=it.infog.psiche")
 }
 
 // The licence the app is distributed under goes inside it too, for the About dialog to show without a network.
@@ -176,6 +179,7 @@ val jpackageImage by tasks.registering(Exec::class) {
         "--module", "it.infog.psiche/it.infog.psiche.ui.WriterApp",
         "--java-options", "--add-modules=ALL-MODULE-PATH,java.sql",
         "--java-options", "--enable-native-access=javafx.graphics,javafx.web,javafx.media",
+        "--java-options", "--add-exports=javafx.web/com.sun.webkit=it.infog.psiche",
         "--dest", image.get().asFile.path)
 }
 
