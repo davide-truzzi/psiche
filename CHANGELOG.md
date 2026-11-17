@@ -19,7 +19,8 @@
 - **Power while idle**: with nothing happening, Psiche could still keep a processor busy. Some long chapters made the
   preview's web engine fire a timer over and over, taking one and a half processors; it now fires at most as often as
   the screen redraws. And while the status bar said it "Cannot watch the chapters folder", Psiche redrew the window
-  sixty times a second as it waited to try again; it now rests.
+  sixty times a second as it waited to try again; it now rests. So it did after you typed in the find bar and closed
+  it, until you next clicked in its field.
 
 ### For testers
 

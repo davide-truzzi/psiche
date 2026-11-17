@@ -1,5 +1,7 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.ui.common.FieldCaret;
+
 import javafx.scene.control.TextField;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
@@ -19,6 +21,7 @@ final class FindField extends TextField {
 
     FindField() {
 
+        FieldCaret.stopsWithFocus(this);
         addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (TYPE_LINE_BREAK.match(event)) {
                 replaceSelection(LineBreakSigns.SIGN);

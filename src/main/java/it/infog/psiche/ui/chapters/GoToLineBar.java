@@ -1,14 +1,13 @@
 package it.infog.psiche.ui.chapters;
 
+import it.infog.psiche.ui.common.FieldCaret;
 import it.infog.psiche.ui.common.SceneKeys;
 
-import javafx.application.Platform;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
-import javafx.scene.control.skin.TextInputControlSkin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -52,13 +51,10 @@ final class GoToLineBar {
         field.setTextFormatter(new TextFormatter<>(GoToLineBar::digitsOnly));
         field.textProperty().addListener((obs, old, text) -> checkLine());
         field.focusedProperty().addListener((obs, old, focused) -> {
-            if (focused)
-                return;
-
-            hide();
-            // After JavaFX has reset the field's selection, which it does as the focus leaves.
-            Platform.runLater(this::stopCaretBlink);
+            if (!focused)
+                hide();
         });
+        FieldCaret.stopsWithFocus(field);
         count.getStyleClass().add("find-count");
         count.setMinWidth(Region.USE_PREF_SIZE);
         Label label = new Label("Go to line");
@@ -152,17 +148,6 @@ final class GoToLineBar {
     private static TextFormatter.Change digitsOnly(TextFormatter.Change change) {
 
         return DIGITS.matcher(change.getControlNewText()).matches() ? change : null;
-    }
-
-    /**
-     * Stops the field's caret blinking once the focus has left it. JavaFX restarts the blink whenever the caret moves,
-     * with the focus or without, and it moves as the focus leaves: the blink then runs on unseen, and draws the window
-     * sixty times a second until the field next has the focus.
-     */
-    private void stopCaretBlink() {
-
-        if (!field.isFocused() && field.getSkin() instanceof TextInputControlSkin<?> skin)
-            skin.setCaretAnimating(false);
     }
 
     private void show(boolean shown) {
