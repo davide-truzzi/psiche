@@ -96,20 +96,38 @@ public final class Controls {
      */
     public static StackPane fieldset(String legend, GridPane rows, double labelWidth) {
 
-        rows.getStyleClass().addAll("book-form", "fieldset-rows");
+        return fieldset(legend, formRows(rows, labelWidth));
+    }
+
+    /**
+     * {@code content} framed like an HTML fieldset, as {@link #fieldset(String, GridPane, double)} frames rows: for
+     * rows that scroll, a scroll pane around them.
+     */
+    public static StackPane fieldset(String legend, Region content) {
+
+        content.getStyleClass().add("fieldset-rows");
+        Label title = new Label(legend);
+        title.getStyleClass().add("fieldset-legend");
+        StackPane.setAlignment(title, Pos.TOP_LEFT);
+
+        StackPane fieldset = new StackPane(content, title);
+        fieldset.getStyleClass().add("fieldset");
+        return fieldset;
+    }
+
+    /**
+     * {@code rows} as a form of labels and fields: the labels' column at least {@code labelWidth} wide, so the fields
+     * of several forms line up, and the fields' column taking the rest.
+     */
+    public static GridPane formRows(GridPane rows, double labelWidth) {
+
+        rows.getStyleClass().add("book-form");
         ColumnConstraints labels = new ColumnConstraints();
         labels.setMinWidth(labelWidth);
         ColumnConstraints fields = new ColumnConstraints();
         fields.setHgrow(Priority.ALWAYS);
         rows.getColumnConstraints().addAll(labels, fields);
-
-        Label title = new Label(legend);
-        title.getStyleClass().add("fieldset-legend");
-        StackPane.setAlignment(title, Pos.TOP_LEFT);
-
-        StackPane fieldset = new StackPane(rows, title);
-        fieldset.getStyleClass().add("fieldset");
-        return fieldset;
+        return rows;
     }
 
     /** A line of help under a field, in the form's quieter text. */

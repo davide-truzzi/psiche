@@ -12,6 +12,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -118,7 +119,12 @@ final class AboutDialog {
         credits.addRow(CREDITS.size(), new Label(DICTIONARIES),
                 link(DICTIONARIES_LICENCES, () -> showText(dialog, DICTIONARIES, dictionaries())));
 
-        VBox content = new VBox(app, Controls.fieldset("Licences", credits, NAME_WIDTH));
+        // In a box of its own height that scrolls, so the dialog fits a small screen.
+        ScrollPane licences = new ScrollPane(Controls.formRows(credits, NAME_WIDTH));
+        licences.setFitToWidth(true);
+        licences.getStyleClass().add("about-licences");
+
+        VBox content = new VBox(app, Controls.fieldset("Licences", licences));
         content.getStyleClass().add("about-content");
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();

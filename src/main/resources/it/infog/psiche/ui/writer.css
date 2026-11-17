@@ -1293,6 +1293,17 @@
     -fx-underline: true;
 }
 
+/* The licences scroll in a box of their own height, inside the fieldset's border, so About fits a small screen. */
+.about-licences,
+.about-licences:focused,
+.about-licences > .viewport {
+    -fx-background-color: transparent;
+}
+
+.about-licences {
+    -fx-pref-height: 220;
+}
+
 .licence-text {
     -fx-pref-width: 680;
     -fx-pref-height: 520;
