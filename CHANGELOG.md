@@ -6,10 +6,13 @@
 
 - **The book opens where you left it**: opening a book shows the chapter you had open last, at the place you left it,
   instead of its first chapter. A chapter renamed keeps this; if it was deleted, the book opens on its first chapter.
-- **Line numbers**: hold **Alt** alone (Option on macOS) while typing in a chapter to see its line numbers in the left
-  margin, or tick **Always show line numbers** in Preferences. Each paragraph is one line, as in the chapter's file.
-  While they show, a number takes the colour of the dots it replaces: brass for a comment, red for a spelling mistake,
-  half and half for both.
+- **Line numbers**: hold **Alt** alone (Option on macOS) anywhere in the window to see the chapter's line numbers in
+  the left margin, or tick **Always show line numbers** in Preferences. Each paragraph is one line, as in the chapter's
+  file. While they show, a number takes the colour of the dots it replaces: brass for a comment, red for a spelling
+  mistake, half and half for both.
+- **Go to line**: **Alt+L** (Option+L on macOS), or Go to line… in the text's right-click menu, opens a bar under the
+  text, as Find does: type a line number and press Enter to take the caret there. The line numbers show while it is
+  open.
 
 ### What is fixed
 

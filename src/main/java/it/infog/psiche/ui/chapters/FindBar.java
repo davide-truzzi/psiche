@@ -340,7 +340,8 @@ final class FindBar {
         return button;
     }
 
-    private static Button iconButton(String icon, String tip, Runnable action) {
+    /** One of the bar's small buttons drawn as an icon, as the Go to line bar's cross is too. */
+    static Button iconButton(String icon, String tip, Runnable action) {
 
         Button button = new Button();
         button.setGraphic(icon(icon));

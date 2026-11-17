@@ -41,7 +41,8 @@ public final class ChapterEditor {
     private final ChapterEdits edits;
     private final ChapterLinks links;
     private final FindBar findBar;
-    // The page with the find bar under it.
+    private final GoToLineBar goToLineBar;
+    // The page with the find bar and the Go to line bar under it.
     private final VBox node;
     private Runnable insertImage = () -> {};
     private Consumer<ImageLine> modifyImage = line -> {};
@@ -67,11 +68,12 @@ public final class ChapterEditor {
         edits = new ChapterEdits(manuscript, this::isOpen);
         links = new ChapterLinks(manuscript, this::chapter);
         findBar = new FindBar(manuscript);
-        node = new VBox(manuscript.node(), findBar.node());
+        goToLineBar = new GoToLineBar(manuscript);
+        node = new VBox(manuscript.node(), findBar.node(), goToLineBar.node());
         VBox.setVgrow(manuscript.node(), Priority.ALWAYS);
         manuscript.textProperty().addListener((obs, old, text) -> trackDraft());
         ContextMenu menu = FormattingMenu.attach(manuscript, () -> insertImage.run(), line -> modifyImage.accept(line),
-                links.actions(), findBar::open);
+                links.actions(), findBar::open, goToLineBar::open);
         SpellingMenu.attach(menu, manuscript, spelling::makeRight);
     }
 
@@ -217,6 +219,7 @@ public final class ChapterEditor {
         manuscript.setChapter(null);
         links.clear();
         findBar.hide();
+        goToLineBar.hide();
         manuscript.clear();
         dirty.set(false);
     }

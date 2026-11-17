@@ -82,6 +82,8 @@ final class Manuscript {
     private boolean reading;
     // True if Preferences shows the line numbers all the time, not only while Alt is held.
     private boolean lineNumbersAlways;
+    // True while the Go to line bar shows, which wants them shown too.
+    private boolean lineNumbersAsked;
     private boolean chapterOpen;
 
     /**
@@ -271,6 +273,13 @@ final class Manuscript {
         showLineNumbers();
     }
 
+    /** Shows the line numbers while {@code asked}, as the Go to line bar does while it shows, besides other times. */
+    void askLineNumbers(boolean asked) {
+
+        lineNumbersAsked = asked;
+        showLineNumbers();
+    }
+
     /** Lets the Markdown recede, in {@link EditorMode#DEFAULT}, or shows it as written, as Preferences asks. */
     void setMode(EditorMode mode) {
 
@@ -288,6 +297,12 @@ final class Manuscript {
             if (paragraph instanceof Parent text)
                 text.requestLayout();
     }
+
+    // Its lines, as the line numbers count them: a paragraph each, as in the chapter's file, numbered from 1
+
+    int lineCount() { return area.getParagraphs().size(); }
+    int caretLine() { return area.getCurrentParagraph() + 1; }
+    int lineStart(int line) { return area.getAbsolutePosition(line - 1, 0); }
 
     /** The search of the text, which the find bar drives. */
     TextSearch search() { return search; }
@@ -447,9 +462,12 @@ final class Manuscript {
         return false;
     }
 
-    /** Shows the line numbers while a chapter is open, if Preferences always shows them or Alt is held alone. */
+    /**
+     * Shows the line numbers while a chapter is open, if Preferences always shows them, Alt is held alone, or the Go to
+     * line bar shows.
+     */
     private void showLineNumbers() {
 
-        marks.showLineNumbers(chapterOpen && (lineNumbersAlways || altHold.isHeld()));
+        marks.showLineNumbers(chapterOpen && (lineNumbersAlways || altHold.isHeld() || lineNumbersAsked));
     }
 }

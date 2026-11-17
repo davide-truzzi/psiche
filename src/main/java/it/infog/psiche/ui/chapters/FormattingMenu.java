@@ -73,20 +73,21 @@ final class FormattingMenu {
      * @param modifyImage shows an image line of the chapter to change, for Modify image…
      * @param links       Insert, Link…, then Modify link… and Remove link, which follow Modify image…
      * @param find        opens the find bar, for Find…
+     * @param goToLine    opens the Go to line bar, for Go to line…
      *
      * @return the menu, for other parts of the editor to add to
      */
     static ContextMenu attach(Manuscript manuscript, Runnable insertImage, Consumer<ImageLine> modifyImage,
-                              LinkActions links, Runnable find) {
+                              LinkActions links, Runnable find, Runnable goToLine) {
 
         FormattingMenu formatting = new FormattingMenu(manuscript);
-        ContextMenu menu = formatting.menu(insertImage, modifyImage, links, find);
+        ContextMenu menu = formatting.menu(insertImage, modifyImage, links, find, goToLine);
         manuscript.setMenu(menu, formatting.shortcuts);
         return menu;
     }
 
     private ContextMenu menu(Runnable insertImage, Consumer<ImageLine> modifyImage, LinkActions links,
-                             Runnable find) {
+                             Runnable find, Runnable goToLine) {
 
         //formatting
         MenuItem bold = formatItem("Bold", BOLD, MarkdownFormatter::bold);
@@ -117,6 +118,9 @@ final class FormattingMenu {
         MenuItem findItem = menuItem("Find…", find);
         findItem.setAccelerator(FindBar.FIND);
         shortcuts.put(FindBar.FIND, find);
+        // Its key is the window's, not only the text's (see GoToLineBar): the menu only shows it.
+        MenuItem goToLineItem = menuItem("Go to line…", goToLine);
+        goToLineItem.setAccelerator(GoToLineBar.GO_TO_LINE);
 
         //editing
         MenuItem undo = menuItem("Undo", manuscript::undo);
@@ -131,8 +135,8 @@ final class FormattingMenu {
                 comment, clear, new SeparatorMenuItem(), insert, modifyImageItem);
         menu.getItems().addAll(links.modifyItems());
         menu.getItems().addAll(notes.modifyItems());
-        menu.getItems().addAll(new SeparatorMenuItem(), findItem, new SeparatorMenuItem(), undo, redo,
-                new SeparatorMenuItem(), cut, copy, paste, delete, new SeparatorMenuItem(), selectAll);
+        menu.getItems().addAll(new SeparatorMenuItem(), findItem, goToLineItem, new SeparatorMenuItem(), undo,
+                redo, new SeparatorMenuItem(), cut, copy, paste, delete, new SeparatorMenuItem(), selectAll);
 
         // Enable what applies to the text and selection as they are when the menu opens.
         menu.setOnShowing(event -> {
@@ -157,6 +161,7 @@ final class FormattingMenu {
             modifyImageItem.setVisible(menuImage().isPresent());
             modifyImageItem.setDisable(!editable);
             findItem.setDisable(!editable);
+            goToLineItem.setDisable(!editable);
             links.update();
 
             undo.setDisable(!editable || !manuscript.canUndo());

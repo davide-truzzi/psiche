@@ -577,6 +577,11 @@
     -fx-pref-width: 260;
 }
 
+/* The Go to line bar's field, drawn as the find field, wide enough for a line number. */
+.go-to-field {
+    -fx-pref-width: 80;
+}
+
 .find-field:no-matches,
 .find-field:no-matches:focused {
     -fx-border-color: -red-pencil;
