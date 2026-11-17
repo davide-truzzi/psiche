@@ -6,17 +6,23 @@
 
 - **The book opens where you left it**: opening a book shows the chapter you had open last, at the place you left it,
   instead of its first chapter. A chapter renamed keeps this; if it was deleted, the book opens on its first chapter.
-- **Line numbers**: hold **Alt** (Option on macOS) in the editor to see the chapter's line numbers in the left margin,
-  or turn on **Line numbers** in Preferences to see them always. Each paragraph is one line, as in the chapter's file.
+- **Line numbers**: hold **Alt** alone (Option on macOS) while typing in a chapter to see its line numbers in the left
+  margin, or tick **Always show line numbers** in Preferences. Each paragraph is one line, as in the chapter's file.
   While they show, a number takes the colour of the dots it replaces: brass for a comment, red for a spelling mistake,
   half and half for both.
 
 ### What is fixed
 
-- Psiche no longer keeps a few per cent of a processor busy when the system has no watch left for the chapters
-  folder: while it waited to try again, it redrew the window sixty times a second.
-- Some long chapters no longer keep one and a half processors busy while nothing happens: their preview made the web
-  engine fire a timer over and over, as fast as it could. It now fires at most as often as the screen redraws.
+- **Power while idle**: with nothing happening, Psiche could still keep a processor busy. Some long chapters made the
+  preview's web engine fire a timer over and over, taking one and a half processors; it now fires at most as often as
+  the screen redraws. And while the status bar said it "Cannot watch the chapters folder", Psiche redrew the window
+  sixty times a second as it waited to try again; it now rests.
+
+### For testers
+
+- Line numbers on Windows: Alt alone shows them, and AltGr, typing accented letters, never should. On macOS, typing
+  with Option shows them for a moment: that is expected.
+- On a laptop, tell us if the battery runs down faster with Psiche open than with other programs.
 
 ## 0.8.0 Beta (2026-11-14)
 
