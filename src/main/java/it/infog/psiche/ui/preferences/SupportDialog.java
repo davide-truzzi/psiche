@@ -1,11 +1,13 @@
 package it.infog.psiche.ui.preferences;
 
+import it.infog.psiche.ui.common.AppInfo;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.Icons;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -18,7 +20,7 @@ import java.util.function.Consumer;
 
 /**
  * "Keep the lamp lit": the yellow lamp on the toolbar, and the dialog it opens, asking the writers who use Psiche
- * Writer to support it, with the same Buy Me a Coffee button as About. While the pointer is over that button, the
+ * Writer to support it, with the same Buy Me a Coffee button as About, and the app's website under it. While the pointer is over that button, the
  * dialog's lamp burns as a patron's. The dialog's lamps glow in gradients JavaFX cannot give a shape, so they are
  * pictures, exported from their SVG files.
  */
@@ -69,7 +71,8 @@ public final class SupportDialog {
         support.setMinHeight(Region.USE_PREF_SIZE);
 
         Button coffee = CoffeeButton.create(browser);
-        VBox content = new VBox(glowingLamp(coffee), message, coffee, support);
+        Hyperlink website = AboutDialog.link(AppInfo.WEBSITE_SHOWN, () -> browser.accept(AppInfo.WEBSITE));
+        VBox content = new VBox(glowingLamp(coffee), message, coffee, support, website);
         content.getStyleClass().add("support-content");
         dialog.getDialogPane().setContent(content);
         dialog.showAndWait();

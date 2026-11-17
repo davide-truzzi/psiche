@@ -17,6 +17,8 @@
   that are missing or of a type the format cannot show, and the links that lead nowhere, chapter by chapter with
   their line numbers, and asks whether to export anyway or cancel to fix them first. Exporting the book at a past
   revision does not ask.
+- **Psiche has a website**: [psiche.app](https://psiche.app), linked from About Psiche and from the lamp's Keep the
+  lamp lit.
 
 ### What is fixed
 

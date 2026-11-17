@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
- * Psiche Writer's name, version and author, the licence it is distributed under, a way to support it, and the
+ * Psiche Writer's name, version, author and website, the licence it is distributed under, a way to support it, and the
  * licences of the fonts and libraries that ship with it. The licences in the app open in a window of their own; the
  * others, on their publishers' sites, in the browser.
  */
@@ -96,13 +96,14 @@ final class AboutDialog {
         logo.getStyleClass().add("about-logo");
         Label version = new Label("Version " + AppInfo.version().orElse("unknown"));
         Label copyright = new Label("© 2026 Davide Truzzi");
+        Hyperlink website = link(AppInfo.WEBSITE_SHOWN, () -> browser.accept(AppInfo.WEBSITE));
         Label licence = new Label("Free software under the GNU General Public License, version 3 or later");
         Hyperlink gpl = link("Read the licence",
                 () -> showText(dialog, "GNU General Public License, version 3", read(GPL)));
         Button coffee = CoffeeButton.create(browser);
         Label support = new Label("Help Davide support this project");
 
-        VBox app = new VBox(logo, version, copyright, licence, gpl, coffee, support);
+        VBox app = new VBox(logo, version, copyright, website, licence, gpl, coffee, support);
         app.getStyleClass().add("about-app");
 
         //what ships with it
@@ -123,7 +124,8 @@ final class AboutDialog {
         dialog.showAndWait();
     }
 
-    private static Hyperlink link(String text, Runnable action) {
+    /** A link that runs {@code action}, as the Keep the lamp lit dialog's to the website does too. */
+    static Hyperlink link(String text, Runnable action) {
 
         Hyperlink link = new Hyperlink(text);
         link.setOnAction(event -> {

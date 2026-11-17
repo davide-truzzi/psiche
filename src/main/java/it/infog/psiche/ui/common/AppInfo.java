@@ -7,6 +7,9 @@ import java.util.Optional;
 public final class AppInfo {
 
     public static final String NAME = "Psiche Writer";
+    /** The app's website, and how it is shown, without its scheme. */
+    public static final String WEBSITE = "https://psiche.app";
+    public static final String WEBSITE_SHOWN = "psiche.app";
 
     private AppInfo() {
     }
