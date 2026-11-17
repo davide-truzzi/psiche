@@ -11,6 +11,11 @@
   While they show, a number takes the colour of the dots it replaces: brass for a comment, red for a spelling mistake,
   half and half for both.
 
+### What is fixed
+
+- Psiche no longer keeps a few per cent of a processor busy when the system has no watch left for the chapters
+  folder: while it waited to try again, it redrew the window sixty times a second.
+
 ## 0.8.0 Beta (2026-11-14)
 
 The second Beta: the writing history, every revision of the book's chapters in one PDF, as evidence of how it was
