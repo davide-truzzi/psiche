@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.9.0 Beta (2026-11-17)
+
+The third Beta: line numbers and Go to line in the editor, books that open where you left them, a warning before
+exporting images and links the export would leave out, and far less power used while Psiche sits idle.
 
 ### What is new
 
