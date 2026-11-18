@@ -252,7 +252,8 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     private void applyPreferences(Preferences preferences) {
 
         boolean saved = settings.savePreferences(preferences);
-        WindowThemes.apply(getScene(), preferences.windowTheme());
+        if (WindowThemes.apply(getScene(), preferences.windowTheme()))
+            chapterEditor.layOutAfterRestyle();
         showPreferences(preferences);
         if (saved)
             statusBar.info("Preferences saved");

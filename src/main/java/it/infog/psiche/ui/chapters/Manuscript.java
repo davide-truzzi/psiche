@@ -18,6 +18,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.IndexRange;
 import javafx.scene.control.ScrollBar;
@@ -293,6 +294,35 @@ final class Manuscript {
         area.setClipboard(on ? FootnoteClipboard::copied : PlainTextArea.Copying.PLAIN,
                 on ? FootnoteClipboard::pasted : PlainTextArea.Pasting.PLAIN);
         // RichTextFX draws the tints as it lays a paragraph out, not as their colour changes; those out of view will.
+        layOutParagraphsInView();
+    }
+
+    /**
+     * Lays out the paragraphs in view again once the window's next layout is done, as after a window theme adds its
+     * stylesheet or takes it away: RichTextFX keeps the heights it measures in that layout, while their styles are
+     * still being applied, too short for paragraphs that wrap, and draws the ones below over them.
+     */
+    void layOutAfterRestyle() {
+
+        Scene scene = area.getScene();
+        if (scene == null)
+            return;
+
+        // Runs once: the scene's listeners can be removed while it calls them.
+        scene.addPostLayoutPulseListener(new Runnable() {
+            @Override
+            public void run() {
+
+                scene.removePostLayoutPulseListener(this);
+                layOutParagraphsInView();
+            }
+        });
+        Platform.requestNextPulse();
+    }
+
+    /** Lays out the paragraphs in view again; RichTextFX measures their heights anew as it does. */
+    private void layOutParagraphsInView() {
+
         for (Node paragraph : area.lookupAll(".paragraph-text"))
             if (paragraph instanceof Parent text)
                 text.requestLayout();

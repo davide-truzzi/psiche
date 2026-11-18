@@ -22,11 +22,21 @@ public final class WindowThemes {
     private WindowThemes() {
     }
 
-    /** Shows {@code scene} in {@code theme}, in place of the theme it had. */
-    public static void apply(Scene scene, WindowTheme theme) {
+    /**
+     * Shows {@code scene} in {@code theme}, in place of the theme it had. Changing its stylesheets restyles the whole
+     * window, so they are left alone if it has the theme already.
+     *
+     * @return true if the stylesheets changed
+     */
+    public static boolean apply(Scene scene, WindowTheme theme) {
+
+        List<String> wanted = stylesheet(theme).stream().toList();
+        if (scene.getStylesheets().stream().filter(ALL::contains).toList().equals(wanted))
+            return false;
 
         scene.getStylesheets().removeAll(ALL);
-        stylesheet(theme).ifPresent(scene.getStylesheets()::add);
+        scene.getStylesheets().addAll(wanted);
+        return true;
     }
 
     /** The stylesheet that loads after writer.css for {@code theme}; empty for the default, writer.css alone. */

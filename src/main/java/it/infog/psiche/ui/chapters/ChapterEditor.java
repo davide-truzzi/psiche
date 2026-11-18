@@ -116,6 +116,8 @@ public final class ChapterEditor {
 
     /** Shows the manuscript's text {@code fontSize} pixels high, its line spacing growing and shrinking with it. */
     public void setFontSize(int fontSize) { manuscript.setFontSize(fontSize); }
+    /** Lays out the text again after the window's stylesheets change, as a new window theme does. */
+    public void layOutAfterRestyle() { manuscript.layOutAfterRestyle(); }
     /** Shows the line numbers in the margin all the time, as Preferences asks, or only while Alt is held. */
     public void setLineNumbersAlways(boolean always) { manuscript.setLineNumbersAlways(always); }
     /**
