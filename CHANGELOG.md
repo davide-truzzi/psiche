@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### What is fixed
+
+- **Switching theme no longer jumbles the text**: turning High contrast on or off drew the paragraphs in view over each
+  other. They now lay out again once the new theme is in place.
+- **Preferences opens whole and centred**: on some Linux desktops the first Preferences of a session opened empty,
+  with only its header and buttons, in the top left corner of the screen. It now opens full size, over the window.
+- **History is off with no chapter open**: on the welcome page the History tab is now disabled, as Notes and Media
+  are.
+
 ## 0.9.2 Beta (2026-11-18)
 
 A Check for updates button, a High contrast theme, and a chapter list you can make wider.

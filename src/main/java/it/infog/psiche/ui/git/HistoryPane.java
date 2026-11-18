@@ -7,6 +7,8 @@ import it.infog.psiche.ui.common.DateFormats;
 import it.infog.psiche.ui.common.ErrorReporter;
 
 import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.concurrent.Task;
 import javafx.scene.control.Label;
@@ -38,6 +40,7 @@ public final class HistoryPane extends VBox {
     private final ListView<FileRevision> revisions = new ListView<>();
     private final Label placeholder = new Label();
     private final BooleanProperty showing = new SimpleBooleanProperty();
+    private final ReadOnlyBooleanWrapper available = new ReadOnlyBooleanWrapper();
     private final ErrorReporter errors;
     private final RevisionOpener opener;
 
@@ -84,6 +87,11 @@ public final class HistoryPane extends VBox {
         return showing;
     }
 
+    /** True while a chapter is open; the tab is disabled otherwise. */
+    public ReadOnlyBooleanProperty availableProperty() {
+        return available.getReadOnlyProperty();
+    }
+
     /**
      * Shows the history of {@code chapter}.
      *
@@ -93,6 +101,7 @@ public final class HistoryPane extends VBox {
     public void show(BookRepository repository, Chapter chapter) {
         this.repository = repository;
         this.chapter = chapter;
+        available.set(chapter != null);
         refresh();
     }
 

@@ -38,6 +38,7 @@ final class ChapterTabs {
         markWhile(mediaTab, media.notInChapterProperty(), "media-not-in-chapter");
 
         Tab historyTab = tab("History", history, ChapterTab.HISTORY, history.showingProperty());
+        historyTab.disableProperty().bind(history.availableProperty().not());
 
         TabPane tabs = new TabPane(previewTab, notesTab, mediaTab, historyTab);
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
