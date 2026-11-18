@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.9.2 Beta (2026-11-18)
+
+A Check for updates button, a High contrast theme, and a chapter list you can make wider.
+
+### What is new
+
+- **Check for updates**: a button in Preferences, next to About Psiche, asks [psiche.app](https://psiche.app) for the
+  latest release. If it is newer than yours, Psiche offers to open the site's download page; otherwise it tells you
+  that you are up to date.
+- **High contrast theme**: Preferences' General tab has a **Theme**, Default or High contrast. High contrast draws
+  borders and grey text brighter, and buttons that are turned off easier to read, for dim screens.
+- **A wider chapter list**: drag the divider between the chapter list and the pages to make the list as wide as you
+  like. Psiche remembers the width, and a chapter name too long for the list ends in "..." instead of running under
+  its edge.
+
+### What is fixed
+
+- **Chapter choices look like the rest**: the list for choosing a chapter, in Move note to chapter and in the detached
+  images and notes dialogs, now looks like every other list in the forms.
+
+### For testers
+
+- Check for updates needs an internet connection. Without one, it should say that psiche.app could not be reached.
+
 ## 0.9.1 Beta (2026-11-18)
 
 A fix for the PDF export.
