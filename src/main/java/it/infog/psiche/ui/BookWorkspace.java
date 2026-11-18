@@ -18,6 +18,7 @@ import it.infog.psiche.ui.chapters.ChapterEditor;
 import it.infog.psiche.ui.chapters.UnsavedChanges;
 import it.infog.psiche.ui.common.Animations;
 import it.infog.psiche.ui.common.Dialogs;
+import it.infog.psiche.ui.common.KeptSizeSplit;
 import it.infog.psiche.ui.common.Logo;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.common.WindowThemes;
@@ -35,6 +36,7 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.binding.StringExpression;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.geometry.Orientation;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -153,8 +155,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
 
         getStyleClass().add("workspace");
         setTop(toolbar());
-        setLeft(chapters.sidebar());
-        setCenter(pages());
+        setCenter(sidebarAndPages());
         setBottom(statusBar);
         freezeWhileTransferring();
         BookDrop.install(this, books,
@@ -350,6 +351,16 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
         notes.boardPins().setOnReveal(() -> tabs.getSelectionModel().select(notesTab));
 
         return tabs;
+    }
+
+    /** The chapter list beside the pages, the divider between them dragged by the author, as wide as it was left. */
+    private Node sidebarAndPages() {
+
+        SplitPane split = KeptSizeSplit.of(Orientation.HORIZONTAL, chapters.sidebar(), pages(),
+                settings.sidebarWidth(), settings::saveSidebarWidth);
+        split.getStyleClass().add("sidebar-split");
+
+        return split;
     }
 
     private Node pages() {

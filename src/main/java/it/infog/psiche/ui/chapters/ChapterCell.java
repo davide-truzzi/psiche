@@ -56,6 +56,9 @@ final class ChapterCell extends ListCell<Chapter> {
         Tooltip.install(revisionMark, revisionTip);
         // A hidden "unsaved" leaves no room after the title.
         unsavedMark.managedProperty().bind(unsavedMark.visibleProperty());
+        // As wide as the list, never as its title: a title too long for the column then ends in "...", instead of
+        // running under the column's edge.
+        setPrefWidth(0);
 
         // Right-clicking a chapter shows its menu without selecting it, which would open it.
         addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {

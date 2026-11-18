@@ -70,6 +70,9 @@ public final class Settings {
     private static final String MEDIA_PREVIEW_HEIGHT = "media.preview-height";
     // The Media tab's preview until the author drags it taller or shorter, in pixels.
     private static final double DEFAULT_MEDIA_PREVIEW_HEIGHT = 320;
+    private static final String SIDEBAR_WIDTH = "sidebar.width";
+    // The chapter list's width until the author drags it.
+    private static final double DEFAULT_SIDEBAR_WIDTH = 230;
     private static final String WEB_VIEW_FOLDER = "webview";
     private static final String OWN_WORDS_FILE = "words.txt";
 
@@ -232,18 +235,25 @@ public final class Settings {
     /** How tall the Media tab's preview is, in pixels, as the author last dragged it. */
     public double mediaPreviewHeight() {
 
-        try {
-            double height = Double.parseDouble(read().getProperty(MEDIA_PREVIEW_HEIGHT, "").strip());
-            return Double.isFinite(height) && height > 0 ? height : DEFAULT_MEDIA_PREVIEW_HEIGHT;
-        } catch (NumberFormatException e) {
-            return DEFAULT_MEDIA_PREVIEW_HEIGHT;
-        }
+        return size(MEDIA_PREVIEW_HEIGHT, DEFAULT_MEDIA_PREVIEW_HEIGHT);
     }
 
     /** Remembers how tall the Media tab's preview is, in pixels. */
     public void saveMediaPreviewHeight(double height) {
 
-        update(settings -> settings.setProperty(MEDIA_PREVIEW_HEIGHT, String.valueOf(Math.round(height))));
+        saveSize(MEDIA_PREVIEW_HEIGHT, height);
+    }
+
+    /** How wide the chapter list is, in pixels, as the author last dragged it. */
+    public double sidebarWidth() {
+
+        return size(SIDEBAR_WIDTH, DEFAULT_SIDEBAR_WIDTH);
+    }
+
+    /** Remembers how wide the chapter list is, in pixels. */
+    public void saveSidebarWidth(double width) {
+
+        saveSize(SIDEBAR_WIDTH, width);
     }
 
     /** The tab shown beside the chapter each time a book opens; the preview until the author pins another. */
@@ -274,6 +284,23 @@ public final class Settings {
         return Arrays.stream(type.getEnumConstants())
                 .filter(constant -> constant.name().equalsIgnoreCase(name))
                 .findFirst();
+    }
+
+    /** A part's size, in pixels, stored under {@code key}; {@code fallback} if none is stored or it cannot be read. */
+    private double size(String key, double fallback) {
+
+        try {
+            double size = Double.parseDouble(read().getProperty(key, "").strip());
+            return Double.isFinite(size) && size > 0 ? size : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    /** Remembers a part's size under {@code key}, in whole pixels. */
+    private void saveSize(String key, double size) {
+
+        update(settings -> settings.setProperty(key, String.valueOf(Math.round(size))));
     }
 
     /** {@code constant} as the file has it, in lower case, as {@code dark} for a preview theme. */

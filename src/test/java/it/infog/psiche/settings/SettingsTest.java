@@ -139,6 +139,17 @@ class SettingsTest {
     }
 
     @Test
+    void theChapterListKeepsTheWidthTheAuthorDraggedItTo() throws IOException {
+        assertThat(settings().sidebarWidth()).isEqualTo(230);
+
+        settings().saveSidebarWidth(311.4);
+
+        assertThat(settings().sidebarWidth()).isEqualTo(311);
+        Files.writeString(folder().path().resolve(Settings.FILE), "sidebar.width=-5\n");
+        assertThat(settings().sidebarWidth()).isEqualTo(230);
+    }
+
+    @Test
     void aDamagedFileReadsAsNoSettings() throws IOException {
         Files.createDirectories(folder().path());
         Files.writeString(folder().path().resolve(Settings.FILE), "recent.1=\\u00zz broken escape\n");

@@ -152,11 +152,32 @@
 
 /* Chapter list */
 
+/* The chapter list is as wide as the author drags it, between room for its heading and New chapter, and a third of
+   a wide window. */
 .sidebar {
-    -fx-pref-width: 230;
+    -fx-min-width: 200;
+    -fx-max-width: 600;
     -fx-padding: 22 0 0 0;
     -fx-spacing: 10;
-    -fx-border-color: transparent -desk-edge transparent transparent;
+}
+
+.sidebar-split {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/* The line between the chapter list and the pages, which the author drags: 6 px to grab, the line in it 1 px, brass
+   under the pointer. */
+.sidebar-split > .split-pane-divider {
+    -fx-background-color: -desk-edge;
+    -fx-background-insets: 0 3 0 2;
+    -fx-padding: 0 3 0 3;
+    -fx-cursor: h-resize;
+}
+
+.sidebar-split > .split-pane-divider:hover {
+    -fx-background-color: -brass;
 }
 
 .section-heading {

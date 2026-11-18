@@ -11,6 +11,7 @@ import it.infog.psiche.media.model.MediaImage;
 import it.infog.psiche.ui.chapters.ChapterEditor;
 import it.infog.psiche.ui.common.ErrorReporter;
 import it.infog.psiche.ui.common.FileLabels;
+import it.infog.psiche.ui.common.KeptSizeSplit;
 import it.infog.psiche.ui.common.StatusBar;
 import it.infog.psiche.ui.common.WorkThread;
 
@@ -21,13 +22,10 @@ import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
 import javafx.scene.image.Image;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Window;
@@ -88,8 +86,6 @@ public final class MediaPane extends BorderPane {
     private Runnable detached = () -> {};
     private Path selected;
     private int place;
-    // How tall the preview is, in pixels, as last placed or dragged.
-    private double previewHeight;
 
     /**
      * @param previewHeight     how tall the preview is, in pixels, as the author last dragged it
@@ -108,8 +104,7 @@ public final class MediaPane extends BorderPane {
         summary.getStyleClass().add("media-summary");
         footer = new HBox(summary, hSpacer(), button("Add image", insertion::insert));
         footer.getStyleClass().add("media-footer");
-        this.previewHeight = previewHeight;
-        content = previewAndCards(savePreviewHeight);
+        content = previewAndCards(previewHeight, savePreviewHeight);
         empty.getStyleClass().add("media-empty");
         empty.setWrapText(true);
         getStyleClass().add("media-pane");
@@ -243,35 +238,11 @@ public final class MediaPane extends BorderPane {
      * The preview above the cards, the divider between them dragged by the author: the preview keeps its height in
      * pixels as the window or the tab changes size, and whichever image it shows.
      */
-    private SplitPane previewAndCards(DoubleConsumer savePreviewHeight) {
+    private SplitPane previewAndCards(double previewHeight, DoubleConsumer savePreviewHeight) {
 
-        SplitPane split = new SplitPane(preview.node(), cards.node());
-        split.setOrientation(Orientation.VERTICAL);
+        SplitPane split = KeptSizeSplit.of(Orientation.VERTICAL, preview.node(), cards.node(), previewHeight,
+                savePreviewHeight);
         split.getStyleClass().add("media-split");
-        SplitPane.setResizableWithParent(preview.node(), false);
-
-        // Placed once the split first has a height, as a share of it; from then on the preview keeps its pixels.
-        split.heightProperty().addListener(new ChangeListener<>() {
-            @Override
-            public void changed(ObservableValue<? extends Number> obs, Number old, Number total) {
-
-                if (total.doubleValue() <= 0)
-                    return;
-
-                split.setDividerPositions(Math.clamp(previewHeight / total.doubleValue(), 0.1, 0.9));
-                split.heightProperty().removeListener(this);
-            }
-        });
-        // Caught on its way down: the divider consumes the release it was dragged with.
-        split.addEventFilter(MouseEvent.MOUSE_RELEASED, event -> {
-            // Laid out first, so the preview's height is the one the divider was let go at, never under its details.
-            split.layout();
-            double now = preview.node().getBoundsInParent().getHeight();
-            if (Math.round(now) != Math.round(previewHeight)) {
-                previewHeight = now;
-                savePreviewHeight.accept(now);
-            }
-        });
 
         return split;
     }
