@@ -38,7 +38,8 @@ import java.util.function.Supplier;
  * how the text is shown and checked; and Preview, for how the page looks. Apply puts the choices into effect and
  * keeps the form open, so the author can try a size or a theme and see it at once; Save does the same and closes it.
  * Revert puts every field back as it was when the form opened, and undoes what was applied since; Cancel does the
- * same and closes it. About Psiche opens the About dialog above it.
+ * same and closes it. About Psiche opens the About dialog above it; Check for updates asks psiche.app for a newer
+ * release.
  */
 public final class PreferencesDialog {
 
@@ -47,6 +48,7 @@ public final class PreferencesDialog {
     // Placed before Apply, which it undoes.
     private static final ButtonType REVERT = new ButtonType("Revert", ButtonData.OTHER);
     private static final ButtonType ABOUT = new ButtonType("About Psiche", ButtonData.LEFT);
+    private static final ButtonType UPDATES = new ButtonType(UpdateCheck.CHECK, ButtonData.LEFT);
     // The same in every group and tab, so their fields line up.
     private static final double LABEL_WIDTH = 140;
     private static final String FONT_SIZE = "%d px";
@@ -67,17 +69,17 @@ public final class PreferencesDialog {
         Dialogs.ownAndStyle(dialog, owner);
         dialog.setHeaderText("Preferences");
         dialog.getDialogPane().getStyleClass().add("preferences");
-        dialog.getDialogPane().getButtonTypes().setAll(ABOUT, ButtonType.CANCEL, REVERT, APPLY, SAVE);
+        dialog.getDialogPane().getButtonTypes().setAll(ABOUT, UPDATES, ButtonType.CANCEL, REVERT, APPLY, SAVE);
 
-        // About opens over the form, which stays open, instead of closing it as a dialog's buttons do.
-        Button about = (Button) dialog.getDialogPane().lookupButton(ABOUT);
+        // About and Check for updates open over the form, which stays open, instead of closing it as a dialog's
+        // buttons do.
+        Button about = leftButton(dialog, ABOUT);
         about.getStyleClass().add("primary");
-        // Sized to its own text, so Cancel and Save keep theirs.
-        ButtonBar.setButtonUniformSize(about, false);
         about.addEventFilter(ActionEvent.ACTION, event -> {
             event.consume();
             AboutDialog.show(dialog.getDialogPane().getScene().getWindow(), browser);
         });
+        UpdateCheck.attach(leftButton(dialog, UPDATES), browser);
 
         //fields
         CheckBox reopen = new CheckBox("Reopen the last book when Psiche Writer starts");
@@ -199,6 +201,15 @@ public final class PreferencesDialog {
     }
 
     /** A tab of the form, its groups one under the other, at the top however tall the tallest tab makes it. */
+    /** A button at the bar's left, sized to its own text so Cancel and Save keep theirs. */
+    private static Button leftButton(Dialog<ButtonType> dialog, ButtonType type) {
+
+        Button button = (Button) dialog.getDialogPane().lookupButton(type);
+        ButtonBar.setButtonUniformSize(button, false);
+
+        return button;
+    }
+
     private static Tab tab(String name, Node... groups) {
 
         VBox form = new VBox(groups);

@@ -3,6 +3,7 @@ module it.infog.psiche {
     requires javafx.web;
     requires java.desktop;
     requires java.logging;
+    requires java.net.http;
     requires jdk.xml.dom;
     requires org.commonmark;
     requires org.commonmark.ext.footnotes;

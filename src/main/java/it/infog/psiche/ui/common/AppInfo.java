@@ -21,9 +21,14 @@ public final class AppInfo {
      */
     public static Optional<String> version() {
 
+        return rawVersion().map(AppInfo::readable);
+    }
+
+    /** The app's version as the build writes it, as "0.1.0-alpha"; none in a run straight from the sources. */
+    public static Optional<String> rawVersion() {
+
         return Optional.ofNullable(AppInfo.class.getModule().getDescriptor())
-                .flatMap(ModuleDescriptor::rawVersion)
-                .map(AppInfo::readable);
+                .flatMap(ModuleDescriptor::rawVersion);
     }
 
     /** {@code version} with its stage after a space and a capital, as "0.1.0 Alpha" for "0.1.0-alpha". */
