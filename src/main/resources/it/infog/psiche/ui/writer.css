@@ -1039,31 +1039,32 @@
     -fx-highlight-fill: derive(-red-pencil, -30%);
 }
 
-.book-form .combo-box {
+/* Every combo box looks the same, the forms' and the one a ChoiceDialog builds alike. */
+.combo-box {
     -fx-background-color: -desk;
     -fx-background-radius: 2;
     -fx-border-color: -desk-edge;
     -fx-border-radius: 2;
 }
 
-.book-form .combo-box:focused,
-.book-form .combo-box:showing {
+.combo-box:focused,
+.combo-box:showing {
     -fx-border-color: -brass;
 }
 
 /* The box shows its value in a list cell, which must not look like a selected chapter. */
-.book-form .combo-box > .list-cell {
+.combo-box > .list-cell {
     -fx-background-color: transparent;
     -fx-border-width: 0;
     -fx-text-fill: -paper;
     -fx-padding: 6 10;
 }
 
-.book-form .combo-box > .arrow-button {
+.combo-box > .arrow-button {
     -fx-background-color: transparent;
 }
 
-.book-form .combo-box > .arrow-button > .arrow {
+.combo-box > .arrow-button > .arrow {
     -fx-background-color: -paper-dim;
 }
 
