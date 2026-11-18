@@ -10,6 +10,7 @@ import it.infog.psiche.settings.model.WindowBounds;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
 import it.infog.psiche.ui.common.AppInfo;
 import it.infog.psiche.ui.common.MenusOnRelease;
+import it.infog.psiche.ui.common.WindowThemes;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
@@ -109,6 +110,7 @@ public final class WriterApp extends Application {
         //generate scene with app CSS
         Scene scene = new Scene(workspace, 1360, 860);
         scene.getStylesheets().add(WriterApp.class.getResource("writer.css").toExternalForm());
+        WindowThemes.apply(scene, settings.preferences().windowTheme());
         MenusOnRelease.install(scene);
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN), workspace::save);
         scene.getAccelerators().put(new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN,

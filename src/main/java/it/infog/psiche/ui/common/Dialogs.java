@@ -147,6 +147,12 @@ public final class Dialogs {
 
         dialog.initOwner(owner);
         dialog.setTitle(AppInfo.NAME);
+        restyle(dialog, owner);
+    }
+
+    /** Gives the dialog the stylesheets {@code owner} has now, as after the window theme changed. */
+    public static void restyle(Dialog<?> dialog, Window owner) {
+
         dialog.getDialogPane().getStylesheets().setAll(owner.getScene().getStylesheets());
     }
 

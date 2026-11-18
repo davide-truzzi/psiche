@@ -3,6 +3,7 @@ package it.infog.psiche.ui.preferences;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
+import it.infog.psiche.settings.model.enums.WindowTheme;
 import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.DictionaryMark;
@@ -33,8 +34,8 @@ import java.util.function.Supplier;
 
 /**
  * A form for what the author chooses for the app as a whole, rather than for one book, in three tabs, so it fits a
- * small screen: General, for how the app starts and what each new book starts with; Editor, for how the text is shown
- * and checked; and Preview, for how the page looks. Apply puts the choices into effect and
+ * small screen: General, for how the window looks, how the app starts and what each new book starts with; Editor, for
+ * how the text is shown and checked; and Preview, for how the page looks. Apply puts the choices into effect and
  * keeps the form open, so the author can try a size or a theme and see it at once; Save does the same and closes it.
  * Revert puts every field back as it was when the form opened, and undoes what was applied since; Cancel does the
  * same and closes it. About Psiche opens the About dialog above it.
@@ -90,6 +91,7 @@ public final class PreferencesDialog {
         author.setPromptText("Your name, as it goes on the cover");
         author.setMaxWidth(Double.MAX_VALUE);
         ComboBox<EditorMode> editorMode = Controls.choices(List.of(EditorMode.values()), EditorMode::label);
+        ComboBox<WindowTheme> windowTheme = Controls.choices(List.of(WindowTheme.values()), WindowTheme::label);
         ComboBox<PreviewTheme> theme = Controls.choices(List.of(PreviewTheme.values()), PreviewTheme::label);
         ComboBox<Integer> editorFontSize = Controls.choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
         ComboBox<Integer> previewFontSize = Controls.choices(Preferences.FONT_SIZES, FONT_SIZE::formatted);
@@ -105,6 +107,7 @@ public final class PreferencesDialog {
             highlightRepetitions.setSelected(shown.highlightRepetitions());
             editorMode.setValue(shown.editorMode());
             lineNumbers.setSelected(shown.alwaysShowLineNumbers());
+            windowTheme.setValue(shown.windowTheme());
         };
         fill.accept(preferences);
 
@@ -115,8 +118,14 @@ public final class PreferencesDialog {
         Label lineNumbersHint = Controls.hint("Otherwise, hold Alt to see them (Option on macOS).");
         Label repetitionsHint = Controls.hint("Shows where the selected word, or the one being written, comes back.");
         Label newBooksHint = Controls.hint("A book's own language and authors are in Book properties.");
+        Label windowThemeHint = Controls.hint("High contrast makes buttons, borders and grey text easier to read on "
+                + "a dim screen.");
 
         //general
+        GridPane appearance = new GridPane();
+        appearance.addRow(0, new Label("Theme"), windowTheme);
+        appearance.add(windowThemeHint, 1, 1);
+
         GridPane startup = new GridPane();
         startup.addRow(0, new Label("Last book"), reopen);
 
@@ -145,7 +154,8 @@ public final class PreferencesDialog {
         preview.addRow(1, new Label("Preview font size"), previewFontSize);
 
         TabPane tabs = new TabPane(
-                tab("General", Controls.fieldset("Startup", startup, LABEL_WIDTH),
+                tab("General", Controls.fieldset("Appearance", appearance, LABEL_WIDTH),
+                        Controls.fieldset("Startup", startup, LABEL_WIDTH),
                         Controls.fieldset("New book defaults", newBooks, LABEL_WIDTH)),
                 tab("Editor", Controls.fieldset("Editor", editor, LABEL_WIDTH)),
                 tab("Preview", Controls.fieldset("Preview", preview, LABEL_WIDTH)));
@@ -157,18 +167,23 @@ public final class PreferencesDialog {
                 language.getValue().toLanguageTag(), author.getText().strip(), theme.getValue(),
                 editorFontSize.getValue(), previewFontSize.getValue(), checkSpelling.isSelected(),
                 strictSpelling.isSelected(), highlightRepetitions.isSelected(), editorMode.getValue(),
-                lineNumbers.isSelected());
+                lineNumbers.isSelected(), windowTheme.getValue());
 
-        // Apply and Revert, unlike the dialog's other buttons, leave it open.
+        // Apply and Revert, unlike the dialog's other buttons, leave it open: it takes the window's stylesheets again,
+        // so it shows the window theme applied.
+        Consumer<Preferences> applyHere = applying -> {
+            apply.accept(applying);
+            Dialogs.restyle(dialog, owner);
+        };
         AtomicReference<Preferences> applied = new AtomicReference<>(preferences);
         dialog.getDialogPane().lookupButton(APPLY).addEventFilter(ActionEvent.ACTION, event -> {
             event.consume();
             applied.set(chosen.get());
-            apply.accept(applied.get());
+            applyHere.accept(applied.get());
         });
         Runnable undoApplied = () -> {
             if (!applied.getAndSet(preferences).equals(preferences))
-                apply.accept(preferences);
+                applyHere.accept(preferences);
         };
         dialog.getDialogPane().lookupButton(REVERT).addEventFilter(ActionEvent.ACTION, event -> {
             event.consume();

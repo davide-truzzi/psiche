@@ -1,0 +1,68 @@
+/*
+ * High contrast: loaded after writer.css when the author picks it in Preferences, for a dim screen or weak sight.
+ * It names the borders' and the grey text's colours anew, brighter, so every rule that uses them follows, and shows
+ * what is turned off less faded, a button with a dashed border. Contrast on the desk, by WCAG 2: borders 3.75:1, above
+ * the 3:1 asked of a control; grey text 6.5:1, above the 4.5:1 asked of text; a button turned off, 6:1.
+ */
+
+.root {
+    -desk-edge: #7a6e5c;
+    -graphite: #a39784;
+    /* writer.css's -desk-edge, kept for what fills an area rather than draws a line: a pressed button, a selected
+       option, the welcome's mark. */
+    -desk-shade: #2e2820;
+    /* The box of a check box, drawn by JavaFX's own stylesheet. */
+    -fx-outer-border: -desk-edge;
+}
+
+/* Buttons */
+
+.button {
+    -fx-text-fill: -paper;
+}
+
+.button:pressed,
+.find-case:selected {
+    -fx-background-color: -desk-shade;
+}
+
+.button:disabled {
+    -fx-opacity: 0.6;
+    -fx-border-style: dashed;
+}
+
+/* A primary button turned off, as Commit before anything changed: faded, its dark text on red was the hardest to
+   read; it keeps only its red border. */
+.button.primary:disabled {
+    -fx-background-color: transparent;
+    -fx-text-fill: -paper;
+}
+
+/* Other controls turned off, which JavaFX fades to 40% */
+
+.check-box:disabled,
+.combo-box-base:disabled,
+.text-input:disabled {
+    -fx-opacity: 0.7;
+}
+
+/* Context menus */
+
+.context-menu .menu-item:disabled,
+.context-menu .menu-item .recent-book-missing {
+    -fx-opacity: 0.75;
+}
+
+/* Areas that stay dark */
+
+.welcome-logo .logo-stroke {
+    -fx-stroke: -desk-shade;
+}
+
+.welcome-logo .logo-fill {
+    -fx-fill: -desk-shade;
+}
+
+.media-card-band {
+    -fx-background-color: derive(-desk-shade, -20%);
+}

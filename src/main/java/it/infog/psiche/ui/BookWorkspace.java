@@ -20,6 +20,7 @@ import it.infog.psiche.ui.common.Animations;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.Logo;
 import it.infog.psiche.ui.common.StatusBar;
+import it.infog.psiche.ui.common.WindowThemes;
 import it.infog.psiche.ui.export.Exports;
 import it.infog.psiche.ui.git.GitControls;
 import it.infog.psiche.ui.git.HistoryPane;
@@ -367,12 +368,13 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     }
 
     /**
-     * Remembers {@code preferences}, and shows the editor and the preview as they ask. If they cannot be saved, they
-     * still apply until the app closes, and the status bar says so.
+     * Remembers {@code preferences}, and shows the window, the editor and the preview as they ask. If they cannot be
+     * saved, they still apply until the app closes, and the status bar says so.
      */
     private void applyPreferences(Preferences preferences) {
 
         boolean saved = settings.savePreferences(preferences);
+        WindowThemes.apply(getScene(), preferences.windowTheme());
         preview.setTheme(preferences.previewTheme());
         preview.setFontSize(preferences.previewFontSize());
         chapterEditor.setFontSize(preferences.editorFontSize());

@@ -9,6 +9,7 @@ import it.infog.psiche.settings.model.WindowBounds;
 import it.infog.psiche.settings.model.enums.ChapterTab;
 import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
+import it.infog.psiche.settings.model.enums.WindowTheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +63,7 @@ public final class Settings {
     private static final String HIGHLIGHT_REPETITIONS = "editor.highlight-repetitions";
     private static final String EDITOR_MODE = "editor.mode";
     private static final String LINE_NUMBERS = "editor.line-numbers";
+    private static final String WINDOW_THEME = "appearance.theme";
     private static final String WINDOW = "window.";
     private static final String BOOK_COUNTS_SHOWN = "sidebar.book-counts";
     private static final String OPENING_TAB = "tabs.opening";
@@ -162,7 +164,8 @@ public final class Settings {
                 flag(settings.getProperty(STRICT_SPELLING), defaults.strictSpelling()),
                 flag(settings.getProperty(HIGHLIGHT_REPETITIONS), defaults.highlightRepetitions()),
                 named(EditorMode.class, settings.getProperty(EDITOR_MODE)).orElse(defaults.editorMode()),
-                flag(settings.getProperty(LINE_NUMBERS), defaults.alwaysShowLineNumbers()));
+                flag(settings.getProperty(LINE_NUMBERS), defaults.alwaysShowLineNumbers()),
+                named(WindowTheme.class, settings.getProperty(WINDOW_THEME)).orElse(defaults.windowTheme()));
     }
 
     /**
@@ -184,6 +187,7 @@ public final class Settings {
             settings.setProperty(HIGHLIGHT_REPETITIONS, String.valueOf(preferences.highlightRepetitions()));
             settings.setProperty(EDITOR_MODE, written(preferences.editorMode()));
             settings.setProperty(LINE_NUMBERS, String.valueOf(preferences.alwaysShowLineNumbers()));
+            settings.setProperty(WINDOW_THEME, written(preferences.windowTheme()));
         });
     }
 

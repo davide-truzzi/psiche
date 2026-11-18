@@ -2,6 +2,7 @@ package it.infog.psiche.settings.model;
 
 import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
+import it.infog.psiche.settings.model.enums.WindowTheme;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ import java.util.List;
  * @param editorMode      how the editor shows the Markdown: receding, with links and images as blocks, or as written
  * @param alwaysShowLineNumbers true to show the line numbers in the editor's margin all the time, not only while Alt
  *                              is held
+ * @param windowTheme     how the window looks around the page: as always, or with high contrast
  */
 public record Preferences(boolean reopenLastBook,
                           String newBookLanguage,
@@ -34,7 +36,8 @@ public record Preferences(boolean reopenLastBook,
                           boolean strictSpelling,
                           boolean highlightRepetitions,
                           EditorMode editorMode,
-                          boolean alwaysShowLineNumbers) {
+                          boolean alwaysShowLineNumbers,
+                          WindowTheme windowTheme) {
 
     /** The sizes the editor's and the preview's text can take, in pixels. */
     public static final List<Integer> FONT_SIZES = List.of(12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 28, 32);
@@ -45,6 +48,6 @@ public record Preferences(boolean reopenLastBook,
     public static Preferences defaults() {
 
         return new Preferences(false, "en-US", "", PreviewTheme.DEFAULT, DEFAULT_FONT_SIZE, DEFAULT_FONT_SIZE, true,
-                false, true, EditorMode.DEFAULT, false);
+                false, true, EditorMode.DEFAULT, false, WindowTheme.DEFAULT);
     }
 }
