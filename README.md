@@ -10,7 +10,7 @@ Git command line. Your manuscript stays in open, plain-text files that any other
 
 ## Status
 
-**0.9.0 Beta.** Psiche Writer covers a book from first draft to export, but it is not finished: keep a copy of your
+**0.9.1 Beta.** Psiche Writer covers a book from first draft to export, but it is not finished: keep a copy of your
 books, and expect things to change before 1.0. What each release brings is in [CHANGELOG.md](CHANGELOG.md).
 
 ## What it does

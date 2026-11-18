@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.1 Beta (2026-11-18)
+
+A fix for the PDF export.
+
+### What is fixed
+
+- **Images in the PDF**: a PDF of a chapter, or of the book, left out every image of a chapter whose name has a space
+  in it, as the images Psiche inserts sit in a folder named after the chapter. They now show, as they did in the ODT,
+  DOCX and EPUB.
+
 ## 0.9.0 Beta (2026-11-17)
 
 The third Beta: line numbers and Go to line in the editor, books that open where you left them, a warning before
