@@ -233,6 +233,22 @@ class ChapterDocxTest {
     }
 
     @Test
+    void packsAnImageWhosePathHasSpaces() throws IOException {
+        Path chapters = Files.createDirectories(tempDir.resolve("chapters"));
+        Path media = Files.createDirectories(tempDir.resolve("media/04-very long"));
+        ImageIO.write(new BufferedImage(192, 96, BufferedImage.TYPE_INT_RGB), "png",
+                media.resolve("2 - map.png").toFile());
+        Path target = tempDir.resolve("spaces.docx");
+
+        exporter.manuscriptDocx("![Map](<../media/04-very long/2 - map.png>)", "spaces", BOOK, chapters, target);
+
+        assertThat(entry(target, DOCUMENT)).contains("descr=\"Map\"", "<a:blip r:embed=\"rId1\"/>");
+        try (ZipFile zip = new ZipFile(target.toFile())) {
+            assertThat(zip.getEntry("word/media/image1.png")).isNotNull();
+        }
+    }
+
+    @Test
     void keepsTheSpacesInCodeAndLeavesOutHtmlCommentsWithTheirSpace() throws IOException {
         Path target = tempDir.resolve("code.docx");
 

@@ -3,8 +3,10 @@ package it.infog.psiche.export;
 import it.infog.psiche.book.model.BookProperties;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDResources;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -155,6 +157,40 @@ class ChapterExporterTest {
         assertThat(target).exists();
         try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
             assertThat(new PDFTextStripper().getText(pdf)).contains("Text after.");
+        }
+    }
+
+    @Test
+    void manuscriptPdfShowsAnImageWhosePathHasSpaces() throws IOException {
+        Path chapters = Files.createDirectories(tempDir.resolve("chapters"));
+        Path media = Files.createDirectories(tempDir.resolve("media/04-very long"));
+        ImageIO.write(new BufferedImage(192, 96, BufferedImage.TYPE_INT_RGB), "png",
+                media.resolve("2 - map.png").toFile());
+        Path target = tempDir.resolve("spaces.pdf");
+
+        exporter.manuscriptPdf("![Map](<../media/04-very long/2 - map.png>)", "spaces", BOOK, chapters, target);
+
+        try (PDDocument pdf = Loader.loadPDF(target.toFile())) {
+            PDResources resources = pdf.getPage(0).getResources();
+            assertThat(resources.getXObjectNames()).hasSize(1);
+            assertThat(resources.getXObject(resources.getXObjectNames().iterator().next()))
+                    .isInstanceOf(PDImageXObject.class);
+        }
+    }
+
+    @Test
+    void odtPacksAnImageWhosePathHasSpaces() throws IOException {
+        Path chapters = Files.createDirectories(tempDir.resolve("chapters"));
+        Path media = Files.createDirectories(tempDir.resolve("media/04-very long"));
+        ImageIO.write(new BufferedImage(192, 96, BufferedImage.TYPE_INT_RGB), "png",
+                media.resolve("2 - map.png").toFile());
+        Path target = tempDir.resolve("spaces.odt");
+
+        exporter.manuscriptOdt("![Map](<../media/04-very long/2 - map.png>)", "spaces", BOOK, chapters, target);
+
+        assertThat(entry(target, "content.xml")).contains("xlink:href=\"Pictures/image1.png\"");
+        try (ZipFile zip = new ZipFile(target.toFile())) {
+            assertThat(zip.getEntry("Pictures/image1.png")).isNotNull();
         }
     }
 

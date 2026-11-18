@@ -94,10 +94,13 @@ public final class XhtmlRenderer {
     /** {@code chapter} as an XHTML fragment, for the body of a page, its links led by {@code links}. */
     public String toXhtml(ExportedChapter chapter, LinkTargets links) {
 
-        // Raw HTML is escaped, since the PDF renderer and e-readers only read well-formed XHTML.
+        // Raw HTML is escaped, since the PDF renderer and e-readers only read well-formed XHTML. Addresses are
+        // percent-encoded, as the PDF renderer reads them as URIs: an image in a chapter named with spaces is left out
+        // otherwise. Escapes already written, as %20, are kept.
         Function<Heading, String> anchors = HeadingAnchors.namer();
         HtmlRenderer.Builder builder = MarkdownSyntax.htmlRenderer()
                 .escapeHtml(true)
+                .percentEncodeUrls(true)
                 .softbreak("<br />")
                 .nodeRendererFactory(context -> new LinkRenderer(context, chapter, links, hrefs))
                 .nodeRendererFactory(context -> new RawHtmlRenderer(context.getWriter()))

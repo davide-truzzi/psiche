@@ -106,6 +106,13 @@ class XhtmlRendererTest {
     }
 
     @Test
+    void theManuscriptPercentEncodesAnImagesAddressAndKeepsItsEscapes() {
+        assertThat(render("![Map](<../media/04-very long/2 - map è.png>)\n\n![Sea](../media/a%20b.png)"))
+                .contains("<img src=\"../media/04-very%20long/2%20-%20map%20%C3%A8.png\" alt=\"Map\" />",
+                        "<img src=\"../media/a%20b.png\" alt=\"Sea\" />");
+    }
+
+    @Test
     void aTightListsItemsStayWithoutParagraphs() {
         assertThat(render("- north\n- south\n")).isEqualTo("<ul>\n<li>north</li>\n<li>south</li>\n</ul>\n");
     }

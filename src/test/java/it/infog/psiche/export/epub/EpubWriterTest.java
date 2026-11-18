@@ -160,6 +160,20 @@ class EpubWriterTest {
     }
 
     @Test
+    void packsAnImageWhosePathHasSpacesAndPassesEpubCheck() throws IOException {
+        Path target = tempDir.resolve("spaces.epub");
+        image("04-very long/2 - map.png", 600, 400);
+        BookExport book = BookAssembler.assemble(BOOK, Optional.empty(), Optional.empty(), tempDir.resolve("chapters"),
+                List.of(new ChapterText("01-alba", "# Alba\n\n![Map](<../media/04-very long/2 - map.png>)")),
+                EmptyChapters.SKIP);
+
+        writer.write(book, EpubVariant.STORES, target);
+
+        assertThat(entry(target, "EPUB/xhtml/chapter-1.xhtml")).contains("<img src=\"../images/image-1.png\"");
+        assertPassesEpubCheck(target);
+    }
+
+    @Test
     void usesTheBooksOwnStylesheetOrWritersDefault() throws IOException {
         Path style = Files.writeString(tempDir.resolve("style.css"), "p { color: black; }");
         BookExport own = BookAssembler.assemble(BOOK, Optional.empty(), Optional.of(style), tempDir,
@@ -286,10 +300,11 @@ class EpubWriterTest {
                         + "![Persa](../media/persa.png)")), empty);
     }
 
-    /** A blank image of the given size in {@code media/}, next to {@code chapters/}. */
+    /** A blank image of the given size in {@code media/}, next to {@code chapters/}; {@code name} may hold folders. */
     private Path image(String name, int width, int height) throws IOException {
         Path media = Files.createDirectories(tempDir.resolve("media"));
         Path file = media.resolve(name);
+        Files.createDirectories(file.getParent());
         String format = name.endsWith(".png") ? "png" : "jpg";
         ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), format, file.toFile());
         Files.createDirectories(tempDir.resolve("chapters"));
