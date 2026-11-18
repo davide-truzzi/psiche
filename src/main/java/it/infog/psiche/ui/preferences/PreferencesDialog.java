@@ -193,6 +193,11 @@ public final class PreferencesDialog {
             undoApplied.run();
         });
 
+        // The tabs count their content in their height only once styled and laid out: until then the window would be
+        // sized to the header and the buttons alone, and stay so on some screens, as it cannot be resized.
+        dialog.getDialogPane().applyCss();
+        dialog.getDialogPane().layout();
+
         // Cancel, Escape and the window's close button all leave the preferences as the form found them.
         if (dialog.showAndWait().filter(SAVE::equals).isPresent())
             apply.accept(chosen.get());

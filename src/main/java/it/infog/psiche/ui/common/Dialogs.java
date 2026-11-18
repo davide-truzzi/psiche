@@ -1,6 +1,8 @@
 package it.infog.psiche.ui.common;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -8,19 +10,25 @@ import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogEvent;
 import javafx.scene.control.TextInputDialog;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
+import javafx.util.Duration;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 /** Dialogs owned by the main window and styled like it. */
 public final class Dialogs {
+
+    // How long a dialog is watched as it opens, for the corner some desktops leave it in; see keepOutOfCorner.
+    private static final Duration OPENING = Duration.seconds(1);
 
     private Dialogs() {
     }
@@ -142,12 +150,16 @@ public final class Dialogs {
         return title.replaceAll("[/\\\\:*?\"<>|]", "-").strip();
     }
 
-    /** Makes {@code owner} own the dialog, titles it after the app and gives it the window's stylesheets. */
+    /**
+     * Makes {@code owner} own the dialog, titles it after the app, gives it the window's stylesheets and keeps it out
+     * of the screen's corner as it opens.
+     */
     public static void ownAndStyle(Dialog<?> dialog, Window owner) {
 
         dialog.initOwner(owner);
         dialog.setTitle(AppInfo.NAME);
         restyle(dialog, owner);
+        keepOutOfCorner(dialog, owner);
     }
 
     /** Gives the dialog the stylesheets {@code owner} has now, as after the window theme changed. */
@@ -174,5 +186,39 @@ public final class Dialogs {
         alert.setHeaderText(header);
 
         return alert;
+    }
+
+    /**
+     * Brings the dialog back over the middle of {@code owner} if, as it opens, the desktop reports it at the screen's
+     * top left corner, or above it by its title bar: on some Linux desktops, after JavaFX has centred it, the first
+     * dialog of a session stays there. It watches only while the dialog opens, so one the author drags or snaps to
+     * the corner stays there.
+     */
+    private static void keepOutOfCorner(Dialog<?> dialog, Window owner) {
+
+        BooleanSupplier inCorner = () -> dialog.getX() <= 0 && dialog.getY() <= 0;
+        // Checked again on its turn, as JavaFX puts it back itself on other desktops.
+        InvalidationListener corner = position -> {
+            if (inCorner.getAsBoolean())
+                Platform.runLater(() -> {
+                    if (inCorner.getAsBoolean())
+                        centerOver(dialog, owner);
+                });
+        };
+        dialog.xProperty().addListener(corner);
+        dialog.yProperty().addListener(corner);
+
+        PauseTransition opening = new PauseTransition(OPENING);
+        opening.setOnFinished(event -> {
+            dialog.xProperty().removeListener(corner);
+            dialog.yProperty().removeListener(corner);
+        });
+        dialog.addEventHandler(DialogEvent.DIALOG_SHOWN, event -> opening.playFromStart());
+    }
+
+    private static void centerOver(Dialog<?> dialog, Window owner) {
+
+        dialog.setX(owner.getX() + (owner.getWidth() - dialog.getWidth()) / 2);
+        dialog.setY(owner.getY() + (owner.getHeight() - dialog.getHeight()) / 2);
     }
 }
