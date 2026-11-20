@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.9.3 Beta (2026-11-20)
+
+A master password you can change, clearer words about losing it, and fixes for themes, Preferences and History.
 
 ### What is new
 
@@ -18,6 +20,11 @@
 - **Clearer words about the master password**: choosing it now says plainly that it can never be recovered, and that
   losing it means resetting the keychain and making new access tokens on the hosts. **Reset keychain** now also reminds
   you to revoke the old tokens there, as they keep working until you do.
+
+### For testers
+
+- **Change** in the Advanced tab stays off until the keychain exists: save a token in a book's properties first. Then
+  try a wrong current password, change it, and check that Synchronize still works with the new one after a restart.
 
 ## 0.9.2 Beta (2026-11-18)
 
