@@ -637,8 +637,9 @@ hand, or written from the editor's right-click menu with these shortcuts (`Cmd` 
   status bar; the book opens or closes anyway.
 - **The keychain**: tokens are kept in `credentials.p12`, in Psiche's settings folder, one per book, locked by a
   master password chosen with the first token and asked once a session, when a token is first needed. It cannot be
-  recovered: **Reset keychain**, in the password's dialog, deletes every token, to be made again on the host. While
-  Psiche runs unlocked, the tokens are in its memory.
+  recovered: **Reset keychain**, in the password's dialog, deletes every token, to be made again on the host (and the
+  old ones revoked there). While you still know it, **Change** in the Keychain group of Preferences' Advanced tab
+  changes it, keeping the tokens. While Psiche runs unlocked, the tokens are in its memory.
 - A book's images are committed with it, so they travel with Synchronize; notes and `psiche.properties` stay out of
   Git. A second device gets a book by importing a Psiche project exported on the first: the remote comes with it,
   the token does not.
@@ -825,7 +826,7 @@ WriterApp ── BookWorkspace ─┬─ toolbar:   Book menu (New book · Open 
 | `preview.PreviewPane` | The typeset preview in a `WebView`: `render` shows a chapter at once from the top, `renderLater` follows the author's typing after a 500 ms pause and keeps the scroll position, and `followPosition` scrolls to the part of the page rendered from a character of the Markdown, as far down its block as it is through the block's text; while hidden behind the History tab it holds back both and catches up when shown; a render of the page already shown, for the same folder, theme and font size, only replaces its article, without loading the page and its stylesheet again |
 | `git.GitControls` | Commit message, Commit and Synchronize, hidden without a remote. Runs Git commands one at a time on a background thread, exposes a *busy* flag that the book buttons disable on, and reports each commit so the history and the revision dots reload; also adds a line to `.gitignore`, for notes, brings images into Git, connects and removes the remote, and reads the book's state quietly, for the revision dots |
 | `git.Synchronizer` | Synchronize, clicked or automatic: the check as a book opens, after a commit, and before the book is left, which the workspace waits for; a remote that cannot be reached only in the status bar. `SyncReports` tells what it did and the conflicts, `SyncQuestions` asks to commit before closing |
-| `git.KeychainDialogs` | The keychain's dialogs: the master password chosen, typed once a session, typed again to delete a token, and Reset keychain |
+| `git.KeychainDialogs` | The keychain's dialogs: the master password chosen, typed once a session, typed again to delete a token, changed, and Reset keychain |
 | `book.RemoteSection`, `RemoteTest` | The Remote repository section of *Book properties*: the address, the username and token, Synchronize automatically, Test and Remove remote; Save waits for a good Test; Test's outcome as the author reads it |
 | `media.MediaPane`, `MediaPreview`, `MediaCards`, `MediaActions` | The Media tab: the image selected, large, with its details and buttons, the cards under it, the jump to the image's paragraph, and what the buttons do to the text, each one Undo |
 | `media.ImageInsertion`, `InsertImageDialog`, `UnshownImagesDialog`, `ImageLabels` | Insert image… and Modify image…: the images not in the text offered first, the file chosen, the dialog with the caption and the quality warning, the copy off the FX thread, the paragraph added; how an image is told about |
@@ -875,7 +876,7 @@ callbacks (`ErrorReporter`, the check before committing, the after-commit hook, 
 - No Clone: a second device gets the book from a Psiche project exported on the first.
 - Synchronize is made for one author on several devices. Two people writing the same chapter at once would meet
   conflict copies often.
-- The keychain's master password cannot be recovered; Reset keychain deletes every token.
+- The keychain's master password cannot be recovered, only changed while known; Reset keychain deletes every token.
 - Chapter files must not be changed by another program while the book is open (see the warning under
   [Book layout](#book-layout)). The editor doesn't reload a chapter changed on disk, and the next save overwrites the
   change. A chapter deleted on disk with unsaved changes is written back by **Save chapters**.

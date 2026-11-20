@@ -12,6 +12,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -172,6 +174,79 @@ class KeychainTest {
         assertThat(keychain.unlocked()).isFalse();
         keychain.create(password("new"));
         assertThat(keychain.credentials(ALBA)).isEmpty();
+    }
+
+    @Test
+    void aChangedPasswordKeepsEveryTokenAndLeavesItUnlocked() {
+
+        Keychain keychain = unlocked();
+        keychain.save(ALBA, DAVIDE);
+        keychain.save(SERA, DAVIDE);
+
+        assertThat(keychain.changePassword(password("master"), password("new master"))).isTrue();
+
+        assertThat(keychain.unlocked()).isTrue();
+        assertThat(keychain.credentials(ALBA)).contains(DAVIDE);
+        Keychain next = keychain();
+        assertThat(next.unlock(password("new master"))).isTrue();
+        assertThat(next.credentials(SERA)).contains(DAVIDE);
+    }
+
+    @Test
+    void theOldPasswordNoLongerUnlocksItsFileNorItsEntries() throws IOException, GeneralSecurityException {
+
+        Keychain keychain = unlocked();
+        keychain.save(ALBA, DAVIDE);
+
+        keychain.changePassword(password("master"), password("new master"));
+
+        assertThat(keychain().unlock(password("master"))).isFalse();
+        KeyStore store = KeyStore.getInstance("PKCS12");
+        try (var in = Files.newInputStream(tempDir.resolve(Keychain.FILE))) {
+            store.load(in, password("new master"));
+        }
+        assertThatThrownBy(() -> store.getEntry(ALBA, new KeyStore.PasswordProtection(password("master"))))
+                .isInstanceOf(GeneralSecurityException.class);
+    }
+
+    @Test
+    void aWrongCurrentPasswordChangesNothing() {
+
+        Keychain keychain = unlocked();
+        keychain.save(ALBA, DAVIDE);
+
+        assertThat(keychain.changePassword(password("Master"), password("new master"))).isFalse();
+
+        assertThat(keychain.credentials(ALBA)).contains(DAVIDE);
+        assertThat(keychain().unlock(password("master"))).isTrue();
+    }
+
+    @Test
+    void theCurrentPasswordChangesALockedKeychainToo() {
+
+        unlocked().save(ALBA, DAVIDE);
+        Keychain locked = keychain();
+
+        assertThat(locked.changePassword(password("master"), password("new master"))).isTrue();
+
+        assertThat(locked.credentials(ALBA)).contains(DAVIDE);
+    }
+
+    @Test
+    void anotherWindowStillOnTheOldPasswordIsLocked() {
+
+        Keychain window = unlocked();
+        keychain().changePassword(password("master"), password("new master"));
+
+        assertThatThrownBy(() -> window.credentials(ALBA)).isInstanceOf(UncheckedIOException.class);
+        assertThat(window.unlocked()).isFalse();
+    }
+
+    @Test
+    void aKeychainNeverCreatedHasNoPasswordToChange() {
+
+        assertThatThrownBy(() -> keychain().changePassword(password("master"), password("new master")))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

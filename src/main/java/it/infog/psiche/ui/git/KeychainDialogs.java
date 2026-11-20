@@ -5,6 +5,8 @@ import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 
 import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanExpression;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -23,11 +25,12 @@ import javafx.stage.Window;
 
 import java.io.UncheckedIOException;
 import java.util.Arrays;
+import java.util.function.Predicate;
 
 /**
  * The dialogs of Psiche's {@link Keychain}: choosing the master password the first time a token is saved, typing it
- * once a session when a token is first needed, typing it again to confirm a token's deletion, and resetting a
- * keychain whose password is forgotten.
+ * once a session when a token is first needed, typing it again to confirm a token's deletion, changing it, and
+ * resetting a keychain whose password is forgotten.
  */
 public final class KeychainDialogs {
 
@@ -37,15 +40,23 @@ public final class KeychainDialogs {
     private static final ButtonType CREATE = new ButtonType("Create", ButtonData.OK_DONE);
     private static final ButtonType UNLOCK = new ButtonType("Unlock", ButtonData.OK_DONE);
     private static final ButtonType CONFIRM = new ButtonType("Confirm", ButtonData.OK_DONE);
+    private static final ButtonType CHANGE = new ButtonType("Change", ButtonData.OK_DONE);
     private static final ButtonType RESET = new ButtonType("Reset keychain", ButtonData.LEFT);
     private static final String ABOUT = "Psiche keeps the tokens of your books' remote repositories in its own "
             + "keychain, locked by a master password, which it asks once a session, when a token is first needed.";
-    private static final String CREATE_ABOUT = ABOUT + " It cannot be recovered: if you forget it, the keychain can "
-            + "only be reset, which deletes every token in it.";
+    private static final String CREATE_ABOUT = ABOUT + "\n\nKeep it somewhere safe, such as a password manager: it "
+            + "can never be recovered, not even by Psiche. If you lose it, the keychain can only be reset, which "
+            + "deletes every saved token, and you then make new access tokens on the hosts, such as GitHub or GitLab, "
+            + "and type them in each book's properties. Your books and their history are not touched: not a big deal, "
+            + "but a chore worth avoiding.\n\nYou can change it later in Preferences, while you still know it.";
+    private static final String CHANGE_ABOUT = "Type the master password you have now, then the new one. The saved "
+            + "tokens stay as they are, locked by the new password, which can never be recovered either: keep it "
+            + "somewhere safe.";
     private static final String CONFIRM_ABOUT = "Removing the remote also deletes this book's token from Psiche's "
             + "keychain. Type the keychain's master password to confirm.";
     private static final String RESET_ABOUT = "Every saved token is deleted, for every book. You can make new ones "
-            + "on the hosts, such as GitHub or GitLab, and type them in each book's properties.";
+            + "on the hosts, such as GitHub or GitLab, and type them in each book's properties. Revoke the old ones "
+            + "there too: they keep working until you do.";
 
     private KeychainDialogs() {
     }
@@ -77,28 +88,37 @@ public final class KeychainDialogs {
         return askPassword(owner, keychain, "Confirm with the master password", CONFIRM_ABOUT, CONFIRM);
     }
 
+    /**
+     * Asks the master password of {@code keychain} and a new one, typed twice, and locks the keychain with the new
+     * one, which leaves it unlocked. A wrong password keeps the dialog open, saying so, for another try.
+     *
+     * @return true if the password was changed
+     */
+    public static boolean changePassword(Window owner, Keychain keychain) {
+
+        Dialog<ButtonType> dialog = dialog(owner, "Change the master password", CHANGE);
+
+        PasswordField current = new PasswordField();
+        GridPane form = form();
+        form.addRow(0, new Label("Current password"), current);
+        PasswordField chosen = newPassword(dialog, CHANGE, form, 2, "New password",
+                current.textProperty().isEmpty());
+        Label problem = retried(dialog, CHANGE, current, typed -> changed(keychain, typed, chosen),
+                "The keychain cannot be changed: %s.");
+        form.add(problem, 1, 1);
+        content(dialog, CHANGE_ABOUT, form, current);
+
+        return dialog.showAndWait().filter(CHANGE::equals).isPresent();
+    }
+
     /** Asks for a new master password, typed twice, and creates the keychain with it. */
     private static boolean create(Window owner, Keychain keychain) {
 
         Dialog<ButtonType> dialog = dialog(owner, "Choose a master password", CREATE);
 
-        PasswordField password = new PasswordField();
-        PasswordField repeated = new PasswordField();
-        Label tooShort = Controls.hint("At least %d characters.".formatted(MIN_LENGTH));
-        Label different = wrong("The two passwords differ.");
-        different.visibleProperty().bind(Bindings.createBooleanBinding(
-                () -> !repeated.getText().isEmpty() && !repeated.getText().equals(password.getText()),
-                password.textProperty(), repeated.textProperty()));
-
-        dialog.getDialogPane().lookupButton(CREATE).disableProperty().bind(Bindings.createBooleanBinding(
-                () -> password.getLength() < MIN_LENGTH || !repeated.getText().equals(password.getText()),
-                password.textProperty(), repeated.textProperty()));
-
         GridPane form = form();
-        form.addRow(0, new Label("Master password"), password);
-        form.add(tooShort, 1, 1);
-        form.addRow(2, new Label("Repeat it"), repeated);
-        form.add(different, 1, 3);
+        PasswordField password = newPassword(dialog, CREATE, form, 0, "Master password",
+                new SimpleBooleanProperty(false));
         content(dialog, CREATE_ABOUT, form, password);
 
         if (dialog.showAndWait().filter(CREATE::equals).isEmpty())
@@ -127,31 +147,9 @@ public final class KeychainDialogs {
         dialog.getDialogPane().getButtonTypes().addFirst(RESET);
 
         PasswordField password = new PasswordField();
-        Label problem = wrong("");
-        problem.setWrapText(true);
-        Controls.setShown(problem, false);
-        password.textProperty().addListener((obs, old, text) -> Controls.setShown(problem, false));
-        dialog.getDialogPane().lookupButton(action).disableProperty()
-                .bind(Bindings.createBooleanBinding(() -> password.getLength() == 0, password.textProperty()));
-
-        // A wrong password keeps the dialog open, saying so, for another try.
-        dialog.getDialogPane().lookupButton(action).addEventFilter(ActionEvent.ACTION, event -> {
-            char[] typed = characters(password);
-            try {
-                if (keychain.unlock(typed))
-                    return;
-
-                say(problem, "Wrong password.");
-            } catch (UncheckedIOException e) {
-                say(problem, "The keychain cannot be read: %s. Reset it to start again.".formatted(e.getMessage()));
-            } finally {
-                Arrays.fill(typed, '\0');
-            }
-
-            event.consume();
-            password.clear();
-            password.requestFocus();
-        });
+        dialog.getDialogPane().lookupButton(action).disableProperty().bind(password.textProperty().isEmpty());
+        Label problem = retried(dialog, action, password, keychain::unlock,
+                "The keychain cannot be read: %s. Reset it to start again.");
 
         // Reset asks first, and closes the dialog only once done.
         Button reset = (Button) dialog.getDialogPane().lookupButton(RESET);
@@ -167,6 +165,80 @@ public final class KeychainDialogs {
         content(dialog, about, form, password);
 
         return dialog.showAndWait().filter(action::equals).isPresent() && keychain.unlocked();
+    }
+
+    /**
+     * Adds the rows of a new password, typed twice, to {@code form} from {@code row} on, and keeps {@code action} off
+     * while it is too short, the two differ, or {@code missing} is true.
+     *
+     * @return the field of the new password
+     */
+    private static PasswordField newPassword(Dialog<ButtonType> dialog, ButtonType action, GridPane form, int row,
+                                             String label, BooleanExpression missing) {
+
+        PasswordField password = new PasswordField();
+        PasswordField repeated = new PasswordField();
+        Label different = wrong("The two passwords differ.");
+        different.visibleProperty().bind(Bindings.createBooleanBinding(
+                () -> !repeated.getText().isEmpty() && !repeated.getText().equals(password.getText()),
+                password.textProperty(), repeated.textProperty()));
+
+        dialog.getDialogPane().lookupButton(action).disableProperty().bind(missing.or(Bindings.createBooleanBinding(
+                () -> password.getLength() < MIN_LENGTH || !repeated.getText().equals(password.getText()),
+                password.textProperty(), repeated.textProperty())));
+
+        form.addRow(row, new Label(label), password);
+        form.add(Controls.hint("At least %d characters.".formatted(MIN_LENGTH)), 1, row + 1);
+        form.addRow(row + 2, new Label("Repeat it"), repeated);
+        form.add(different, 1, row + 3);
+        return password;
+    }
+
+    /**
+     * Keeps the dialog open while {@code attempt} refuses the password in {@code field}, saying so under it, for
+     * another try; {@code failure} tells, with its message, a keychain that cannot be read or written.
+     *
+     * @return the label that says what went wrong, hidden until then, for the caller to place under the field
+     */
+    private static Label retried(Dialog<ButtonType> dialog, ButtonType action, PasswordField field,
+                                 Predicate<char[]> attempt, String failure) {
+
+        Label problem = wrong("");
+        problem.setWrapText(true);
+        Controls.setShown(problem, false);
+        field.textProperty().addListener((obs, old, text) -> Controls.setShown(problem, false));
+
+        dialog.getDialogPane().lookupButton(action).addEventFilter(ActionEvent.ACTION, event -> {
+            // Emptied before the problem is told, which typing hides.
+            char[] typed = characters(field);
+            field.clear();
+            try {
+                if (attempt.test(typed))
+                    return;
+
+                say(problem, "Wrong password.");
+            } catch (UncheckedIOException e) {
+                say(problem, failure.formatted(e.getMessage()));
+            } finally {
+                Arrays.fill(typed, '\0');
+            }
+
+            event.consume();
+            field.requestFocus();
+        });
+
+        return problem;
+    }
+
+    /** Changes the master password from {@code current} to the one in {@code chosen}; false if it is the wrong one. */
+    private static boolean changed(Keychain keychain, char[] current, PasswordField chosen) {
+
+        char[] replacement = characters(chosen);
+        try {
+            return keychain.changePassword(current, replacement);
+        } finally {
+            Arrays.fill(replacement, '\0');
+        }
     }
 
     /** Asks whether to delete every token, and does it; false if the author changes their mind or it fails. */
@@ -241,7 +313,7 @@ public final class KeychainDialogs {
         problem.getScene().getWindow().sizeToScene();
     }
 
-    /** What {@code field} holds, as characters the caller clears after use, unlike a string; the field is emptied. */
+    /** What {@code field} holds, as characters the caller clears after use, unlike a string. */
     private static char[] characters(PasswordField field) {
 
         CharSequence text = field.getCharacters();
@@ -249,7 +321,6 @@ public final class KeychainDialogs {
         for (int i = 0; i < characters.length; i++)
             characters[i] = text.charAt(i);
 
-        field.clear();
         return characters;
     }
 }

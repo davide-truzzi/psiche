@@ -1,5 +1,6 @@
 package it.infog.psiche.ui.preferences;
 
+import it.infog.psiche.settings.Keychain;
 import it.infog.psiche.settings.model.Preferences;
 import it.infog.psiche.settings.model.enums.EditorMode;
 import it.infog.psiche.settings.model.enums.PreviewTheme;
@@ -8,6 +9,7 @@ import it.infog.psiche.ui.common.Controls;
 import it.infog.psiche.ui.common.Dialogs;
 import it.infog.psiche.ui.common.DictionaryMark;
 import it.infog.psiche.ui.common.LanguageChoice;
+import it.infog.psiche.ui.git.KeychainDialogs;
 
 import javafx.event.ActionEvent;
 import javafx.scene.Node;
@@ -23,6 +25,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
@@ -33,13 +36,13 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * A form for what the author chooses for the app as a whole, rather than for one book, in three tabs, so it fits a
+ * A form for what the author chooses for the app as a whole, rather than for one book, in four tabs, so it fits a
  * small screen: General, for how the window looks, how the app starts and what each new book starts with; Editor, for
- * how the text is shown and checked; and Preview, for how the page looks. Apply puts the choices into effect and
- * keeps the form open, so the author can try a size or a theme and see it at once; Save does the same and closes it.
- * Revert puts every field back as it was when the form opened, and undoes what was applied since; Cancel does the
- * same and closes it. About Psiche opens the About dialog above it; Check for updates asks psiche.app for a newer
- * release.
+ * how the text is shown and checked; Preview, for how the page looks; and Advanced, for the keychain's master
+ * password, changed in a dialog of its own at once, apart from Save. Apply puts the choices into effect and keeps the
+ * form open, so the author can try a size or a theme and see it at once; Save does the same and closes it. Revert puts
+ * every field back as it was when the form opened, and undoes what was applied since; Cancel does the same and closes
+ * it. About Psiche opens the About dialog above it; Check for updates asks psiche.app for a newer release.
  */
 public final class PreferencesDialog {
 
@@ -60,9 +63,10 @@ public final class PreferencesDialog {
      * Shows the form filled in with {@code preferences} and waits for the author, handing {@code apply} the choices
      * each time they apply or save them, and {@code preferences} again if they revert or cancel what they applied.
      *
-     * @param browser opens a web address, from the About dialog, in the system's default browser
+     * @param browser  opens a web address, from the About dialog, in the system's default browser
+     * @param keychain whose master password the form changes
      */
-    public static void show(Window owner, Preferences preferences, Consumer<String> browser,
+    public static void show(Window owner, Preferences preferences, Consumer<String> browser, Keychain keychain,
                             Consumer<Preferences> apply) {
 
         Dialog<ButtonType> dialog = new Dialog<>();
@@ -122,6 +126,14 @@ public final class PreferencesDialog {
         Label newBooksHint = Controls.hint("A book's own language and authors are in Book properties.");
         Label windowThemeHint = Controls.hint("High contrast makes buttons, borders and grey text easier to read on "
                 + "a dim screen.");
+        Button changePassword = new Button("Change");
+        changePassword.setMinWidth(Region.USE_PREF_SIZE);
+        changePassword.setDisable(!keychain.exists());
+        changePassword.setOnAction(event -> KeychainDialogs.changePassword(
+                dialog.getDialogPane().getScene().getWindow(), keychain));
+        Label keychainHint = Controls.hint(keychain.exists()
+                ? "Locks your books' tokens. It cannot be recovered, only changed while you know it."
+                : "Chosen with the first token you save, in a book's properties.");
 
         //general
         GridPane appearance = new GridPane();
@@ -155,12 +167,18 @@ public final class PreferencesDialog {
         preview.addRow(0, new Label("Preview theme"), theme);
         preview.addRow(1, new Label("Preview font size"), previewFontSize);
 
+        //advanced
+        GridPane keychainRows = new GridPane();
+        keychainRows.addRow(0, new Label("Master password"), changePassword);
+        keychainRows.add(keychainHint, 1, 1);
+
         TabPane tabs = new TabPane(
                 tab("General", Controls.fieldset("Appearance", appearance, LABEL_WIDTH),
                         Controls.fieldset("Startup", startup, LABEL_WIDTH),
                         Controls.fieldset("New book defaults", newBooks, LABEL_WIDTH)),
                 tab("Editor", Controls.fieldset("Editor", editor, LABEL_WIDTH)),
-                tab("Preview", Controls.fieldset("Preview", preview, LABEL_WIDTH)));
+                tab("Preview", Controls.fieldset("Preview", preview, LABEL_WIDTH)),
+                tab("Advanced", Controls.fieldset("Keychain", keychainRows, LABEL_WIDTH)));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
         tabs.getStyleClass().add("preferences-tabs");
         dialog.getDialogPane().setContent(tabs);

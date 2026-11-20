@@ -65,6 +65,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     private final StatusBar statusBar = new StatusBar();
     private final Settings settings;
     private final Consumer<String> browser;
+    private final Keychain keychain;
     private final PreviewPane preview;
     private final HistoryPane history;
     private final ChapterEditor chapterEditor;
@@ -93,6 +94,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
 
         this.settings = settings;
         this.browser = browser;
+        this.keychain = keychain;
         Preferences preferences = settings.preferences();
         preview = new PreviewPane(renderers, preferences.previewTheme(), preferences.previewFontSize(),
                 settings.webViewFolder());
@@ -242,7 +244,7 @@ public final class BookWorkspace extends BorderPane implements AutoCloseable {
     /** Edits the preferences; each time the author applies or saves them, they are remembered and take effect. */
     private void editPreferences() {
 
-        PreferencesDialog.show(window(), settings.preferences(), browser, this::applyPreferences);
+        PreferencesDialog.show(window(), settings.preferences(), browser, keychain, this::applyPreferences);
     }
 
     /**

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### What is new
+
+- **Change the master password**: Preferences has a new **Advanced** tab, with a **Keychain** group, whose **Change**
+  button asks for the keychain's master password and a new one. The saved tokens stay, locked by the new password.
+
 ### What is fixed
 
 - **Switching theme no longer jumbles the text**: turning High contrast on or off drew the paragraphs in view over each
@@ -10,6 +15,9 @@
   with only its header and buttons, in the top left corner of the screen. It now opens full size, over the window.
 - **History is off with no chapter open**: on the welcome page the History tab is now disabled, as Notes and Media
   are.
+- **Clearer words about the master password**: choosing it now says plainly that it can never be recovered, and that
+  losing it means resetting the keychain and making new access tokens on the hosts. **Reset keychain** now also reminds
+  you to revoke the old tokens there, as they keep working until you do.
 
 ## 0.9.2 Beta (2026-11-18)
 

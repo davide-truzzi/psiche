@@ -22,6 +22,7 @@ import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Optional;
 
 /**
@@ -30,8 +31,9 @@ import java.util.Optional;
  * with no native code: a token is never kept in the book, where a Psiche project would carry it along.
  * <p>
  * The keychain is created with the first token saved, then unlocked once a session, when a token is first needed;
- * the master password stays in memory until {@link #lock}, when the app quits. A forgotten one cannot be recovered:
- * {@link #reset} deletes every token, which the author can make again on the host.
+ * the master password stays in memory until {@link #lock}, when the app quits. It can be changed by an author who knows
+ * it ({@link #changePassword}), but a forgotten one cannot be recovered: {@link #reset} deletes every token, which the
+ * author can make again on the host.
  * <p>
  * Each book has one entry, named after its identifier, so moving or renaming its folder keeps it. Every read and
  * change reads the file afresh, so two windows of the app do not undo each other's changes, and every change writes
@@ -119,6 +121,38 @@ public final class Keychain {
         return true;
     }
 
+    /**
+     * Locks the keychain with {@code chosen} in place of {@code current}, if that is the right one, and leaves it
+     * unlocked with {@code chosen}. Every entry is encrypted again, with a new salt; the file is replaced in one step,
+     * so a failure leaves it locked by {@code current}. The caller keeps the arrays and may clear them.
+     *
+     * @return false if {@code current} is wrong
+     * @throws IllegalStateException if the keychain was never created
+     * @throws UncheckedIOException  if the file cannot be read, is damaged, or cannot be written
+     */
+    public synchronized boolean changePassword(char[] current, char[] chosen) {
+
+        if (!exists())
+            throw new IllegalStateException("There is no keychain to change: " + file);
+
+        Optional<KeyStore> store = read(current);
+        if (store.isEmpty())
+            return false;
+
+        char[] replacement = chosen.clone();
+        try {
+            reencrypt(store.get(), current, replacement);
+            write(store.get(), replacement);
+        } catch (RuntimeException e) {
+            Arrays.fill(replacement, '\0');
+            throw e;
+        }
+
+        lock();
+        password = replacement;
+        return true;
+    }
+
     /** Forgets the master password, which the next token needed asks again. */
     public synchronized void lock() {
 
@@ -155,12 +189,9 @@ public final class Keychain {
     public synchronized void save(String book, Credentials credentials) {
 
         KeyStore store = current();
-        byte[] salt = new byte[SALT_LENGTH];
-        random.nextBytes(salt);
         SecretKeySpec secret = new SecretKeySpec(encoded(credentials), ENTRY_ALGORITHM);
         try {
-            store.setEntry(alias(book), new KeyStore.SecretKeyEntry(secret),
-                    new KeyStore.PasswordProtection(password, PROTECTION, new PBEParameterSpec(salt, iterations)));
+            store.setEntry(alias(book), new KeyStore.SecretKeyEntry(secret), protection(password));
         } catch (GeneralSecurityException e) {
             throw failure("Cannot keep the credentials of " + book, e);
         }
@@ -216,6 +247,27 @@ public final class Keychain {
         lock();
         throw new UncheckedIOException(new IOException("The keychain was changed in another window of Psiche; "
                 + "type its master password again"));
+    }
+
+    /** Encrypts every entry of {@code store} again, from {@code current} to {@code chosen}. */
+    private void reencrypt(KeyStore store, char[] current, char[] chosen) {
+
+        try {
+            for (String alias : Collections.list(store.aliases()))
+                store.setEntry(alias, store.getEntry(alias, new KeyStore.PasswordProtection(current)),
+                        protection(chosen));
+        } catch (GeneralSecurityException e) {
+            throw failure("Cannot lock the keychain with the new master password", e);
+        }
+    }
+
+    /** How an entry is encrypted with {@code masterPassword}: the app's algorithm and derivations, a new salt. */
+    private KeyStore.PasswordProtection protection(char[] masterPassword) {
+
+        byte[] salt = new byte[SALT_LENGTH];
+        random.nextBytes(salt);
+
+        return new KeyStore.PasswordProtection(masterPassword, PROTECTION, new PBEParameterSpec(salt, iterations));
     }
 
     /** The file read with {@code masterPassword}; empty if it is the wrong one. */
